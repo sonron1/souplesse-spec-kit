@@ -39,11 +39,11 @@
     "zod": "^3.21.4"
   },
   "dependencies": {
+    "@prisma/extension-accelerate": "^3.0.1",
     "bcryptjs": "^2.4.3",
     "libsodium-wrappers": "^0.8.2",
     "nuxt": "latest",
     "pino": "^8.21.0",
-    "pino-pretty": "^11.0.0",
-    "stripe": "^14.0.0"
+    "pino-pretty": "^11.0.0"
   }
 }

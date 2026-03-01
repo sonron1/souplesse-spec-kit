@@ -132,9 +132,11 @@ export async function handleWebhook(envelope: KkiapayWebhookEnvelopeType, rawPay
         data: {
           userId: paymentOrder.userId,
           subscriptionPlanId: paymentOrder.subscriptionPlanId,
-          startsAt,
-          expiresAt,
+          status: 'ACTIVE',
           isActive: true,
+          activationDate: now,
+          startsAt: now,
+          expiresAt,
         },
       })
     } catch (e) {

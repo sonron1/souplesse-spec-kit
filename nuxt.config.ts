@@ -27,10 +27,9 @@ export default defineNuxtConfig({
     // Private (server-only) keys
     jwtSecret: process.env.JWT_SECRET ?? '',
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? '',
+    kkiapayApiKey: process.env.KKIAPAY_API_KEY ?? '',
     kkiapaySecretKey: process.env.KKIAPAY_SECRET_KEY ?? '',
     kkiapayWebhookSecret: process.env.KKIAPAY_WEBHOOK_SECRET ?? '',
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
-    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
     databaseUrl: process.env.DATABASE_URL ?? '',
     // Public (exposed to client)
     public: {

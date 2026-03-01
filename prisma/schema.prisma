@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -30,23 +31,24 @@ enum UserRole {
 enum SubscriptionType {
   MONTHLY
   QUARTERLY
-  YEARLY
+  ANNUAL
 }
 
 enum SubscriptionStatus {
   PENDING
   ACTIVE
   EXPIRED
+  CANCELLED
 }
 
 enum PaymentStatus {
   PENDING
-  SUCCEEDED
+  CONFIRMED
   FAILED
 }
 
 enum BookingStatus {
-  BOOKED
+  CONFIRMED
   CANCELLED
   ATTENDED
 }
@@ -143,11 +145,11 @@ model Subscription {
   subscriptionPlanId String?
   type               SubscriptionType   @default(MONTHLY)
   status             SubscriptionStatus @default(PENDING)
-  startDate          DateTime?
-  endDate            DateTime?
-  // legacy fields kept for backward-compat
+  activationDate     DateTime?
   startsAt           DateTime?
   expiresAt          DateTime?
+  maxReports         Int?
+  partnerUserId      String?
   isActive           Boolean            @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
@@ -160,16 +162,16 @@ model Subscription {
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  userId            String
-  subscriptionId    String?
-  stripeSessionId   String?
-  amount            Int           // in smallest currency unit
-  currency          String        @default("XOF")
-  status            PaymentStatus @default(PENDING)
-  providerReference String?       @unique
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                   String        @id @default(uuid())
+  userId               String
+  subscriptionId       String?
+  amount               Int           // XOF integer per FR-012
+  currency             String        @default("XOF")
+  provider             String        @default("kkiapay")
+  kkiapayTransactionId String?       @unique
+  status               PaymentStatus @default(PENDING)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   user         User          @relation(fields: [userId], references: [id])
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
@@ -217,6 +219,7 @@ model Session {
   dateTime  DateTime
   duration  Int      // minutes
   capacity  Int
+  location  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -231,7 +234,7 @@ model Booking {
   id        String        @id @default(uuid())
   userId    String
   sessionId String
-  status    BookingStatus @default(BOOKED)
+  status    BookingStatus @default(CONFIRMED)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 

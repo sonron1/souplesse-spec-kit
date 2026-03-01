@@ -18,10 +18,10 @@ export const statsService = {
       prisma.user.count(),
       prisma.subscription.count({ where: { status: 'ACTIVE' } }),
       prisma.payment.aggregate({
-        where: { status: 'SUCCEEDED' },
+        where: { status: 'CONFIRMED' },
         _sum: { amount: true },
       }),
-      prisma.booking.count({ where: { status: 'BOOKED' } }),
+      prisma.booking.count({ where: { status: 'CONFIRMED' } }),
     ])
 
     const totalRevenue = revenueAgg._sum.amount ?? 0
@@ -31,7 +31,7 @@ export const statsService = {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
     const recentPayments = await prisma.payment.findMany({
-      where: { status: 'SUCCEEDED', createdAt: { gte: sixMonthsAgo } },
+      where: { status: 'CONFIRMED', createdAt: { gte: sixMonthsAgo } },
       select: { amount: true, createdAt: true },
     })
 

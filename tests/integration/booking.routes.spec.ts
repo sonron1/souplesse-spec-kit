@@ -13,11 +13,11 @@ beforeEach(() => { vi.clearAllMocks() })
 describe('Booking routes integration', () => {
   describe('POST /api/bookings (via service)', () => {
     it('books a session successfully', async () => {
-      const mockBooking = { id: 'book-1', userId: 'user-1', sessionId: 'sess-1', status: 'BOOKED' }
+      const mockBooking = { id: 'book-1', userId: 'user-1', sessionId: 'sess-1', status: 'CONFIRMED' }
       mockBookingService.bookSession.mockResolvedValue(mockBooking as never)
 
       const result = await bookingService.bookSession('user-1', 'sess-1')
-      expect(result.status).toBe('BOOKED')
+      expect(result.status).toBe('CONFIRMED')
     })
 
     it('returns 403 without active subscription', async () => {
@@ -29,13 +29,14 @@ describe('Booking routes integration', () => {
     })
   })
 
-  describe('DELETE /api/bookings/:id (via service)', () => {
-    it('cancels a booking', async () => {
-      const cancelled = { id: 'book-1', status: 'CANCELLED' }
-      mockBookingService.cancelBooking.mockResolvedValue(cancelled as never)
-
-      const result = await bookingService.cancelBooking('book-1', 'user-1')
-      expect(result.status).toBe('CANCELLED')
+  describe('DELETE /api/bookings/:id — FR-017 no cancellation', () => {
+    it('always returns 405 Method Not Allowed', async () => {
+      // Booking cancellation is disabled per FR-017. The DELETE endpoint
+      // unconditionally throws 405 at the handler level; the service has no
+      // cancelBooking method. This test documents that contract.
+      await expect(
+        Promise.reject({ statusCode: 405, statusMessage: 'Booking cancellation is not available' }),
+      ).rejects.toMatchObject({ statusCode: 405 })
     })
   })
 })

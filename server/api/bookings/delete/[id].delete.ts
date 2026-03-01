@@ -1,11 +1,13 @@
-import { defineEventHandler, getRouterParam, createError } from 'h3'
-import { requireAuth } from '../../../middleware/auth.middleware'
-import { bookingService } from '../../../services/booking.service'
+import { defineEventHandler, createError } from 'h3'
 
-export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
-  const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Booking ID required' })
-  const booking = await bookingService.cancelBooking(id, user.sub)
-  return { success: true, booking }
+/**
+ * DELETE /api/bookings/:id
+ * Cancellation is not available in v1 (FR-017).
+ * Confirmed bookings are final.
+ */
+export default defineEventHandler(async (_event) => {
+  throw createError({
+    statusCode: 405,
+    statusMessage: 'Booking cancellation is not available. Confirmed bookings are final.',
+  })
 })

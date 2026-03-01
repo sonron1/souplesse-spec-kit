@@ -1,98 +1,67 @@
 /**
- * Integration tests for Stripe payment webhook.
- * Verifies signature validation and idempotent processing.
+ * Integration tests for Kkiapay payment webhook.
+ * Verifies HMAC-SHA256 signature validation and idempotent processing.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { paymentService } from '../../server/services/payment.service'
-
-vi.mock('stripe', () => {
-  const mockStripe = {
-    webhooks: {
-      constructEvent: vi.fn(),
-    },
-  }
-  return { default: vi.fn(() => mockStripe) }
-})
+import { verifyWebhookSignature, handleWebhook } from '../../server/services/payments.service'
+import crypto from 'crypto'
 
 vi.mock('../../server/utils/prisma', () => ({
   default: {
-    payment: {
-      findFirst: vi.fn(),
-      upsert: vi.fn(),
-    },
+    transaction: { findUnique: vi.fn() },
+    paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
+    subscriptionPlan: { findUnique: vi.fn() },
+    subscription: { create: vi.fn() },
   },
 }))
-
-vi.mock('../../server/services/subscription.service', () => ({
-  subscriptionService: {
-    activateSubscription: vi.fn().mockResolvedValue({}),
-  },
-}))
-
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
-import Stripe from 'stripe'
-import { subscriptionService } from '../../server/services/subscription.service'
 import { prisma } from '../../server/utils/prisma'
-
 const mockPrisma = vi.mocked(prisma) as any
-const mockSubscription = vi.mocked(subscriptionService)
+
+const SECRET = 'test_webhook_secret'
+
+function makeSignature(body: string): string {
+  return crypto.createHmac('sha256', SECRET).update(body).digest('hex')
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.STRIPE_SECRET_KEY = 'sk_test_mock'
-  process.env.STRIPE_WEBHOOK_SECRET = 'whsec_mock'
+  process.env.KKIAPAY_WEBHOOK_SECRET = SECRET
 })
 
-const MOCK_SESSION: Partial<Stripe.Checkout.Session> = {
-  id: 'cs_test_abc',
-  amount_total: 5000,
-  currency: 'xof',
-  metadata: { userId: 'user-1', subscriptionId: 'sub-1', planId: 'plan-1' },
-}
-
-describe('handleStripeWebhook', () => {
-  it('throws 400 on invalid signature', async () => {
-    const stripe = new (Stripe as unknown as { new(key: string): Stripe })('sk_test_mock')
-    vi.mocked(stripe.webhooks.constructEvent).mockImplementation(() => {
-      throw new Error('Invalid signature')
-    })
-
-    await expect(
-      paymentService.handleStripeWebhook('raw', 'bad-sig')
-    ).rejects.toMatchObject({ statusCode: 400 })
+describe('verifyWebhookSignature', () => {
+  it('returns true for a valid HMAC-SHA256 signature', async () => {
+    const body = JSON.stringify({ event: 'payment.succeeded', data: { id: 'pay_1' } })
+    const sig = makeSignature(body)
+    const result = await verifyWebhookSignature(body, sig)
+    expect(result).toBe(true)
   })
 
-  it('activates subscription on checkout.session.completed', async () => {
-    const stripe = new (Stripe as unknown as { new(key: string): Stripe })('sk_test_mock')
-    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue({
-      type: 'checkout.session.completed',
-      id: 'evt_1',
-      data: { object: MOCK_SESSION },
-    } as unknown as Stripe.Event)
-
-    mockPrisma.payment.findFirst.mockResolvedValue(null)
-    mockPrisma.payment.upsert.mockResolvedValue({} as never)
-
-    await paymentService.handleStripeWebhook('raw', 'sig')
-    expect(mockSubscription.activateSubscription).toHaveBeenCalledWith('sub-1')
+  it('returns false for an invalid signature', async () => {
+    const body = JSON.stringify({ event: 'payment.succeeded', data: { id: 'pay_1' } })
+    const result = await verifyWebhookSignature(body, 'bad-sig')
+    expect(result).toBe(false)
   })
 
-  it('is idempotent — does not re-activate if already SUCCEEDED', async () => {
-    const stripe = new (Stripe as unknown as { new(key: string): Stripe })('sk_test_mock')
-    vi.mocked(stripe.webhooks.constructEvent).mockReturnValue({
-      type: 'checkout.session.completed',
-      id: 'evt_2',
-      data: { object: MOCK_SESSION },
-    } as unknown as Stripe.Event)
+  it('returns false when no signature provided', async () => {
+    const body = JSON.stringify({ event: 'payment.succeeded', data: { id: 'pay_1' } })
+    const result = await verifyWebhookSignature(body, undefined)
+    expect(result).toBe(false)
+  })
+})
 
-    mockPrisma.payment.findFirst.mockResolvedValue({ status: 'SUCCEEDED' } as never)
-    mockPrisma.payment.upsert.mockResolvedValue({} as never)
+describe('handleWebhook — idempotency', () => {
+  it('ignores duplicate paymentId (idempotent)', async () => {
+    mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx-1', paymentId: 'pay_dup' } as never)
 
-    await paymentService.handleStripeWebhook('raw', 'sig')
-    // activateSubscription should NOT be called again because upsert + early return skips
-    // (depending on idempotency logic in service)
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_dup', reference: 'order-1', amount: 5000, currency: 'XOF', status: 'success' },
+    }
+    const result = await handleWebhook(envelope as any, envelope)
+    expect(result).toMatchObject({ ignored: true })
   })
 })

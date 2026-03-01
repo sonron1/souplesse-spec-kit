@@ -1,6 +1,5 @@
-import { prisma } from '../utils/prisma'
+﻿import { prisma } from '../utils/prisma'
 import { Prisma } from '@prisma/client'
-import { sessionRepository } from '../repositories/session.repository'
 import { bookingRepository } from '../repositories/booking.repository'
 import { subscriptionService } from './subscription.service'
 import { createError } from 'h3'
@@ -18,9 +17,6 @@ const JS_DAY_TO_ENUM: Record<number, string> = {
   6: 'SATURDAY',
 }
 
-// Cancellations allowed up to this many hours before the session
-const CANCELLATION_WINDOW_HOURS = 2
-
 export const bookingService = {
   /**
    * Book a session slot for a user.
@@ -28,7 +24,8 @@ export const bookingService = {
    * Rules:
    * 1. User must have an active subscription.
    * 2. Session must exist and have capacity remaining.
-   * 3. User must not already have a BOOKED booking for this session.
+   * 3. User must not already have a CONFIRMED booking for this session.
+   * 4. Session must fall within BusinessHours for that day (FR-013).
    * Capacity check is done atomically via a DB transaction.
    */
   async bookSession(userId: string, sessionId: string): Promise<Booking> {
@@ -43,7 +40,7 @@ export const bookingService = {
 
     // 2. Check for duplicate booking
     const existing = await bookingRepository.findByUserAndSession(userId, sessionId)
-    if (existing && existing.status === 'BOOKED') {
+    if (existing && existing.status === 'CONFIRMED') {
       throw createError({
         statusCode: 409,
         statusMessage: 'You already have a booking for this session',
@@ -57,7 +54,7 @@ export const bookingService = {
         throw createError({ statusCode: 404, statusMessage: 'Session not found' })
       }
 
-      const booked = await tx.booking.count({ where: { sessionId, status: 'BOOKED' } })
+      const booked = await tx.booking.count({ where: { sessionId, status: 'CONFIRMED' } })
       if (booked >= session.capacity) {
         throw createError({ statusCode: 409, statusMessage: 'Session is fully booked' })
       }
@@ -68,12 +65,11 @@ export const bookingService = {
         where: { dayOfWeek: dayEnum as any },
       })
       if (hours) {
-        // Session time as "HH:MM" string in local server time — sessions stored UTC
         const sessionTime = session.dateTime.toTimeString().slice(0, 5)
         if (sessionTime < hours.openTime || sessionTime >= hours.closeTime) {
           throw createError({
             statusCode: 422,
-            statusMessage: `Session is outside business hours (${hours.openTime}–${hours.closeTime})`,
+            statusMessage: `Session is outside business hours (${hours.openTime}â€“${hours.closeTime})`,
           })
         }
       }
@@ -83,48 +79,5 @@ export const bookingService = {
 
     logger.info({ bookingId: booking.id, userId, sessionId }, 'Session booked')
     return booking
-  },
-
-  /**
-   * Cancel a booking.
-   *
-   * Rules:
-   * 1. Only the booking owner can cancel.
-   * 2. Cancellation is only allowed within the window before the session.
-   */
-  async cancelBooking(bookingId: string, userId: string): Promise<Booking> {
-    const booking = await bookingRepository.findById(bookingId)
-
-    if (!booking) {
-      throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
-    }
-    if (booking.userId !== userId) {
-      throw createError({ statusCode: 403, statusMessage: 'Not your booking' })
-    }
-    if (booking.status === 'CANCELLED') {
-      throw createError({ statusCode: 409, statusMessage: 'Booking is already cancelled' })
-    }
-
-    // Cancellation window check
-    const session = await sessionRepository.findById(booking.sessionId)
-    if (session) {
-      const now = new Date()
-      const windowMs = CANCELLATION_WINDOW_HOURS * 60 * 60 * 1000
-      if (session.dateTime.getTime() - now.getTime() < windowMs) {
-        throw createError({
-          statusCode: 422,
-          statusMessage: `Cancellation not allowed within ${CANCELLATION_WINDOW_HOURS} hours of the session`,
-        })
-      }
-    }
-
-    const cancelled = await bookingRepository.cancel(bookingId)
-    logger.info({ bookingId, userId }, 'Booking cancelled')
-    return cancelled
-  },
-
-  /** List all bookings for a user. */
-  async getUserBookings(userId: string): Promise<Booking[]> {
-    return bookingRepository.findByUser(userId)
   },
 }

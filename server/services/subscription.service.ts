@@ -1,4 +1,4 @@
-import { prisma } from '../utils/prisma'
+﻿import { prisma } from '../utils/prisma'
 import { createError } from 'h3'
 import logger from '../utils/logger'
 import type { Subscription } from '.prisma/client'
@@ -10,7 +10,7 @@ export const subscriptionService = {
   async createSubscription(
     userId: string,
     planId: string,
-    type: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' = 'MONTHLY'
+    type: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' = 'MONTHLY'
   ): Promise<Subscription> {
     // Verify plan exists and is active
     const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } })
@@ -34,7 +34,8 @@ export const subscriptionService = {
 
   /**
    * Activate a subscription after payment webhook confirms success.
-   * Idempotent — safe to call multiple times with the same subscriptionId.
+   * Idempotent â€” safe to call multiple times with the same subscriptionId.
+   * Copies maxReports from the plan at activation time.
    */
   async activateSubscription(subscriptionId: string): Promise<Subscription> {
     const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
@@ -43,23 +44,28 @@ export const subscriptionService = {
     }
 
     if (sub.status === 'ACTIVE') {
-      return sub // already active — idempotent
+      return sub // already active â€” idempotent
     }
 
     const now = new Date()
-    const planDays = await _getPlanValidityDays(sub.subscriptionPlanId)
-    const endDate = new Date(now)
-    endDate.setDate(endDate.getDate() + planDays)
+    const plan = sub.subscriptionPlanId
+      ? await prisma.subscriptionPlan.findUnique({ where: { id: sub.subscriptionPlanId } })
+      : null
+    const planDays = plan?.validityDays ?? 30
+    const planMaxReports = plan?.maxReports ?? 0
+
+    const expiresAt = new Date(now)
+    expiresAt.setDate(expiresAt.getDate() + planDays)
 
     const updated = await prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         status: 'ACTIVE',
         isActive: true,
-        startDate: now,
-        endDate,
+        activationDate: now,
         startsAt: now,
-        expiresAt: endDate,
+        expiresAt,
+        maxReports: planMaxReports,
       },
     })
 
@@ -68,14 +74,14 @@ export const subscriptionService = {
   },
 
   /**
-   * Expire subscriptions that have passed their end date.
+   * Expire subscriptions that have passed their expiry date.
    * Intended to be called by a scheduled job.
    */
   async expireSubscriptions(): Promise<number> {
     const { count } = await prisma.subscription.updateMany({
       where: {
         status: 'ACTIVE',
-        endDate: { lt: new Date() },
+        expiresAt: { lt: new Date() },
       },
       data: { status: 'EXPIRED', isActive: false },
     })
@@ -92,7 +98,7 @@ export const subscriptionService = {
       where: {
         userId,
         status: 'ACTIVE',
-        endDate: { gte: new Date() },
+        expiresAt: { gte: new Date() },
       },
     })
     return !!active
@@ -107,10 +113,4 @@ export const subscriptionService = {
       orderBy: { createdAt: 'desc' },
     })
   },
-}
-
-async function _getPlanValidityDays(planId: string | null): Promise<number> {
-  if (!planId) return 30
-  const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } })
-  return plan?.validityDays ?? 30
 }

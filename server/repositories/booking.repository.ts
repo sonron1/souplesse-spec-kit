@@ -21,8 +21,4 @@ export const bookingRepository = {
   async create(data: { userId: string; sessionId: string }): Promise<Booking> {
     return prisma.booking.create({ data })
   },
-
-  async cancel(id: string): Promise<Booking> {
-    return prisma.booking.update({ where: { id }, data: { status: 'CANCELLED' } })
-  },
 }

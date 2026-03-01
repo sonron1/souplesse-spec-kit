@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { bookingService } from '../../server/services/booking.service'
 
 vi.mock('../../server/utils/prisma', () => ({
@@ -20,12 +20,10 @@ vi.mock('../../server/utils/logger', () => ({
 import { prisma } from '../../server/utils/prisma'
 import { subscriptionService } from '../../server/services/subscription.service'
 import { bookingRepository } from '../../server/repositories/booking.repository'
-import { sessionRepository } from '../../server/repositories/session.repository'
 
 const mockPrisma = vi.mocked(prisma)
 const mockSubscription = vi.mocked(subscriptionService)
 const mockBookingRepo = vi.mocked(bookingRepository)
-const mockSessionRepo = vi.mocked(sessionRepository)
 
 const MOCK_SESSION = {
   id: 'sess-1',
@@ -41,7 +39,7 @@ const MOCK_BOOKING = {
   id: 'book-1',
   userId: 'user-1',
   sessionId: 'sess-1',
-  status: 'BOOKED' as const,
+  status: 'CONFIRMED' as const,
   createdAt: new Date(),
   updatedAt: new Date(),
 }
@@ -56,10 +54,11 @@ describe('bookingService.bookSession', () => {
       fn({
         session: { findUnique: vi.fn().mockResolvedValue(MOCK_SESSION) },
         booking: { count: vi.fn().mockResolvedValue(3), create: vi.fn().mockResolvedValue(MOCK_BOOKING) },
+        businessHours: { findFirst: vi.fn().mockResolvedValue(null) },
       } as never)
     )
     const result = await bookingService.bookSession('user-1', 'sess-1')
-    expect(result.status).toBe('BOOKED')
+    expect(result.status).toBe('CONFIRMED')
   })
 
   it('throws 403 if user has no active subscription', async () => {
@@ -95,7 +94,7 @@ describe('bookingService.bookSession', () => {
   })
 
   it('throws 422 if session is outside business hours (FR-013)', async () => {
-    // Session at 07:00 — before business opens at 08:00
+    // Session at 07:00 â€” before business opens at 08:00
     const earlySession = {
       ...MOCK_SESSION,
       dateTime: new Date('2026-03-02T07:00:00.000Z'), // Monday 07:00 UTC
@@ -117,35 +116,6 @@ describe('bookingService.bookSession', () => {
     )
 
     await expect(bookingService.bookSession('user-1', 'sess-1')).rejects.toMatchObject({
-      statusCode: 422,
-    })
-  })
-})
-
-describe('bookingService.cancelBooking', () => {
-  it('cancels a booking within the allowed window', async () => {
-    const farFutureSession = { ...MOCK_SESSION, dateTime: new Date(Date.now() + 48 * 60 * 60 * 1000) }
-    mockBookingRepo.findById.mockResolvedValue(MOCK_BOOKING)
-    mockSessionRepo.findById.mockResolvedValue(farFutureSession)
-    mockBookingRepo.cancel.mockResolvedValue({ ...MOCK_BOOKING, status: 'CANCELLED' })
-
-    const result = await bookingService.cancelBooking('book-1', 'user-1')
-    expect(result.status).toBe('CANCELLED')
-  })
-
-  it('throws 403 if user is not the booking owner', async () => {
-    mockBookingRepo.findById.mockResolvedValue(MOCK_BOOKING) // userId: user-1
-    await expect(bookingService.cancelBooking('book-1', 'other-user')).rejects.toMatchObject({
-      statusCode: 403,
-    })
-  })
-
-  it('throws 422 if cancellation window has passed', async () => {
-    const imminent = { ...MOCK_SESSION, dateTime: new Date(Date.now() + 30 * 60 * 1000) } // 30 min away
-    mockBookingRepo.findById.mockResolvedValue(MOCK_BOOKING)
-    mockSessionRepo.findById.mockResolvedValue(imminent)
-
-    await expect(bookingService.cancelBooking('book-1', 'user-1')).rejects.toMatchObject({
       statusCode: 422,
     })
   })
