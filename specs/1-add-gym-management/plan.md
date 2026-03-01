@@ -5,19 +5,19 @@
 
 **Note**: This plan follows the project's constitution and the implementation
 choices agreed in the feature request (Nuxt + Nitro, TypeScript strict, PostgreSQL,
-Prisma, Stripe, Vitest, Playwright).
+Prisma, Kkiapay SDK, Vitest, Playwright).
 
 ## Summary
 
 Deliver a production-ready web application for Souplesse Fitness enabling
 user management (Client/Coach/Admin), subscription purchases and secure
-payments (Stripe), session scheduling and booking, coach-managed training
-programs, progress tracking, and an admin dashboard with exports.
+payments (Kkiapay — exclusive provider in v1), session scheduling and booking,
+coach-managed training programs, progress tracking, and an admin dashboard with exports.
 
 ## Technical Context
 
 **Language/Version**: TypeScript (Node 18+ runtime via Nitro)
-**Primary Dependencies**: Nuxt 4.3.1, Nitro, Prisma, Stripe SDK, Zod, TailwindCSS
+**Primary Dependencies**: Nuxt 4.3.1, Nitro, Prisma, Kkiapay SDK, Zod, TailwindCSS
 **Storage**: PostgreSQL (managed or Dockerized)
 **Testing**: Vitest (unit/integration), Playwright (E2E), Supertest for API
 **Target Platform**: Vercel (preview + production) for frontend and Nitro server
@@ -44,12 +44,12 @@ Any deviations from these gates must be documented in Complexity Tracking below.
 ```text
 specs/1-add-gym-management/
 ├── plan.md
-├── research.md
-├── data-model.md
+├── research.md          # deferred — not created in v1
+├── data-model.md        # deferred — not created in v1
 ├── quickstart.md
 ├── contracts/
-│   ├── payment-webhook.md
-│   └── booking-api.md
+│   ├── payment-webhook.md   # deferred — not created in v1
+│   └── booking-api.md       # deferred — not created in v1
 └── tasks.md    # created in Phase 2 via /speckit.tasks
 ```
 
@@ -76,7 +76,18 @@ logic under `server/` as required by the constitution.
 
 ## Complexity Tracking
 
-No constitution violations identified. If a future decision requires a
-violation (e.g., temporarily allowing `any`), it must include justification
-and a migration plan.
+### Documented `any` Exceptions (Constitution I — requires justification)
+
+| Location | Usage | Justification | Removal Target |
+|---|---|---|---|
+| `server/utils/jwt.ts` | `expiresIn: env as any` | `jsonwebtoken` v9 overload types do not accept a generic `string`; type-safe signature requires `StringValue` from `ms` pkg | Upgrade `@types/jsonwebtoken` or replace with `jose` library |
+| `tests/**/*.spec.ts` | `vi.mocked(prisma) as any` | Prisma Client method types (`findUnique`, etc.) are not preserved through Vitest's `vi.mocked` without a complex generic helper | Add a typed `createMockPrisma()` factory in `tests/helpers/` when test infra is stabilized |
+| `tests/**/*.spec.ts` | `$transaction` mock fn typed `(tx: any) => any` | `Prisma.TransactionClient` is not re-exported by Vitest mock boundary | Same resolution as above |
+
+### Payment Provider Change
+
+Spec clarification (2026-03-01) establishes **Kkiapay** as the exclusive payment provider in v1.
+Stripe SDK and all Stripe-specific references previously in this plan have been replaced.
+Any implementation artifact still referencing Stripe (imports, env vars, tests) must be
+updated before the feature is merged.
 

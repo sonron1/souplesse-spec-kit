@@ -7,6 +7,17 @@ import { createError } from 'h3'
 import logger from '../utils/logger'
 import type { Booking } from '.prisma/client'
 
+/** Maps JavaScript Date.getDay() (0=Sun) to Prisma DayOfWeek enum values */
+const JS_DAY_TO_ENUM: Record<number, string> = {
+  0: 'SUNDAY',
+  1: 'MONDAY',
+  2: 'TUESDAY',
+  3: 'WEDNESDAY',
+  4: 'THURSDAY',
+  5: 'FRIDAY',
+  6: 'SATURDAY',
+}
+
 // Cancellations allowed up to this many hours before the session
 const CANCELLATION_WINDOW_HOURS = 2
 
@@ -49,6 +60,22 @@ export const bookingService = {
       const booked = await tx.booking.count({ where: { sessionId, status: 'BOOKED' } })
       if (booked >= session.capacity) {
         throw createError({ statusCode: 409, statusMessage: 'Session is fully booked' })
+      }
+
+      // 4. BusinessHours validation (FR-013)
+      const dayEnum = JS_DAY_TO_ENUM[session.dateTime.getDay()]
+      const hours = await tx.businessHours.findFirst({
+        where: { dayOfWeek: dayEnum as any },
+      })
+      if (hours) {
+        // Session time as "HH:MM" string in local server time — sessions stored UTC
+        const sessionTime = session.dateTime.toTimeString().slice(0, 5)
+        if (sessionTime < hours.openTime || sessionTime >= hours.closeTime) {
+          throw createError({
+            statusCode: 422,
+            statusMessage: `Session is outside business hours (${hours.openTime}–${hours.closeTime})`,
+          })
+        }
       }
 
       return tx.booking.create({ data: { userId, sessionId } })

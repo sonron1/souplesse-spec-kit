@@ -7,9 +7,20 @@ import type { CreateProgramInput, UpdateProgramInput } from '../validators/progr
 export const programService = {
   /**
    * Create a personalized program for a client.
-   * Only coaches (and admins) may create programs.
+   * Only a coach explicitly assigned to the client by an admin may create programs.
    */
   async createProgram(coachId: string, input: CreateProgramInput): Promise<Program> {
+    // Assignment check (FR-008): only assigned coaches may create programs
+    const assignment = await prisma.coachClientAssignment.findUnique({
+      where: { coachId_clientId: { coachId, clientId: input.clientId } },
+    })
+    if (!assignment) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You are not assigned to this client',
+      })
+    }
+
     const program = await prisma.program.create({
       data: {
         coachId,
@@ -23,7 +34,7 @@ export const programService = {
   },
 
   /**
-   * Update a program — only the coach who created it may edit.
+   * Update a program — only the assigned coach who created it may edit.
    */
   async updateProgram(programId: string, coachId: string, input: UpdateProgramInput): Promise<Program> {
     const program = await prisma.program.findUnique({ where: { id: programId } })
@@ -32,6 +43,17 @@ export const programService = {
     }
     if (program.coachId !== coachId) {
       throw createError({ statusCode: 403, statusMessage: 'Only the assigned coach may edit this program' })
+    }
+
+    // Verify assignment still exists (admin may have revoked it)
+    const assignment = await prisma.coachClientAssignment.findUnique({
+      where: { coachId_clientId: { coachId, clientId: program.clientId } },
+    })
+    if (!assignment) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Your assignment to this client has been revoked',
+      })
     }
 
     const updated = await prisma.program.update({

@@ -18,6 +18,7 @@ description: "Task list for Souplesse Fitness - Gym Management"
 ## Phase 2: Foundational (Database, Infra, Shared Middleware)
 
 - [x] T007 Create initial Prisma schema in `prisma/schema.prisma` with UUID default generator placeholder
+- [x] T007a Add `PlanType` enum to `prisma/schema.prisma` (MONTHLY | QUARTERLY | ANNUAL | COUPLE_MONTHLY | COUPLE_QUARTERLY | COUPLE_ANNUAL) and apply to `SubscriptionPlan.planType` field; update Zod plan validators to accept only allowed enum values
 - [x] T008 [P] Add Docker Compose for Postgres in `docker-compose.yml` and `.env.example` with `DATABASE_URL`
 - [x] T009 Run first migration and generate Prisma client (note: creates `prisma/migrations/`)
 - [x] T00A [P] Implement centralized logger at `server/utils/logger.ts` (pino)
@@ -44,14 +45,14 @@ description: "Task list for Souplesse Fitness - Gym Management"
 ### API Endpoints & Validation
 
 - [x] T015 [US1] Add auth API routes: `server/api/auth/register.post.ts`, `server/api/auth/login.post.ts`, `server/api/auth/refresh.post.ts`, `server/api/auth/logout.post.ts` (use Zod validators in `server/validators/auth.schemas.ts`)
-- [x] T016 [US1] Add payment endpoints: `server/api/payments/create-session.post.ts` and `server/api/payments/webhook.post.ts` (webhook verifies Stripe signature)
+- [x] T016 [US1] Add payment endpoints: `server/api/payments/create-session.post.ts` and `server/api/payments/kkiapay.webhook.ts` (webhook verifies Kkiapay HMAC signature)
 
 ### Tests
 
 - [x] T017 [US1] Unit tests for `auth.service.ts` in `tests/unit/auth.service.spec.ts` (coverage: 100% for auth)
 - [x] T018 [US1] Integration tests for auth routes in `tests/integration/auth.routes.spec.ts`
-- [x] T019 [US1] Unit tests for payment/webhook behavior in `tests/unit/payment.service.spec.ts` (mock Stripe)
-- [x] T01A [US1] Integration test for payments webhook in `tests/integration/payments.webhook.spec.ts` (signature validation + idempotence)
+- [x] T019 [US1] Unit tests for payment/webhook behavior in `tests/unit/payment.service.spec.ts` (mock Kkiapay SDK)
+- [x] T01A [US1] Integration test for payments webhook in `tests/integration/payments.webhook.spec.ts` (Kkiapay HMAC signature validation + idempotence)
 - [x] T01B [US1] E2E test for signup → purchase → activation in `tests/e2e/payment-and-activation.spec.ts`
 
 ## Phase 4: User Story 2 - Booking Flow (Priority: P1)
@@ -65,15 +66,16 @@ description: "Task list for Souplesse Fitness - Gym Management"
 ### Repositories & Services
 
 - [x] T01D [P] Implement `server/repositories/session.repository.ts` and `server/repositories/booking.repository.ts`
-- [x] T01E [US2] Implement `server/services/booking.service.ts` with: check active subscription, atomic capacity check (DB transaction/locking), prevent double booking, controlled cancellation
+- [x] T01E [US2] Implement `server/services/booking.service.ts` with: check active subscription, atomic capacity check (DB transaction/locking), prevent double booking, BusinessHours validation (FR-013)
 
 ### API Endpoints & Validation
 
 - [x] T01F [US2] Create `server/api/sessions/get.ts` (list with pagination) and `server/api/sessions/post.ts` (create session - coach/admin)
-- [x] T01G [US2] Create booking endpoints: `server/api/bookings/post.ts`, `server/api/bookings/delete/[id].delete.ts` with validators in `server/validators/booking.schemas.ts`
+- [x] T01G [US2] Create booking endpoint: `server/api/bookings/post.ts` with validators in `server/validators/booking.schemas.ts`; no user-facing cancellation endpoint in v1 (FR-017 — bookings are final)
 
 ### Tests
 
+- [x] T01Ga [US2] Add BusinessHours validation to `server/services/booking.service.ts`: reject booking if session dateTime falls outside `BusinessHours` for that dayOfWeek (FR-013); add unit test case in `tests/unit/booking.service.spec.ts`
 - [x] T01H [US2] Unit tests for `booking.service.ts` in `tests/unit/booking.service.spec.ts` (capacity, double-booking)
 - [x] T01I [US2] Integration tests for booking routes in `tests/integration/booking.routes.spec.ts`
 - [x] T01J [US2] E2E booking flow test in `tests/e2e/booking.spec.ts`
@@ -85,10 +87,12 @@ description: "Task list for Souplesse Fitness - Gym Management"
 ### Models & Schema
 
 - [x] T01K [P] Add `Program` model to `prisma/schema.prisma` (content JSON)
+- [x] T01Ka [P] Add `CoachClientAssignment` model to `prisma/schema.prisma` with unique on (coachId, clientId); add admin-only API endpoints `server/api/admin/assignments.post.ts` and `server/api/admin/assignments.delete.ts`
 
 ### Services & API
 
 - [x] T01L [US3] Implement `server/services/program.service.ts` with `createProgram()`, `updateProgram()`, `getProgramsByClient()` enforcing coach ownership
+- [x] T01Lb [US3] Add assignment check to `program.service.ts`: before create/update, verify a `CoachClientAssignment` row exists for (coachId, clientId); return 403 if not found
 - [x] T01M [US3] Add routes in `server/api/programs/*` and validators in `server/validators/program.schemas.ts`
 
 ### Tests
@@ -133,7 +137,9 @@ description: "Task list for Souplesse Fitness - Gym Management"
 
 ## Phase N: Polish & Cross-Cutting Concerns
 
-- [x] T0205 [P] Documentation updates: update `README.md`, `specs/1-add-gym-management/quickstart.md`, and add JSDoc in `server/services/*`
+> **Deferred items (v2)**: FR-016 (couple subscription linkage — `partnerUserId` field exists in schema but no service logic or API endpoint targets it in v1); FR-017 cancellation event logging (FR-011) deferred alongside cancellation feature.
+
+- [x] T0205 [P] Documentation updates: update `README.md`, `specs/1-add-gym-management/quickstart.md`, and add JSDoc to all `server/services/*.ts` files (constitution requirement: JSDoc REQUIRED for critical services)
 - [x] T0206 [P] Code cleanup and refactoring per ESLint autofix in `scripts/ci/lint-fix.sh`
 
 ## Dependencies & Execution Order

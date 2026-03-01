@@ -56,6 +56,15 @@ enum ProgramType {
   LOSS
 }
 
+enum PlanType {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  COUPLE_MONTHLY
+  COUPLE_QUARTERLY
+  COUPLE_ANNUAL
+}
+
 // ---------------------------------------------------------------------------
 // Core User Model
 // ---------------------------------------------------------------------------
@@ -73,9 +82,11 @@ model User {
   subscriptions Subscription[]
   payments      Payment[]
   bookings      Booking[]
-  coachSessions Session[]  @relation("CoachSessions")
-  coachPrograms Program[]  @relation("CoachPrograms")
-  clientPrograms Program[] @relation("ClientPrograms")
+  coachSessions  Session[]   @relation("CoachSessions")
+  coachPrograms  Program[]   @relation("CoachPrograms")
+  clientPrograms Program[]   @relation("ClientPrograms")
+  coachAssignments  CoachClientAssignment[] @relation("CoachAssignments")
+  clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
 
   @@index([email])
 }
@@ -107,8 +118,9 @@ model BusinessHours {
 }
 
 model SubscriptionPlan {
-  id           String  @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
+  planType     PlanType
   priceSingle  Int
   priceCouple  Int?
   validityDays Int
@@ -249,4 +261,22 @@ model Program {
 
   @@index([clientId])
   @@index([coachId])
+}
+
+// ---------------------------------------------------------------------------
+// Coach-Client Assignment (US3)
+// ---------------------------------------------------------------------------
+
+model CoachClientAssignment {
+  id         String   @id @default(uuid())
+  coachId    String
+  clientId   String
+  assignedAt DateTime @default(now())
+
+  coach  User @relation("CoachAssignments", fields: [coachId], references: [id])
+  client User @relation("ClientAssignments", fields: [clientId], references: [id])
+
+  @@unique([coachId, clientId])
+  @@index([coachId])
+  @@index([clientId])
 }

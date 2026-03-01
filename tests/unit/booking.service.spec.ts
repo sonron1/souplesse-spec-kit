@@ -6,6 +6,7 @@ vi.mock('../../server/utils/prisma', () => ({
     $transaction: vi.fn(),
     session: { findUnique: vi.fn() },
     booking: { count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+    businessHours: { findFirst: vi.fn() },
   },
 }))
 
@@ -90,6 +91,33 @@ describe('bookingService.bookSession', () => {
 
     await expect(bookingService.bookSession('user-1', 'sess-1')).rejects.toMatchObject({
       statusCode: 409,
+    })
+  })
+
+  it('throws 422 if session is outside business hours (FR-013)', async () => {
+    // Session at 07:00 — before business opens at 08:00
+    const earlySession = {
+      ...MOCK_SESSION,
+      dateTime: new Date('2026-03-02T07:00:00.000Z'), // Monday 07:00 UTC
+    }
+    mockSubscription.hasActiveSubscription.mockResolvedValue(true)
+    mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
+      fn({
+        session: { findUnique: vi.fn().mockResolvedValue(earlySession) },
+        booking: { count: vi.fn().mockResolvedValue(0) },
+        businessHours: {
+          findFirst: vi.fn().mockResolvedValue({
+            dayOfWeek: 'MONDAY',
+            openTime: '08:00',
+            closeTime: '20:00',
+          }),
+        },
+      } as never)
+    )
+
+    await expect(bookingService.bookSession('user-1', 'sess-1')).rejects.toMatchObject({
+      statusCode: 422,
     })
   })
 })

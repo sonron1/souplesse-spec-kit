@@ -1,5 +1,16 @@
 import { z } from 'zod'
 
+export const PlanTypeSchema = z.enum([
+  'MONTHLY',
+  'QUARTERLY',
+  'ANNUAL',
+  'COUPLE_MONTHLY',
+  'COUPLE_QUARTERLY',
+  'COUPLE_ANNUAL',
+])
+
+export type PlanType = z.infer<typeof PlanTypeSchema>
+
 export const OpeningPeriodSchema = z.object({
   open: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format HH:mm'),
   close: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format HH:mm'),
@@ -13,6 +24,7 @@ export const OpeningHoursSchema = z.object({
 
 export const SubscriptionPlanSchema = z.object({
   name: z.string(),
+  planType: PlanTypeSchema,
   priceSingle: z.number().int(),
   priceCouple: z.number().int().nullable(),
   validityDays: z.number().int(),
