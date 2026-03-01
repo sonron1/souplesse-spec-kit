@@ -163,7 +163,7 @@ description: "Task list for Souplesse Fitness - Gym Management"
 
 ## Summary / Metrics
 
-- Total tasks: 44 (approx)
+- Total tasks: 48 (44 original + 4 added post-analysis: T007a, T01Ga, T01Ka, T01Lb)
 - US1 tasks: 12
 - US2 tasks: 9
 - US3 tasks: 6

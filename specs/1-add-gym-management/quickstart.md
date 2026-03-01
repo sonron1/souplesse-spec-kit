@@ -19,8 +19,8 @@ Key variables:
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
 | `JWT_SECRET` | ✅ | Min 32 chars, random |
 | `JWT_REFRESH_SECRET` | ✅ | Min 32 chars, random |
-| `STRIPE_SECRET_KEY` | ✅ | From Stripe dashboard |
-| `STRIPE_WEBHOOK_SECRET` | ✅ | From Stripe webhook settings |
+| `KKIAPAY_API_KEY` | ✅ | From Kkiapay dashboard |
+| `KKIAPAY_WEBHOOK_SECRET` | ✅ | From Kkiapay webhook settings |
 
 ## 2. Start Local Database
 
@@ -54,10 +54,13 @@ npm run dev
 | `POST /api/auth/logout` | Authenticated | Logout |
 | `GET /api/sessions` | Public | List training sessions |
 | `POST /api/sessions` | Coach/Admin | Create a session |
-| `POST /api/bookings` | Authenticated (Active sub) | Book a session |
-| `DELETE /api/bookings/delete/:id` | Authenticated (Owner) | Cancel booking |
+| `POST /api/bookings` | Authenticated (Active sub) | Book a session (bookings are final — no cancellation in v1) |
 | `GET /api/admin/stats` | Admin | Dashboard stats |
+| `GET /api/admin/users` | Admin | List all users |
+| `GET /api/admin/payments` | Admin | List all payments |
 | `GET /api/admin/export` | Admin | CSV export |
+| `POST /api/admin/assignments` | Admin | Assign a coach to a client |
+| `DELETE /api/admin/assignments` | Admin | Remove a coach-client assignment |
 
 ## 6. Running Tests
 
@@ -68,13 +71,13 @@ npm run test:coverage # with coverage report
 
 Coverage thresholds: 80% global, 100% for auth and payments.
 
-## 7. Payment Flow (Stripe)
+## 7. Payment Flow (Kkiapay)
 
 1. User registers → logs in
-2. `POST /api/payments/create-session` — creates Stripe Checkout session
-3. User completes payment on Stripe hosted page
-4. Stripe sends `checkout.session.completed` webhook to `POST /api/payments/webhook`
-5. Webhook verifies signature → activates subscription
+2. `POST /api/payments/create-session` — initiates Kkiapay payment session
+3. User completes payment on Kkiapay hosted page
+4. Kkiapay sends a payment confirmation webhook to `POST /api/payments/kkiapay-webhook`
+5. Webhook verifies HMAC-SHA256 signature → activates subscription (idempotent — duplicate webhooks are safe)
 
 ## 8. User Roles
 
