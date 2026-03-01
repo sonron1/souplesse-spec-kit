@@ -3,15 +3,63 @@ import type { Serialize, Simplify } from "nitropack/types";
 declare module "nitropack/types" {
   type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T
   interface InternalApi {
+    '/api/admin/assignments': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/assignments.delete').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/assignments.post').default>>>>
+    }
+    '/api/admin/export': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/export.get').default>>>>
+    }
+    '/api/admin/payments': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/payments.get').default>>>>
+    }
     '/api/admin/settings': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/settings.get').default>>>>
       'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/settings.put').default>>>>
+    }
+    '/api/admin/stats': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/stats.get').default>>>>
+    }
+    '/api/admin/users': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/admin/users.get').default>>>>
+    }
+    '/api/auth/login': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/login.post').default>>>>
+    }
+    '/api/auth/logout': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/logout.post').default>>>>
+    }
+    '/api/auth/refresh': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/refresh.post').default>>>>
+    }
+    '/api/auth/register': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/register.post').default>>>>
+    }
+    '/api/bookings/delete/:id': {
+      'delete': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/bookings/delete/[id].delete').default>>>>
+    }
+    '/api/bookings': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/bookings/index.post').default>>>>
+    }
+    '/api/payments/create-session': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/payments/create-session.post').default>>>>
     }
     '/api/payments/kkiapay.create-order': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/payments/kkiapay.create-order').default>>>>
     }
     '/api/payments/kkiapay.webhook': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/payments/kkiapay.webhook').default>>>>
+    }
+    '/api/programs/:id': {
+      'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/programs/[id].put').default>>>>
+    }
+    '/api/programs': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/programs/index.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/programs/index.post').default>>>>
+    }
+    '/api/sessions': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/sessions/index.get').default>>>>
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/sessions/index.post').default>>>>
     }
     '/api/subscription-plans': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/subscription-plans.get').default>>>>

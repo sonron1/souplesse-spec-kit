@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
-import { requireCoach } from '../../middleware/role.middleware'
+import { requireCoach } from '../../utils/role'
 import { validateBody } from '../../validators/index'
 import { createSessionSchema } from '../../validators/booking.schemas'
 import { sessionRepository } from '../../repositories/session.repository'

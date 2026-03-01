@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
-import { requireAdmin } from '../../middleware/role.middleware'
+import { requireAdmin } from '../../utils/role'
 import { statsService } from '../../services/stats.service'
 
 export default defineEventHandler(async (event) => {

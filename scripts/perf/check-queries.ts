@@ -26,8 +26,8 @@ async function run() {
   // Simulate common dashboard queries
   await prisma.user.count()
   await prisma.subscription.count({ where: { status: 'ACTIVE' } })
-  await prisma.payment.aggregate({ where: { status: 'SUCCEEDED' }, _sum: { amount: true } })
-  await prisma.booking.count({ where: { status: 'BOOKED' } })
+  await prisma.payment.aggregate({ where: { status: 'CONFIRMED' }, _sum: { amount: true } })
+  await prisma.booking.count({ where: { status: 'CONFIRMED' } })
 
   await prisma.$disconnect()
 

@@ -3,10 +3,12 @@ import { Server } from 'node:http';
 import { resolve, dirname, join } from 'node:path';
 import crypto$1 from 'node:crypto';
 import { parentPort, threadId } from 'node:worker_threads';
-import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, appendResponseHeader, getRequestURL, getResponseHeader, removeResponseHeader, createError, getHeader, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, getRouterParam, useRawBody, getResponseStatusText } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/h3/dist/index.mjs';
+import { defineEventHandler, handleCacheHeaders, splitCookiesString, createEvent, fetchWithEvent, isEvent, eventHandler, setHeaders, sendRedirect, proxyRequest, getRequestHeader, setResponseHeaders, setResponseStatus, send, getRequestHeaders, setResponseHeader, appendResponseHeader, getRequestURL, getResponseHeader, removeResponseHeader, createError, getHeader, getRequestIP, getQuery as getQuery$1, readBody, createApp, createRouter as createRouter$1, toNodeListener, lazyEventHandler, getResponseStatus, getRouterParam, setHeader, readRawBody, getResponseStatusText } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/h3/dist/index.mjs';
 import { escapeHtml } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/@vue/shared/dist/shared.cjs.js';
 import { z } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/zod/index.js';
+import * as bcrypt from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/bcryptjs/index.js';
 import { PrismaClient } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/@prisma/client/default.js';
+import { withAccelerate } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/@prisma/extension-accelerate/dist/index.js';
 import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/vue-bundle-renderer/dist/runtime.mjs';
 import { parseURL, withoutBase, joinURL, getQuery, withQuery, withTrailingSlash, decodePath, withLeadingSlash, withoutTrailingSlash, joinRelativeURL } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/ufo/dist/index.mjs';
 import destr, { destr as destr$1 } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/destr/dist/index.mjs';
@@ -36,6 +38,7 @@ import { promises } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname as dirname$1, resolve as resolve$1 } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/pathe/dist/index.mjs';
 import jwt from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/jsonwebtoken/index.js';
+import pino from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/pino/pino.js';
 import { walkResolver } from 'file://C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/unhead/dist/utils.mjs';
 
 const serverAssets = [{"baseName":"server","dir":"C:/Users/Ange/Documents/Dev/souplesse-speckit/server/assets"}];
@@ -649,7 +652,16 @@ const _inlineRuntimeConfig = {
       }
     }
   },
-  "public": {}
+  "public": {
+    "appName": "Souplesse Fitness",
+    "apiBase": "/api"
+  },
+  "jwtSecret": "",
+  "jwtRefreshSecret": "",
+  "kkiapayApiKey": "",
+  "kkiapaySecretKey": "",
+  "kkiapayWebhookSecret": "test_webhook_secret",
+  "databaseUrl": "prisma+postgres://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza19RX2hIaDF3N2d6VHlEVWV3d0FPTmIiLCJhcGlfa2V5IjoiMDFLSk1IRzZKNTFFQlJTMTYzUlBaUFoyRzkiLCJ0ZW5hbnRfaWQiOiI5MzNlZTJhNjNlNWYxNmYzMmQyNTI1NDA0ZWFkNWZlZmNmOWRhZmQ4OTA4M2YzODM5M2ZhZWNhNDU0MDczZTFjIiwiaW50ZXJuYWxfc2VjcmV0IjoiNTZjZjE5MmEtNjFlNi00NzU2LTlmNTAtMTM0ZDIzMjBjODhkIn0.HRzRhLVum2ZsFSKTtMBpWs2k_GwGh0t2HhJf07uomf8"
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -2224,18 +2236,31 @@ const _H5yKyj = eventHandler((event) => {
   return readAsset(id);
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || "";
+function getSecret(key) {
+  const val = process.env[key];
+  if (!val) throw new Error(`${key} environment variable is not set`);
+  return val;
+}
+function signAccessToken(payload) {
+  var _a;
+  return jwt.sign({ ...payload, type: "access" }, getSecret("JWT_SECRET"), {
+    expiresIn: (_a = process.env.JWT_EXPIRES_IN) != null ? _a : "15m"
+  });
+}
+function signRefreshToken(payload) {
+  var _a;
+  return jwt.sign({ ...payload, type: "refresh" }, getSecret("JWT_REFRESH_SECRET"), {
+    expiresIn: (_a = process.env.JWT_REFRESH_EXPIRES_IN) != null ? _a : "7d"
+  });
+}
 function verifyJwt(token) {
-  if (!JWT_SECRET) throw new Error("JWT_SECRET is not set");
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    return payload;
-  } catch (err) {
-    throw err;
-  }
+  return jwt.verify(token, getSecret("JWT_SECRET"));
+}
+function verifyRefreshToken(token) {
+  return jwt.verify(token, getSecret("JWT_REFRESH_SECRET"));
 }
 
-async function requireAdmin(event) {
+async function requireAdmin$1(event) {
   var _a, _b, _c;
   const auth = ((_c = (_b = (_a = event.node) == null ? void 0 : _a.req) == null ? void 0 : _b.headers) == null ? void 0 : _c.authorization) || getHeader(event, "authorization");
   if (!auth || typeof auth !== "string" || !auth.startsWith("Bearer ")) {
@@ -2256,7 +2281,72 @@ async function requireAdmin(event) {
   return payload;
 }
 const _7nWmg3 = defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireAdmin$1(event);
+});
+
+var _a$1;
+const logger = pino({
+  level: (_a$1 = process.env.LOG_LEVEL) != null ? _a$1 : "debug" ,
+  transport: {
+    target: "pino-pretty",
+    options: {
+      colorize: true,
+      translateTime: "SYS:standard",
+      ignore: "pid,hostname"
+    }
+  } ,
+  redact: {
+    paths: [
+      "password",
+      "passwordHash",
+      "refreshToken",
+      "req.headers.authorization",
+      "body.password"
+    ],
+    remove: true
+  }
+});
+
+const _QYjLgM = defineEventHandler(async (event) => {
+  const authHeader = getHeader(event, "authorization");
+  if (!(authHeader == null ? void 0 : authHeader.startsWith("Bearer "))) {
+    return;
+  }
+  const token = authHeader.slice(7);
+  try {
+    const payload = verifyJwt(token);
+    event.context.user = payload;
+  } catch (err) {
+    logger.warn({ err }, "Invalid JWT in auth middleware");
+  }
+});
+function requireAuth(event) {
+  if (!event.context.user) {
+    throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
+  }
+  return event.context.user;
+}
+
+const store = /* @__PURE__ */ new Map();
+const _RD6x01 = defineEventHandler((event) => {
+  var _a;
+  const ip = (_a = getRequestIP(event)) != null ? _a : "unknown";
+  const key = `global:${ip}`;
+  const windowMs = 6e4;
+  const max = 200;
+  const now = Date.now();
+  let entry = store.get(key);
+  if (!entry || entry.resetAt <= now) {
+    entry = { count: 0, resetAt: now + windowMs };
+    store.set(key, entry);
+  }
+  entry.count++;
+  if (entry.count > max) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: "Too Many Requests"
+    });
+  }
 });
 
 const VueResolver = (_, value) => {
@@ -2618,20 +2708,58 @@ async function getIslandContext(event) {
 	return ctx;
 }
 
+const _lazy_glyRIl = () => Promise.resolve().then(function () { return assignments_delete$1; });
+const _lazy_lsHVFL = () => Promise.resolve().then(function () { return assignments_post$1; });
+const _lazy_JlGX9Z = () => Promise.resolve().then(function () { return export_get$1; });
+const _lazy_d17TXt = () => Promise.resolve().then(function () { return payments_get$1; });
 const _lazy_DTI8bw = () => Promise.resolve().then(function () { return settings_get$1; });
 const _lazy_cLy4wE = () => Promise.resolve().then(function () { return settings_put$1; });
+const _lazy_PsxJeP = () => Promise.resolve().then(function () { return stats_get$1; });
+const _lazy_oP3HCR = () => Promise.resolve().then(function () { return users_get$1; });
+const _lazy_SsXQ7F = () => Promise.resolve().then(function () { return login_post$1; });
+const _lazy_Us466z = () => Promise.resolve().then(function () { return logout_post$1; });
+const _lazy_bodVGT = () => Promise.resolve().then(function () { return refresh_post$1; });
+const _lazy_rymbJ9 = () => Promise.resolve().then(function () { return register_post$1; });
+const _lazy_PUvphF = () => Promise.resolve().then(function () { return _id__delete$1; });
+const _lazy_EholxB = () => Promise.resolve().then(function () { return index_post$5; });
+const _lazy_YY5aGE = () => Promise.resolve().then(function () { return createSession_post$1; });
 const _lazy_o6Uo7m = () => Promise.resolve().then(function () { return kkiapay_createOrder$1; });
 const _lazy_0yE3zX = () => Promise.resolve().then(function () { return kkiapay_webhook$1; });
+const _lazy_2r7Bsh = () => Promise.resolve().then(function () { return _id__put$1; });
+const _lazy_0BOsBP = () => Promise.resolve().then(function () { return index_get$3; });
+const _lazy_8jSMoR = () => Promise.resolve().then(function () { return index_post$3; });
+const _lazy_VYpIhU = () => Promise.resolve().then(function () { return index_get$1; });
+const _lazy_fld7G9 = () => Promise.resolve().then(function () { return index_post$1; });
 const _lazy_TjfAUk = () => Promise.resolve().then(function () { return subscriptionPlans_get$1; });
 const _lazy_X7k_pb = () => Promise.resolve().then(function () { return renderer$1; });
 
 const handlers = [
   { route: '', handler: _H5yKyj, lazy: false, middleware: true, method: undefined },
   { route: '', handler: _7nWmg3, lazy: false, middleware: true, method: undefined },
+  { route: '', handler: _QYjLgM, lazy: false, middleware: true, method: undefined },
+  { route: '', handler: _RD6x01, lazy: false, middleware: true, method: undefined },
+  { route: '/api/admin/assignments', handler: _lazy_glyRIl, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/admin/assignments', handler: _lazy_lsHVFL, lazy: true, middleware: false, method: "post" },
+  { route: '/api/admin/export', handler: _lazy_JlGX9Z, lazy: true, middleware: false, method: "get" },
+  { route: '/api/admin/payments', handler: _lazy_d17TXt, lazy: true, middleware: false, method: "get" },
   { route: '/api/admin/settings', handler: _lazy_DTI8bw, lazy: true, middleware: false, method: "get" },
   { route: '/api/admin/settings', handler: _lazy_cLy4wE, lazy: true, middleware: false, method: "put" },
+  { route: '/api/admin/stats', handler: _lazy_PsxJeP, lazy: true, middleware: false, method: "get" },
+  { route: '/api/admin/users', handler: _lazy_oP3HCR, lazy: true, middleware: false, method: "get" },
+  { route: '/api/auth/login', handler: _lazy_SsXQ7F, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/logout', handler: _lazy_Us466z, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/refresh', handler: _lazy_bodVGT, lazy: true, middleware: false, method: "post" },
+  { route: '/api/auth/register', handler: _lazy_rymbJ9, lazy: true, middleware: false, method: "post" },
+  { route: '/api/bookings/delete/:id', handler: _lazy_PUvphF, lazy: true, middleware: false, method: "delete" },
+  { route: '/api/bookings', handler: _lazy_EholxB, lazy: true, middleware: false, method: "post" },
+  { route: '/api/payments/create-session', handler: _lazy_YY5aGE, lazy: true, middleware: false, method: "post" },
   { route: '/api/payments/kkiapay.create-order', handler: _lazy_o6Uo7m, lazy: true, middleware: false, method: undefined },
   { route: '/api/payments/kkiapay.webhook', handler: _lazy_0yE3zX, lazy: true, middleware: false, method: undefined },
+  { route: '/api/programs/:id', handler: _lazy_2r7Bsh, lazy: true, middleware: false, method: "put" },
+  { route: '/api/programs', handler: _lazy_0BOsBP, lazy: true, middleware: false, method: "get" },
+  { route: '/api/programs', handler: _lazy_8jSMoR, lazy: true, middleware: false, method: "post" },
+  { route: '/api/sessions', handler: _lazy_VYpIhU, lazy: true, middleware: false, method: "get" },
+  { route: '/api/sessions', handler: _lazy_fld7G9, lazy: true, middleware: false, method: "post" },
   { route: '/api/subscription-plans', handler: _lazy_TjfAUk, lazy: true, middleware: false, method: "get" },
   { route: '/__nuxt_error', handler: _lazy_X7k_pb, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: _SxA8c9, lazy: false, middleware: false, method: undefined },
@@ -2975,7 +3103,201 @@ const styles$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: styles
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const prisma = new PrismaClient();
+var _a;
+const isAccelerate = ((_a = process.env.DATABASE_URL) != null ? _a : "").startsWith("prisma+");
+const base = new PrismaClient();
+const prisma = isAccelerate ? base.$extends(withAccelerate()) : base;
+
+const RemoveAssignmentSchema = z.object({
+  coachId: z.string().uuid(),
+  clientId: z.string().uuid()
+});
+const assignments_delete = defineEventHandler(async (event) => {
+  await requireAdmin$1(event);
+  const body = await readBody(event);
+  const parsed = RemoveAssignmentSchema.safeParse(body);
+  if (!parsed.success) {
+    throw createError({ statusCode: 400, statusMessage: "Invalid payload: coachId and clientId (UUID) required" });
+  }
+  const { coachId, clientId } = parsed.data;
+  const existing = await prisma.coachClientAssignment.findUnique({
+    where: { coachId_clientId: { coachId, clientId } }
+  });
+  if (!existing) {
+    throw createError({ statusCode: 404, statusMessage: "Assignment not found" });
+  }
+  await prisma.coachClientAssignment.delete({
+    where: { coachId_clientId: { coachId, clientId } }
+  });
+  logger.info({ coachId, clientId }, "Coach-client assignment removed");
+  return { ok: true };
+});
+
+const assignments_delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: assignments_delete
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const AssignCoachSchema = z.object({
+  coachId: z.string().uuid(),
+  clientId: z.string().uuid()
+});
+const assignments_post = defineEventHandler(async (event) => {
+  await requireAdmin$1(event);
+  const body = await readBody(event);
+  const parsed = AssignCoachSchema.safeParse(body);
+  if (!parsed.success) {
+    throw createError({ statusCode: 400, statusMessage: "Invalid payload: coachId and clientId (UUID) required" });
+  }
+  const { coachId, clientId } = parsed.data;
+  const [coach, client] = await Promise.all([
+    prisma.user.findUnique({ where: { id: coachId } }),
+    prisma.user.findUnique({ where: { id: clientId } })
+  ]);
+  if (!coach || coach.role !== "COACH") {
+    throw createError({ statusCode: 422, statusMessage: "coachId must reference a user with role COACH" });
+  }
+  if (!client || client.role !== "CLIENT") {
+    throw createError({ statusCode: 422, statusMessage: "clientId must reference a user with role CLIENT" });
+  }
+  const assignment = await prisma.coachClientAssignment.upsert({
+    where: { coachId_clientId: { coachId, clientId } },
+    create: { coachId, clientId },
+    update: {}
+    // no fields to change on a duplicate
+  });
+  logger.info({ assignmentId: assignment.id, coachId, clientId }, "Coach-client assignment created");
+  return { ok: true, assignment };
+});
+
+const assignments_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: assignments_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+function requireRole(user, ...roles) {
+  if (!roles.includes(user.role)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: `Forbidden. Required role: ${roles.join(" or ")}`
+    });
+  }
+}
+function requireAdmin(user) {
+  requireRole(user, "ADMIN");
+}
+function requireCoach(user) {
+  requireRole(user, "COACH", "ADMIN");
+}
+
+function toCsvRow(values) {
+  return values.map((v) => {
+    const s = v == null ? "" : String(v);
+    return `"${s.replace(/"/g, '""')}"`;
+  }).join(",");
+}
+const export_get = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  requireAdmin(user);
+  const payments = await prisma.payment.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { user: { select: { name: true, email: true } } }
+  });
+  const header = toCsvRow(["id", "user_name", "user_email", "amount", "currency", "status", "created_at"]);
+  const rows = payments.map(
+    (p) => {
+      var _a, _b;
+      return toCsvRow([
+        p.id,
+        (_a = p.user) == null ? void 0 : _a.name,
+        (_b = p.user) == null ? void 0 : _b.email,
+        p.amount,
+        p.currency,
+        p.status,
+        p.createdAt.toISOString()
+      ]);
+    }
+  );
+  const csv = [header, ...rows].join("\n");
+  setHeader(event, "Content-Type", "text/csv; charset=utf-8");
+  setHeader(event, "Content-Disposition", 'attachment; filename="payments-export.csv"');
+  return csv;
+});
+
+const export_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: export_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+class ValidationError extends Error {
+  constructor(error) {
+    super("Validation failed");
+    __publicField(this, "issues");
+    __publicField(this, "statusCode", 422);
+    this.name = "ValidationError";
+    this.issues = error.issues;
+  }
+  toJSON() {
+    return {
+      error: "Validation failed",
+      issues: this.issues.map((i) => ({
+        path: i.path.join("."),
+        message: i.message,
+        code: i.code
+      }))
+    };
+  }
+}
+async function validateBody(event, schema) {
+  const body = await readBody(event);
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    throw new ValidationError(result.error);
+  }
+  return result.data;
+}
+function validateQuery(event, schema) {
+  const query = getQuery$1(event);
+  const result = schema.safeParse(query);
+  if (!result.success) {
+    throw new ValidationError(result.error);
+  }
+  return result.data;
+}
+const uuidSchema = z.string().uuid();
+const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20)
+});
+const emailSchema = z.string().email().toLowerCase().trim();
+const passwordSchema = z.string().min(8, "Password must be at least 8 characters").max(128, "Password too long").regex(/[A-Z]/, "Password must contain at least one uppercase letter").regex(/[0-9]/, "Password must contain at least one digit");
+
+const payments_get = defineEventHandler(async (event) => {
+  var _a, _b;
+  const user = requireAuth(event);
+  requireAdmin(user);
+  const query = validateQuery(event, paginationSchema);
+  const page = (_a = query.page) != null ? _a : 1;
+  const limit = (_b = query.limit) != null ? _b : 20;
+  const [payments, total] = await Promise.all([
+    prisma.payment.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { id: true, name: true, email: true } } }
+    }),
+    prisma.payment.count()
+  ]);
+  return { success: true, payments, total, page, limit };
+});
+
+const payments_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: payments_get
+}, Symbol.toStringTag, { value: 'Module' }));
 
 async function getGymSettings() {
   const g = await prisma.gymSettings.findFirst();
@@ -3006,7 +3328,7 @@ async function upsertBusinessHours(entries) {
 }
 
 const settings_get = defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireAdmin$1(event);
   const gym = await getGymSettings();
   const hours = await getBusinessHours();
   const plans = await getSubscriptionPlans();
@@ -3018,6 +3340,14 @@ const settings_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
   default: settings_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const PlanTypeSchema = z.enum([
+  "MONTHLY",
+  "QUARTERLY",
+  "ANNUAL",
+  "COUPLE_MONTHLY",
+  "COUPLE_QUARTERLY",
+  "COUPLE_ANNUAL"
+]);
 const OpeningPeriodSchema = z.object({
   open: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format HH:mm"),
   close: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format HH:mm")
@@ -3029,6 +3359,7 @@ const OpeningHoursSchema = z.object({
 });
 const SubscriptionPlanSchema = z.object({
   name: z.string(),
+  planType: PlanTypeSchema,
   priceSingle: z.number().int(),
   priceCouple: z.number().int().nullable(),
   validityDays: z.number().int(),
@@ -3074,7 +3405,7 @@ const PayloadSchema = z.object({
   openingHours: OpeningHoursSchema
 });
 const settings_put = defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireAdmin$1(event);
   const body = await readBody(event);
   const parsed = PayloadSchema.safeParse(body);
   if (!parsed.success) {
@@ -3104,13 +3435,459 @@ const settings_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProp
   default: settings_put
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const CreateOrderBody = z.object({
-  subscriptionPlanId: z.string().uuid()
+const statsService = {
+  /**
+   * Compute dashboard aggregates.
+   * Uses Prisma aggregation queries to avoid N+1.
+   */
+  async getDashboardStats() {
+    var _a, _b;
+    const [totalUsers, activeSubscriptions, revenueAgg, totalBookings] = await Promise.all([
+      prisma.user.count(),
+      prisma.subscription.count({ where: { status: "ACTIVE" } }),
+      prisma.payment.aggregate({
+        where: { status: "CONFIRMED" },
+        _sum: { amount: true }
+      }),
+      prisma.booking.count({ where: { status: "CONFIRMED" } })
+    ]);
+    const totalRevenue = (_a = revenueAgg._sum.amount) != null ? _a : 0;
+    const sixMonthsAgo = /* @__PURE__ */ new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const recentPayments = await prisma.payment.findMany({
+      where: { status: "CONFIRMED", createdAt: { gte: sixMonthsAgo } },
+      select: { amount: true, createdAt: true }
+    });
+    const byMonth = {};
+    for (const p of recentPayments) {
+      const key = `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, "0")}`;
+      byMonth[key] = ((_b = byMonth[key]) != null ? _b : 0) + p.amount;
+    }
+    const revenueByMonth = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b)).map(([month, total]) => ({ month, total }));
+    return { totalUsers, activeSubscriptions, totalRevenue, totalBookings, revenueByMonth };
+  }
+};
+
+const stats_get = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  requireAdmin(user);
+  const stats = await statsService.getDashboardStats();
+  return { success: true, stats };
 });
-const KkiapayWebhookEnvelope = z.object({
-  event: z.string(),
-  data: z.record(z.any())
+
+const stats_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: stats_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const userRepository = {
+  /** Find a user by their unique ID. */
+  async findById(id) {
+    return prisma.user.findUnique({ where: { id } });
+  },
+  /** Find a user by their email address (case-insensitive lookup). */
+  async findByEmail(email) {
+    return prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() }
+    });
+  },
+  /** Create a new user. */
+  async create(data) {
+    var _a;
+    return prisma.user.create({
+      data: {
+        ...data,
+        email: data.email.toLowerCase().trim(),
+        role: (_a = data.role) != null ? _a : "CLIENT"
+      }
+    });
+  },
+  /** Update a user's mutable fields. */
+  async update(id, data) {
+    return prisma.user.update({ where: { id }, data });
+  },
+  /** Soft-invalidate the refresh token stored on the user. */
+  async clearRefreshToken(id) {
+    await prisma.user.update({ where: { id }, data: { refreshToken: null } });
+  },
+  /** List all users (admin use; add pagination if needed). */
+  async findAll(opts = {}) {
+    const { page = 1, limit = 20 } = opts;
+    return prisma.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" }
+    });
+  },
+  /** Count total users. */
+  async count() {
+    return prisma.user.count();
+  }
+};
+
+const users_get = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  requireAdmin(user);
+  const query = validateQuery(event, paginationSchema);
+  const [users, total] = await Promise.all([
+    userRepository.findAll({ page: query.page, limit: query.limit }),
+    userRepository.count()
+  ]);
+  const safeUsers = users.map(({ passwordHash: _ph, refreshToken: _rt, ...rest }) => rest);
+  return { success: true, users: safeUsers, total, page: query.page, limit: query.limit };
 });
+
+const users_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: users_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100).trim(),
+  email: emailSchema,
+  password: passwordSchema
+});
+const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Password is required")
+});
+const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, "Refresh token is required")
+});
+
+const BCRYPT_ROUNDS = 12;
+const authService = {
+  /**
+   * Register a new CLIENT user.
+   * Throws HTTP 409 if email already exists.
+   */
+  async register(input) {
+    const existing = await userRepository.findByEmail(input.email);
+    if (existing) {
+      throw createError({ statusCode: 409, statusMessage: "Email already registered" });
+    }
+    const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
+    const user = await userRepository.create({
+      name: input.name,
+      email: input.email,
+      passwordHash,
+      role: "CLIENT"
+    });
+    const tokens = await _issueTokens(user.id, user.email, user.role);
+    logger.info({ userId: user.id }, "User registered");
+    return { user: _safeUser(user), tokens };
+  },
+  /**
+   * Login with email + password.
+   * Throws HTTP 401 for invalid credentials.
+   */
+  async login(input) {
+    const user = await userRepository.findByEmail(input.email);
+    if (!user) {
+      throw createError({ statusCode: 401, statusMessage: "Invalid credentials" });
+    }
+    const valid = await bcrypt.compare(input.password, user.passwordHash);
+    if (!valid) {
+      throw createError({ statusCode: 401, statusMessage: "Invalid credentials" });
+    }
+    const tokens = await _issueTokens(user.id, user.email, user.role);
+    logger.info({ userId: user.id }, "User logged in");
+    return { user: _safeUser(user), tokens };
+  },
+  /**
+   * Refresh access+refresh token pair using a valid refresh token.
+   * Throws HTTP 401 if token is invalid or revoked.
+   */
+  async refreshToken(token) {
+    let payload;
+    try {
+      payload = verifyRefreshToken(token);
+    } catch {
+      throw createError({ statusCode: 401, statusMessage: "Invalid or expired refresh token" });
+    }
+    const user = await userRepository.findById(payload.sub);
+    if (!user || user.refreshToken !== token) {
+      throw createError({ statusCode: 401, statusMessage: "Refresh token revoked" });
+    }
+    const tokens = await _issueTokens(user.id, user.email, user.role);
+    return tokens;
+  },
+  /**
+   * Revoke the stored refresh token for the user (logout).
+   */
+  async logout(userId) {
+    await userRepository.clearRefreshToken(userId);
+    logger.info({ userId }, "User logged out");
+  }
+};
+async function _issueTokens(userId, email, role) {
+  const base = { sub: userId, email, role };
+  const accessToken = signAccessToken(base);
+  const refreshToken = signRefreshToken(base);
+  await userRepository.update(userId, { refreshToken });
+  return { accessToken, refreshToken };
+}
+function _safeUser(user) {
+  return { id: user.id, name: user.name, email: user.email, role: user.role };
+}
+
+const login_post = defineEventHandler(async (event) => {
+  const body = await validateBody(event, loginSchema);
+  const result = await authService.login(body);
+  return { success: true, ...result };
+});
+
+const login_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: login_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const logout_post = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  await authService.logout(user.sub);
+  return { success: true, message: "Logged out" };
+});
+
+const logout_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: logout_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const refresh_post = defineEventHandler(async (event) => {
+  const { refreshToken } = await validateBody(event, refreshTokenSchema);
+  const tokens = await authService.refreshToken(refreshToken);
+  return { success: true, tokens };
+});
+
+const refresh_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: refresh_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const register_post = defineEventHandler(async (event) => {
+  const body = await validateBody(event, registerSchema);
+  const result = await authService.register(body);
+  return { success: true, ...result };
+});
+
+const register_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: register_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const _id__delete = defineEventHandler(async (_event) => {
+  throw createError({
+    statusCode: 405,
+    statusMessage: "Booking cancellation is not available. Confirmed bookings are final."
+  });
+});
+
+const _id__delete$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _id__delete
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const createBookingSchema = z.object({
+  sessionId: uuidSchema
+});
+const listSessionsQuerySchema = paginationSchema.extend({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional()
+});
+const createSessionSchema$1 = z.object({
+  dateTime: z.string().datetime(),
+  duration: z.number().int().min(15).max(240),
+  capacity: z.number().int().min(1).max(200)
+});
+
+const bookingRepository = {
+  async findById(id) {
+    return prisma.booking.findUnique({ where: { id } });
+  },
+  async findByUserAndSession(userId, sessionId) {
+    return prisma.booking.findUnique({ where: { userId_sessionId: { userId, sessionId } } });
+  },
+  async findByUser(userId) {
+    return prisma.booking.findMany({
+      where: { userId },
+      include: { session: true },
+      orderBy: { createdAt: "desc" }
+    });
+  },
+  async create(data) {
+    return prisma.booking.create({ data });
+  }
+};
+
+const subscriptionService = {
+  /**
+   * Create a PENDING subscription for a user with a selected plan.
+   */
+  async createSubscription(userId, planId, type = "MONTHLY") {
+    const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    if (!plan || !plan.isActive) {
+      throw createError({ statusCode: 404, statusMessage: "Subscription plan not found" });
+    }
+    const subscription = await prisma.subscription.create({
+      data: {
+        userId,
+        subscriptionPlanId: planId,
+        type,
+        status: "PENDING",
+        isActive: false
+      }
+    });
+    logger.info({ subscriptionId: subscription.id, userId }, "Subscription created (PENDING)");
+    return subscription;
+  },
+  /**
+   * Activate a subscription after payment webhook confirms success.
+   * Idempotent â€” safe to call multiple times with the same subscriptionId.
+   * Copies maxReports from the plan at activation time.
+   */
+  async activateSubscription(subscriptionId) {
+    var _a, _b;
+    const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } });
+    if (!sub) {
+      throw createError({ statusCode: 404, statusMessage: "Subscription not found" });
+    }
+    if (sub.status === "ACTIVE") {
+      return sub;
+    }
+    const now = /* @__PURE__ */ new Date();
+    const plan = sub.subscriptionPlanId ? await prisma.subscriptionPlan.findUnique({ where: { id: sub.subscriptionPlanId } }) : null;
+    const planDays = (_a = plan == null ? void 0 : plan.validityDays) != null ? _a : 30;
+    const planMaxReports = (_b = plan == null ? void 0 : plan.maxReports) != null ? _b : 0;
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + planDays);
+    const updated = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: "ACTIVE",
+        isActive: true,
+        activationDate: now,
+        startsAt: now,
+        expiresAt,
+        maxReports: planMaxReports
+      }
+    });
+    logger.info({ subscriptionId, userId: sub.userId }, "Subscription activated");
+    return updated;
+  },
+  /**
+   * Expire subscriptions that have passed their expiry date.
+   * Intended to be called by a scheduled job.
+   */
+  async expireSubscriptions() {
+    const { count } = await prisma.subscription.updateMany({
+      where: {
+        status: "ACTIVE",
+        expiresAt: { lt: /* @__PURE__ */ new Date() }
+      },
+      data: { status: "EXPIRED", isActive: false }
+    });
+    if (count > 0) logger.info({ count }, "Subscriptions expired");
+    return count;
+  },
+  /**
+   * Check if a user has an active subscription.
+   */
+  async hasActiveSubscription(userId) {
+    const active = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+        expiresAt: { gte: /* @__PURE__ */ new Date() }
+      }
+    });
+    return !!active;
+  },
+  /**
+   * Get all subscriptions for a user.
+   */
+  async getUserSubscriptions(userId) {
+    return prisma.subscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" }
+    });
+  }
+};
+
+const JS_DAY_TO_ENUM = {
+  0: "SUNDAY",
+  1: "MONDAY",
+  2: "TUESDAY",
+  3: "WEDNESDAY",
+  4: "THURSDAY",
+  5: "FRIDAY",
+  6: "SATURDAY"
+};
+const bookingService = {
+  /**
+   * Book a session slot for a user.
+   *
+   * Rules:
+   * 1. User must have an active subscription.
+   * 2. Session must exist and have capacity remaining.
+   * 3. User must not already have a CONFIRMED booking for this session.
+   * 4. Session must fall within BusinessHours for that day (FR-013).
+   * Capacity check is done atomically via a DB transaction.
+   */
+  async bookSession(userId, sessionId) {
+    const hasActive = await subscriptionService.hasActiveSubscription(userId);
+    if (!hasActive) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "An active subscription is required to book a session"
+      });
+    }
+    const existing = await bookingRepository.findByUserAndSession(userId, sessionId);
+    if (existing && existing.status === "CONFIRMED") {
+      throw createError({
+        statusCode: 409,
+        statusMessage: "You already have a booking for this session"
+      });
+    }
+    const booking = await prisma.$transaction(async (tx) => {
+      const session = await tx.session.findUnique({ where: { id: sessionId } });
+      if (!session) {
+        throw createError({ statusCode: 404, statusMessage: "Session not found" });
+      }
+      const booked = await tx.booking.count({ where: { sessionId, status: "CONFIRMED" } });
+      if (booked >= session.capacity) {
+        throw createError({ statusCode: 409, statusMessage: "Session is fully booked" });
+      }
+      const dayEnum = JS_DAY_TO_ENUM[session.dateTime.getDay()];
+      const hours = await tx.businessHours.findFirst({
+        where: { dayOfWeek: dayEnum }
+      });
+      if (hours) {
+        const sessionTime = session.dateTime.toTimeString().slice(0, 5);
+        if (sessionTime < hours.openTime || sessionTime >= hours.closeTime) {
+          throw createError({
+            statusCode: 422,
+            statusMessage: `Session is outside business hours (${hours.openTime}\xE2\u20AC\u201C${hours.closeTime})`
+          });
+        }
+      }
+      return tx.booking.create({ data: { userId, sessionId } });
+    });
+    logger.info({ bookingId: booking.id, userId, sessionId }, "Session booked");
+    return booking;
+  }
+};
+
+const index_post$4 = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const { sessionId } = await validateBody(event, createBookingSchema);
+  const booking = await bookingService.bookSession(user.sub, sessionId);
+  return { success: true, booking };
+});
+
+const index_post$5 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: index_post$4
+}, Symbol.toStringTag, { value: 'Module' }));
 
 const KKIAPAY_API_BASE = process.env.KKIAPAY_API_BASE || "https://api.kkiapay.me";
 const KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY;
@@ -3120,20 +3897,21 @@ async function createPaymentOrder(opts) {
   const { userId, subscriptionPlanId } = opts;
   const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } });
   if (!plan) throw new Error("SubscriptionPlan not found");
-  const amount = plan.priceCents;
+  const amount = plan.priceSingle;
+  const currency = "XOF";
   const order = await prisma.paymentOrder.create({
     data: {
       userId,
       subscriptionPlanId,
       amount,
-      currency: plan.currency,
+      currency,
       status: "pending"
     }
   });
   if (KKIAPAY_SECRET_KEY) {
     const payload = {
       amount,
-      currency: plan.currency,
+      currency,
       reference: order.id,
       // optional metadata
       metadata: { userId, subscriptionPlanId }
@@ -3213,9 +3991,11 @@ async function handleWebhook(envelope, rawPayload) {
         data: {
           userId: paymentOrder.userId,
           subscriptionPlanId: paymentOrder.subscriptionPlanId,
-          startsAt,
-          expiresAt,
-          isActive: true
+          status: "ACTIVE",
+          isActive: true,
+          activationDate: now,
+          startsAt: now,
+          expiresAt
         }
       });
     } catch (e) {
@@ -3227,6 +4007,41 @@ async function handleWebhook(envelope, rawPayload) {
   return { processed: true, tx };
 }
 const paymentsService = { createPaymentOrder, verifyWebhookSignature, handleWebhook };
+
+const createSessionSchema = z.object({
+  subscriptionPlanId: z.string().uuid()
+});
+const createSession_post = defineEventHandler(async (event) => {
+  var _a;
+  const user = requireAuth(event);
+  const body = await validateBody(event, createSessionSchema);
+  try {
+    const result = await createPaymentOrder({
+      userId: user.sub,
+      subscriptionPlanId: body.subscriptionPlanId
+    });
+    return {
+      success: true,
+      orderId: result.order.id,
+      kkiapayToken: result.kkiapayToken
+    };
+  } catch (err) {
+    throw createError({ statusCode: 500, statusMessage: (_a = err.message) != null ? _a : "Payment order creation failed" });
+  }
+});
+
+const createSession_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: createSession_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const CreateOrderBody = z.object({
+  subscriptionPlanId: z.string().uuid()
+});
+const KkiapayWebhookEnvelope = z.object({
+  event: z.string(),
+  data: z.record(z.any())
+});
 
 const kkiapay_createOrder = defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -3250,8 +4065,8 @@ const kkiapay_createOrder$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.def
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const kkiapay_webhook = defineEventHandler(async (event) => {
-  const raw = await useRawBody(event);
-  const rawString = raw instanceof Buffer ? raw.toString("utf8") : JSON.stringify(await readBody(event));
+  const raw = await readRawBody(event);
+  const rawString = raw != null ? raw : JSON.stringify(await readBody(event));
   const signature = getHeader(event, "x-kkiapay-signature") || getHeader(event, "x-signature");
   const ok = await paymentsService.verifyWebhookSignature(rawString, signature);
   if (!ok) {
@@ -3272,6 +4087,207 @@ const kkiapay_webhook = defineEventHandler(async (event) => {
 const kkiapay_webhook$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: kkiapay_webhook
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const createProgramSchema = z.object({
+  clientId: uuidSchema,
+  type: z.enum(["GAIN", "LOSS"]),
+  content: z.record(z.unknown())
+});
+const updateProgramSchema = z.object({
+  type: z.enum(["GAIN", "LOSS"]).optional(),
+  content: z.record(z.unknown()).optional()
+});
+
+const programService = {
+  /**
+   * Create a personalized program for a client.
+   * Only a coach explicitly assigned to the client by an admin may create programs.
+   */
+  async createProgram(coachId, input) {
+    const assignment = await prisma.coachClientAssignment.findUnique({
+      where: { coachId_clientId: { coachId, clientId: input.clientId } }
+    });
+    if (!assignment) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "You are not assigned to this client"
+      });
+    }
+    const program = await prisma.program.create({
+      data: {
+        coachId,
+        clientId: input.clientId,
+        type: input.type,
+        content: input.content
+      }
+    });
+    logger.info({ programId: program.id, coachId, clientId: input.clientId }, "Program created");
+    return program;
+  },
+  /**
+   * Update a program — only the assigned coach who created it may edit.
+   */
+  async updateProgram(programId, coachId, input) {
+    const program = await prisma.program.findUnique({ where: { id: programId } });
+    if (!program) {
+      throw createError({ statusCode: 404, statusMessage: "Program not found" });
+    }
+    if (program.coachId !== coachId) {
+      throw createError({ statusCode: 403, statusMessage: "Only the assigned coach may edit this program" });
+    }
+    const assignment = await prisma.coachClientAssignment.findUnique({
+      where: { coachId_clientId: { coachId, clientId: program.clientId } }
+    });
+    if (!assignment) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Your assignment to this client has been revoked"
+      });
+    }
+    const updated = await prisma.program.update({
+      where: { id: programId },
+      data: {
+        ...input.type !== void 0 && { type: input.type },
+        ...input.content !== void 0 && { content: input.content }
+      }
+    });
+    logger.info({ programId, coachId }, "Program updated");
+    return updated;
+  },
+  /**
+   * Get all programs for a client.
+   * Clients see their own programs; coaches see programs they manage.
+   */
+  async getProgramsByClient(clientId) {
+    return prisma.program.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" }
+    });
+  },
+  /**
+   * Get a single program — validates the requesting user has access.
+   */
+  async getProgramById(programId, requesterId, requesterRole) {
+    const program = await prisma.program.findUnique({ where: { id: programId } });
+    if (!program) {
+      throw createError({ statusCode: 404, statusMessage: "Program not found" });
+    }
+    const isOwner = program.clientId === requesterId || program.coachId === requesterId;
+    const isAdmin = requesterRole === "ADMIN";
+    if (!isOwner && !isAdmin) {
+      throw createError({ statusCode: 403, statusMessage: "Access denied" });
+    }
+    return program;
+  }
+};
+
+const _id__put = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  requireCoach(user);
+  const id = getRouterParam(event, "id");
+  if (!id) throw createError({ statusCode: 400, statusMessage: "Program ID required" });
+  const body = await validateBody(event, updateProgramSchema);
+  const program = await programService.updateProgram(id, user.sub, body);
+  return { success: true, program };
+});
+
+const _id__put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: _id__put
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const index_get$2 = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  const query = getQuery$1(event);
+  const clientId = query.clientId;
+  const targetClientId = clientId != null ? clientId : user.sub;
+  if (user.role === "CLIENT" && targetClientId !== user.sub) {
+    throw createError({ statusCode: 403, statusMessage: "Clients may only view their own programs" });
+  }
+  const programs = await programService.getProgramsByClient(targetClientId);
+  return { success: true, programs };
+});
+
+const index_get$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: index_get$2
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const index_post$2 = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  requireCoach(user);
+  const body = await validateBody(event, createProgramSchema);
+  const program = await programService.createProgram(user.sub, body);
+  return { success: true, program };
+});
+
+const index_post$3 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: index_post$2
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const sessionRepository = {
+  async findById(id) {
+    return prisma.session.findUnique({ where: { id } });
+  },
+  async findAll(opts = {}) {
+    const { page = 1, limit = 20, from, to } = opts;
+    return prisma.session.findMany({
+      where: {
+        dateTime: {
+          ...from ? { gte: from } : {},
+          ...to ? { lte: to } : {}
+        }
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { dateTime: "asc" },
+      include: {
+        _count: { select: { bookings: { where: { status: "BOOKED" } } } }
+      }
+    });
+  },
+  async create(data) {
+    return prisma.session.create({ data });
+  },
+  async countBookings(sessionId) {
+    return prisma.booking.count({ where: { sessionId, status: "BOOKED" } });
+  }
+};
+
+const index_get = defineEventHandler(async (event) => {
+  const query = validateQuery(event, listSessionsQuerySchema);
+  const sessions = await sessionRepository.findAll({
+    page: query.page,
+    limit: query.limit,
+    from: query.from ? new Date(query.from) : void 0,
+    to: query.to ? new Date(query.to) : void 0
+  });
+  return { success: true, sessions };
+});
+
+const index_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: index_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const index_post = defineEventHandler(async (event) => {
+  const user = requireAuth(event);
+  requireCoach(user);
+  const body = await validateBody(event, createSessionSchema$1);
+  const session = await sessionRepository.create({
+    coachId: user.sub,
+    dateTime: new Date(body.dateTime),
+    duration: body.duration,
+    capacity: body.capacity
+  });
+  return { success: true, session };
+});
+
+const index_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: index_post
 }, Symbol.toStringTag, { value: 'Module' }));
 
 const subscriptionPlans_get = defineEventHandler(async (event) => {

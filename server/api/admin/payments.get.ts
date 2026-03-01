@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
-import { requireAdmin } from '../../middleware/role.middleware'
+import { requireAdmin } from '../../utils/role'
 import { validateQuery, paginationSchema } from '../../validators/index'
 import { prisma } from '../../utils/prisma'
 

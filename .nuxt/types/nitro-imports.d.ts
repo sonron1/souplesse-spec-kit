@@ -83,6 +83,7 @@ declare global {
   const isWebResponse: typeof import('../../node_modules/h3').isWebResponse
   const lazyEventHandler: typeof import('../../node_modules/h3').lazyEventHandler
   const loadConfig: typeof import('../../server/utils/config').loadConfig
+  const logger: typeof import('../../server/utils/logger').default
   const nitroPlugin: typeof import('../../node_modules/nitropack/dist/runtime/internal/plugin').nitroPlugin
   const parseCookies: typeof import('../../node_modules/h3').parseCookies
   const prisma: typeof import('../../server/utils/prisma').prisma
@@ -95,6 +96,9 @@ declare global {
   const readValidatedBody: typeof import('../../node_modules/h3').readValidatedBody
   const reloadConfig: typeof import('../../server/utils/config').reloadConfig
   const removeResponseHeader: typeof import('../../node_modules/h3').removeResponseHeader
+  const requireAdmin: typeof import('../../server/utils/role').requireAdmin
+  const requireCoach: typeof import('../../server/utils/role').requireCoach
+  const requireRole: typeof import('../../server/utils/role').requireRole
   const runTask: typeof import('../../node_modules/nitropack/dist/runtime/internal/task').runTask
   const sanitizeStatusCode: typeof import('../../node_modules/h3').sanitizeStatusCode
   const sanitizeStatusMessage: typeof import('../../node_modules/h3').sanitizeStatusMessage
@@ -114,6 +118,8 @@ declare global {
   const setResponseHeader: typeof import('../../node_modules/h3').setResponseHeader
   const setResponseHeaders: typeof import('../../node_modules/h3').setResponseHeaders
   const setResponseStatus: typeof import('../../node_modules/h3').setResponseStatus
+  const signAccessToken: typeof import('../../server/utils/jwt').signAccessToken
+  const signRefreshToken: typeof import('../../server/utils/jwt').signRefreshToken
   const splitCookiesString: typeof import('../../node_modules/h3').splitCookiesString
   const toEventHandler: typeof import('../../node_modules/h3').toEventHandler
   const toNodeListener: typeof import('../../node_modules/h3').toNodeListener
@@ -130,6 +136,7 @@ declare global {
   const useSession: typeof import('../../node_modules/h3').useSession
   const useStorage: typeof import('../../node_modules/nitropack/dist/runtime/internal/storage').useStorage
   const verifyJwt: typeof import('../../server/utils/jwt').verifyJwt
+  const verifyRefreshToken: typeof import('../../server/utils/jwt').verifyRefreshToken
   const writeEarlyHints: typeof import('../../node_modules/h3').writeEarlyHints
 }
 // for type re-export
@@ -137,6 +144,9 @@ declare global {
   // @ts-ignore
   export type { EventHandler, EventHandlerRequest, EventHandlerResponse, EventHandlerObject, H3EventContext } from '../../node_modules/h3'
   import('../../node_modules/h3')
+  // @ts-ignore
+  export type { JwtPayload } from '../../server/utils/jwt'
+  import('../../server/utils/jwt')
 }
 export { H3Event, H3Error, appendCorsHeaders, appendCorsPreflightHeaders, appendHeader, appendHeaders, appendResponseHeader, appendResponseHeaders, assertMethod, callNodeListener, clearResponseHeaders, clearSession, createApp, createAppEventHandler, createError, createEvent, createEventStream, createRouter, defaultContentType, defineEventHandler, defineLazyEventHandler, defineNodeListener, defineNodeMiddleware, defineRequestMiddleware, defineResponseMiddleware, defineWebSocket, defineWebSocketHandler, deleteCookie, dynamicEventHandler, eventHandler, fetchWithEvent, fromNodeMiddleware, fromPlainHandler, fromWebHandler, getCookie, getHeader, getHeaders, getMethod, getProxyRequestHeaders, getQuery, getRequestFingerprint, getRequestHeader, getRequestHeaders, getRequestHost, getRequestIP, getRequestPath, getRequestProtocol, getRequestURL, getRequestWebStream, getResponseHeader, getResponseHeaders, getResponseStatus, getResponseStatusText, getRouterParam, getRouterParams, getSession, getValidatedQuery, getValidatedRouterParams, handleCacheHeaders, handleCors, isCorsOriginAllowed, isError, isEvent, isEventHandler, isMethod, isPreflightRequest, isStream, isWebResponse, lazyEventHandler, parseCookies, promisifyNodeListener, proxyRequest, readBody, readFormData, readMultipartFormData, readRawBody, readValidatedBody, removeResponseHeader, sanitizeStatusCode, sanitizeStatusMessage, sealSession, send, sendError, sendIterable, sendNoContent, sendProxy, sendRedirect, sendStream, sendWebResponse, serveStatic, setCookie, setHeader, setHeaders, setResponseHeader, setResponseHeaders, setResponseStatus, splitCookiesString, toEventHandler, toNodeListener, toPlainHandler, toWebHandler, toWebRequest, unsealSession, updateSession, useBase, useSession, writeEarlyHints } from 'h3';
 export { useNitroApp } from 'nitropack/runtime/internal/app';
@@ -153,5 +163,7 @@ export { defineNitroErrorHandler } from 'nitropack/runtime/internal/error/utils'
 export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
 export { defineAppConfig } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
 export { loadConfig, reloadConfig, businessConfig } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/server/utils/config';
-export { verifyJwt } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/server/utils/jwt';
+export { signAccessToken, signRefreshToken, verifyJwt, verifyRefreshToken } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/server/utils/jwt';
+export { default as logger } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/server/utils/logger';
 export { prisma } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/server/utils/prisma';
+export { requireRole, requireAdmin, requireCoach } from 'C:/Users/Ange/Documents/Dev/souplesse-speckit/server/utils/role';

@@ -48,4 +48,8 @@ export default defineNuxtConfig({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
   },
+
+  devtools: {
+    enabled: true,
+  },
 })

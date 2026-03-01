@@ -1,6 +1,6 @@
 import { defineEventHandler, setHeader } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
-import { requireAdmin } from '../../middleware/role.middleware'
+import { requireAdmin } from '../../utils/role'
 import { prisma } from '../../utils/prisma'
 
 function toCsvRow(values: (string | number | null | undefined)[]): string {

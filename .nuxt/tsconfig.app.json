@@ -94,6 +94,12 @@
       "#server/*": [
         "../server/*"
       ],
+      "~types": [
+        "<rootDir>/types"
+      ],
+      "~server": [
+        "<rootDir>/server"
+      ],
       "#app": [
         "../node_modules/nuxt/dist/app"
       ],
@@ -171,6 +177,7 @@
   "exclude": [
     "../node_modules",
     "../node_modules/nuxt/node_modules",
+    "../node_modules/@nuxtjs/tailwindcss/node_modules",
     "../node_modules/nuxt/node_modules/@nuxt/devtools/node_modules",
     "../node_modules/@nuxt/telemetry/node_modules",
     "../dist",
@@ -184,14 +191,14 @@
     "../layers/*/nuxt.config.*",
     "../layers/*/.config/nuxt.*",
     "../layers/*/modules/**/*",
-    "../node_modules/nuxt/node_modules/runtime/server",
-    "../node_modules/nuxt/node_modules/dist/runtime/server",
-    "../node_modules/nuxt/node_modules/*.*",
-    "../node_modules/nuxt/node_modules/dist/*.*",
     "../node_modules/runtime/server",
     "../node_modules/dist/runtime/server",
     "../node_modules/*.*",
     "../node_modules/dist/*.*",
+    "../node_modules/nuxt/node_modules/runtime/server",
+    "../node_modules/nuxt/node_modules/dist/runtime/server",
+    "../node_modules/nuxt/node_modules/*.*",
+    "../node_modules/nuxt/node_modules/dist/*.*",
     "dev",
     "../server"
   ]

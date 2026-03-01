@@ -1,3 +1,4 @@
+/// <reference types="@nuxtjs/tailwindcss" />
 /// <reference types="@nuxt/telemetry" />
 /// <reference types="@nuxt/devtools" />
 /// <reference path="types/nitro-layouts.d.ts" />
@@ -7,7 +8,7 @@
 /// <reference types="nuxt" />
 /// <reference path="../node_modules/@nuxt/vite-builder/dist/index.d.mts" />
 /// <reference path="../node_modules/@nuxt/nitro-server/dist/index.d.mts" />
-/// <reference path="types/middleware.d.ts" />
+/// <reference path="types/nitro-middleware.d.ts" />
 /// <reference path="schema/nuxt.schema.d.ts" />
 
 export {}

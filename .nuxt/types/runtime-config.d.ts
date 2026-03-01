@@ -10,12 +10,26 @@ import { RuntimeConfig as UserRuntimeConfig, PublicRuntimeConfig as UserPublicRu
       cdnURL: string,
    },
 
+   jwtSecret: string,
+
+   jwtRefreshSecret: string,
+
+   kkiapayApiKey: string,
+
+   kkiapaySecretKey: string,
+
+   kkiapayWebhookSecret: string,
+
+   databaseUrl: string,
+
    nitro: {
       envPrefix: string,
    },
   }
   interface SharedPublicRuntimeConfig {
+   appName: string,
 
+   apiBase: string,
   }
 declare module '@nuxt/schema' {
   interface RuntimeConfig extends UserRuntimeConfig {}

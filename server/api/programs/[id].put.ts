@@ -1,6 +1,6 @@
 import { defineEventHandler, getRouterParam } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
-import { requireCoach } from '../../middleware/role.middleware'
+import { requireCoach } from '../../utils/role'
 import { validateBody } from '../../validators/index'
 import { updateProgramSchema } from '../../validators/program.schemas'
 import { programService } from '../../services/program.service'
