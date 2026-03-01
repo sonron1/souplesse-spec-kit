@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="840" viewBox="0 0 1920 840">
+  <rect width="100%" height="100%" fill="#000000" />
+  <rect x="40" y="40" width="1840" height="760" fill="#FFEB3B" rx="12"/>
+  <rect x="80" y="80" width="1760" height="680" fill="#FFFFFF" rx="8"/>
+  <text x="160" y="220" font-family="Arial, Helvetica, sans-serif" font-size="56" fill="#000">Landing Hero Placeholder</text>
+  <text x="160" y="300" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#222">Black man and Black woman training together — Calavi, Bénin</text>
+  <rect x="160" y="380" width="640" height="320" fill="#222" rx="6"/>
+  <rect x="840" y="380" width="640" height="320" fill="#222" rx="6"/>
+  <g fill="#000" font-family="Arial, Helvetica, sans-serif" font-size="18">
+    <text x="170" y="420">Photo placeholder — replace with generated hero</text>
+    <text x="170" y="445">Use `assets/visuals/landing-hero/prompt.md` for generation</text>
+  </g>
+</svg>

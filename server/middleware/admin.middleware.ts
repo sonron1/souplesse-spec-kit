@@ -1,4 +1,5 @@
 import { verifyJwt } from '../utils/jwt'
+import { defineEventHandler, getHeader, createError } from 'h3'
 
 export async function requireAdmin(event: any) {
   const auth = event.node?.req?.headers?.authorization || getHeader(event, 'authorization')
@@ -22,3 +23,8 @@ export async function requireAdmin(event: any) {
   event.context.user = payload
   return payload
 }
+
+// Nitro middleware default export
+export default defineEventHandler(async (event) => {
+  await requireAdmin(event)
+})

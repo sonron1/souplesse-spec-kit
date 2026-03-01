@@ -1,0 +1,1 @@
+export { default } from "file:///C:/Users/Ange/Documents/Dev/souplesse-speckit/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs"

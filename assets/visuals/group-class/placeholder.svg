@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="2000" viewBox="0 0 3000 2000">
+  <rect width="100%" height="100%" fill="#fff"/>
+  <rect x="60" y="60" width="2880" height="1880" rx="16" fill="#FFEB3B"/>
+  <text x="140" y="160" font-family="Arial" font-size="48" fill="#000">Group Class Placeholder</text>
+  <rect x="140" y="220" width="1320" height="1560" fill="#222" rx="12"/>
+  <rect x="1580" y="220" width="1320" height="1560" fill="#222" rx="12"/>
+</svg>

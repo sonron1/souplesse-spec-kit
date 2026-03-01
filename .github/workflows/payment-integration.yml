@@ -1,0 +1,32 @@
+name: Payment Integration Tests
+
+on:
+  push:
+    branches: [ main, feat/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  tests:
+    name: Run tests (payments integration)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client (optional)
+        run: npx prisma generate || true
+
+      - name: Run tests
+        env:
+          CI: true
+          KKIAPAY_WEBHOOK_SECRET: ${{ secrets.KKIAPAY_WEBHOOK_SECRET }}
+        run: npm test --silent
