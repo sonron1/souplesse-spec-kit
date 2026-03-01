@@ -1,0 +1,57 @@
+{
+  "gymIdentity": {
+    "name": "Souplesse Fitness",
+    "slogan": "Stabilité – Progrès – Réussite",
+    "currency": "XOF"
+  },
+
+  "openingHours": {
+    "mondayToFriday": { "open": "07:00", "close": "22:00" },
+    "saturday": { "open": "07:00", "close": "20:00" },
+    "sundayAndHolidays": { "open": "07:00", "close": "14:00" }
+  },
+
+  "subscriptionPlans": [
+    { "name": "Séance", "priceSingle": 1500, "priceCouple": null, "validityDays": 1, "maxReports": 0, "isActive": true },
+    { "name": "Carnet 10 séances", "priceSingle": 10000, "priceCouple": null, "validityDays": 30, "maxReports": 0, "isActive": true },
+    { "name": "Carnet 15 séances", "priceSingle": 20000, "priceCouple": null, "validityDays": 90, "maxReports": 0, "isActive": true },
+    { "name": "Abonnement 1 mois", "priceSingle": 15000, "priceCouple": 25000, "validityDays": 30, "maxReports": 0, "isActive": true },
+    { "name": "Suivi personnel", "priceSingle": 20000, "priceCouple": 40000, "validityDays": 30, "maxReports": 1, "isActive": true },
+    { "name": "Abonnement 3 mois", "priceSingle": 40000, "priceCouple": 75000, "validityDays": 90, "maxReports": 2, "isActive": true },
+    { "name": "Abonnement 6 mois", "priceSingle": 70000, "priceCouple": 120000, "validityDays": 180, "maxReports": 2, "isActive": true },
+    { "name": "Abonnement 1 an", "priceSingle": 120000, "priceCouple": 200000, "validityDays": 365, "maxReports": 3, "isActive": true },
+    { "name": "Autres activités", "priceSingle": 10000, "priceCouple": null, "validityDays": 30, "maxReports": 0, "isActive": true }
+  ],
+
+  "dressCode": [
+    "Sport outfit mandatory",
+    "Sport shoes mandatory",
+    "Towel mandatory"
+  ],
+
+  "location": {
+    "address": "Face clôture Lita au bord des pavés. En quittant le Carrefour Lita pour le Carrefour Tankpé",
+    "phone": "+229 96 77 35 09",
+    "email": "souplessefitness@hotmail.fr"
+  },
+
+  "branding": {
+    "primaryColors": ["black","yellow","white"],
+    "theme": "Fitness / Musculation",
+    "style": "Modern, sporty, energetic"
+  },
+
+  "rules": {
+    "calculateValidityFromActivationDate": true,
+    "maxReportsEnforced": true,
+    "priceCoupleNullable": true,
+    "bookingOutsideOpeningHoursRejected": true
+  },
+
+  "adminEditable": {
+    "openingHours": true,
+    "subscriptionPlans": true,
+    "location": true,
+    "branding": true
+  }
+}

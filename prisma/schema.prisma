@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model SubscriptionPlan {
+  id           String   @id @default(uuid())
+  name         String
+  priceSingle  Int
+  priceCouple  Int?
+  validityDays Int
+  maxReports   Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BusinessHours {
+  id                 String    @id @default(uuid())
+  dayOfWeek          DayOfWeek @unique
+  openTime           String
+  closeTime          String
+  isHolidayOverride  Boolean   @default(false)
+}
+
+model GymSettings {
+  id            String   @id @default(uuid())
+  name          String
+  slogan        String?
+  primaryColor  String?
+  secondaryColor String?
+  currency      String
+  address       String?
+  phone         String?
+  email         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
