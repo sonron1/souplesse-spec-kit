@@ -1,9 +1,218 @@
 # Souplesse Fitness — Gym Management Platform
 
 > A full-stack gym management SaaS built with **Nuxt 4**, **Nitro**, **Prisma**, and **PostgreSQL**.  
-> Features member subscriptions (Stripe), session booking, coach programs, and an admin dashboard.
+> Member subscriptions via **Kkiapay** (exclusive payment provider), session booking, coach programs, and an admin dashboard.
 
-> **Note:** `node_modules` is excluded from the repository (see `.gitignore`).
+## Architecture Overview
+
+```
+souplesse-speckit/
+├── app/                        # Nuxt 4 frontend (srcDir: 'app')
+│   ├── composables/            # useAuth, useFetch wrappers
+│   ├── pages/                  # login, register, dashboard/, coach/, admin/
+│   └── components/             # Calendar, KpiCard, SkeletonLoader
+├── server/                     # Nitro backend
+│   ├── api/                    # Route handlers
+│   │   ├── auth/               # register, login, refresh, logout
+│   │   ├── sessions/           # list, create
+│   │   ├── bookings/           # create (no cancellation in v1)
+│   │   ├── programs/           # CRUD (coach/admin)
+│   │   ├── payments/           # create-session, kkiapay.webhook
+│   │   └── admin/              # stats, users, payments, export, assignments
+│   ├── services/               # Business logic (auth, booking, program, payment, stats, settings)
+│   ├── repositories/           # Prisma data access (user, session, booking)
+│   ├── middleware/             # auth, role, rateLimit
+│   ├── validators/             # Zod schemas + sanitize helpers
+│   └── utils/                  # prisma singleton, logger (pino), jwt helpers
+├── prisma/                     # Schema + migrations
+├── tests/
+│   ├── unit/                   # Service layer specs (Vitest)
+│   ├── integration/            # Route + webhook specs (Vitest)
+│   └── e2e/                    # Full user-story flows
+├── docs/                       # security-audit.md
+└── scripts/                    # perf/check-queries.ts, test/load-test.sh, ci/lint-fix.sh
+```
+
+## Role System
+
+| Role | Capabilities |
+|------|-------------|
+| `CLIENT` | Register, purchase subscription, view & book sessions, view own programs |
+| `COACH` | All client capabilities + create sessions, manage programs for assigned clients |
+| `ADMIN` | All above + assign coaches to clients, manage users, payment history, CSV export, KPI dashboard |
+
+## Data Model Summary
+
+| Entity | Key Fields |
+|--------|-----------|
+| `User` | id (UUID), name, email (unique), passwordHash, role |
+| `SubscriptionPlan` | id, name, planType (enum), priceSingle, priceCouple, validityDays, maxReports |
+| `Subscription` | id, userId, planId, activationDate, expiresAt, status, partnerUserId |
+| `Payment` | id, userId, amount (XOF int), kkiapayTransactionId (unique), status |
+| `Session` | id, coachId, dateTime (UTC), duration, capacity |
+| `Booking` | id, userId, sessionId, status; unique (userId, sessionId) |
+| `Program` | id, clientId, coachId, type, content (JSON) |
+| `CoachClientAssignment` | id, coachId, clientId; unique (coachId, clientId) |
+| `BusinessHours` | id, dayOfWeek, openTime, closeTime |
+
+### Subscription Plan Types (`PlanType` enum)
+
+`MONTHLY` · `QUARTERLY` · `ANNUAL` · `COUPLE_MONTHLY` · `COUPLE_QUARTERLY` · `COUPLE_ANNUAL`
+
+## Quick Start
+
+1. **Install dependencies:**
+
+```bash
+npm install
+```
+
+2. **Start PostgreSQL** (Docker Compose):
+
+```bash
+docker compose up -d
+```
+
+3. **Set environment variables** (copy and fill `.env.example`):
+
+```bash
+cp .env.example .env
+# fill in DATABASE_URL, JWT_SECRET, KKIAPAY_SECRET_KEY, KKIAPAY_WEBHOOK_SECRET, etc.
+```
+
+4. **Run migrations & generate Prisma client:**
+
+```bash
+npx prisma migrate dev --name init
+npx prisma generate
+```
+
+5. **Start the dev server:**
+
+```bash
+npm run dev
+```
+
+See [specs/1-add-gym-management/quickstart.md](specs/1-add-gym-management/quickstart.md) for a full integration walkthrough.
+
+## API Endpoints
+
+### Auth
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/auth/register` | Create account |
+| `POST` | `/api/auth/login` | Get access + refresh tokens |
+| `POST` | `/api/auth/refresh` | Rotate refresh token |
+| `POST` | `/api/auth/logout` | Revoke refresh token |
+
+### Sessions & Bookings
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/sessions` | List upcoming sessions (paginated) |
+| `POST` | `/api/sessions` | Create session (coach/admin) |
+| `POST` | `/api/bookings` | Book a session (requires active subscription + within BusinessHours) |
+
+> ⚠️ Bookings are **final** in v1 — no cancellation endpoint.
+
+### Programs
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/programs` | List client's programs |
+| `POST` | `/api/programs` | Create program (assigned coach only) |
+| `PUT` | `/api/programs/:id` | Update program (assigned coach only) |
+
+### Payments (Kkiapay)
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/payments/create-session` | Initiate Kkiapay payment session |
+| `POST` | `/api/payments/kkiapay.webhook` | Kkiapay webhook (HMAC-verified, idempotent) |
+
+### Admin
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/admin/stats` | KPIs: users, revenue, active subscriptions |
+| `GET` | `/api/admin/users` | Paginated user list |
+| `GET` | `/api/admin/payments` | Payment history |
+| `GET` | `/api/admin/export` | CSV export (users + payments) |
+| `POST` | `/api/admin/assignments` | Assign a coach to a client |
+| `DELETE` | `/api/admin/assignments` | Remove a coach-client assignment |
+
+## Payment Flow (Kkiapay)
+
+```
+Client → POST /api/payments/create-session
+       → Kkiapay payment URL returned
+       → User completes payment on Kkiapay
+       → Kkiapay POSTs to /api/payments/kkiapay.webhook
+       → HMAC-SHA256 signature verified (KKIAPAY_WEBHOOK_SECRET)
+       → Subscription status set to ACTIVE (atomic DB transaction)
+       → expiresAt = activationDate + validityDays
+```
+
+## Booking Rules
+
+A booking is accepted **only if all** conditions are met:
+
+1. User is authenticated
+2. User has an `ACTIVE` subscription (not expired)
+3. Session `dateTime` falls within `BusinessHours` for that day
+4. Session capacity not exceeded
+5. User has not already booked the same session
+
+All checks run inside a single DB transaction.
+
+## Coach Program Access
+
+Programs can only be created or edited by a coach **explicitly assigned** to the client by an admin via `POST /api/admin/assignments`. Attempting to create or edit a program for an unassigned client returns `403 Forbidden`.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | ✅ | PostgreSQL connection string |
+| `JWT_SECRET` | ✅ | Secret for access tokens (≥32 chars) |
+| `JWT_REFRESH_SECRET` | ✅ | Secret for refresh tokens (≥32 chars) |
+| `KKIAPAY_SECRET_KEY` | ✅ | Kkiapay API key |
+| `KKIAPAY_WEBHOOK_SECRET` | ✅ | Kkiapay HMAC webhook secret |
+| `NUXT_PUBLIC_APP_URL` | ✅ | Public base URL (e.g. `http://localhost:3000`) |
+
+## Database & Migrations
+
+```bash
+npx prisma generate                # regenerate client after schema changes
+npx prisma migrate dev             # local development (creates migration entry)
+npx prisma migrate deploy          # apply migrations to production/staging DB
+```
+
+## Testing
+
+```bash
+npm test                           # run all Vitest unit + integration tests
+npm run test:coverage              # with coverage report (targets: 80% global, 100% auth/payment)
+```
+
+## CI / GitHub Actions
+
+The `.github/workflows/ci.yml` pipeline runs: **install → lint → typecheck → tests → build**.  
+CI blocks on any failure. Required repository secrets: `KKIAPAY_WEBHOOK_SECRET`, `KKIAPAY_SECRET_KEY`, `DATABASE_URL`.
+
+## Security Notes
+
+- Passwords hashed with bcrypt (min cost 10); JWT access token 15 min expiry; refresh token stored as bcrypt hash
+- Zod validation on every API route; rate limiting on `/auth` and `/payments` endpoints
+- Webhook validation mandatory before any DB write; duplicate webhooks are idempotent
+- Do **not** commit `.env` files — use repository secrets for CI and deployment environments
+
+## Contributing
+
+1. Create a feature branch: `feat/your-feature`
+2. Run `npm test` and `npx tsc --noEmit` locally before pushing
+3. Open a PR targeting `master`
+
+## License
+
+See the repository license or consult the project owner for licensing details.
+
 
 ## Architecture Overview
 

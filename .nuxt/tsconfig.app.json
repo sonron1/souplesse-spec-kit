@@ -59,16 +59,16 @@
         "../node_modules/crossws"
       ],
       "~": [
-        ".."
+        "../app"
       ],
       "~/*": [
-        "../*"
+        "../app/*"
       ],
       "@": [
-        ".."
+        "../app"
       ],
       "@/*": [
-        "../*"
+        "../app/*"
       ],
       "~~": [
         ".."
@@ -156,7 +156,7 @@
   },
   "include": [
     "./nuxt.d.ts",
-    "../**/*",
+    "../app/**/*",
     "../modules/*/runtime/**/*",
     "../test/nuxt/**/*",
     "../tests/nuxt/**/*",
@@ -169,6 +169,10 @@
     "../layers/*/*.d.ts"
   ],
   "exclude": [
+    "../node_modules",
+    "../node_modules/nuxt/node_modules",
+    "../node_modules/nuxt/node_modules/@nuxt/devtools/node_modules",
+    "../node_modules/@nuxt/telemetry/node_modules",
     "../dist",
     "../.data",
     "../modules/*/runtime/server/**/*",
