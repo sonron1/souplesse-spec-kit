@@ -11,5 +11,12 @@
     "resolveJsonModule": true,
     "types": ["node", "vitest"]
   },
-  "include": ["server/**/*.ts", "tests/**/*.ts", "prisma/**/*.ts", "types/**/*.ts"]
+  "include": [
+    "server/**/*.ts",
+    "tests/**/*.ts",
+    "prisma/**/*.ts",
+    "types/**/*.ts",
+    "app/**/*.ts",
+    "app/**/*.vue"
+  ]
 }

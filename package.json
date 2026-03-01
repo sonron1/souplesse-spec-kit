@@ -3,29 +3,47 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "start": "nuxt start",
+    "lint": "eslint . --ext .ts,.vue,.js --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.vue,.js --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:generate": "prisma generate"
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.0",
+    "@prisma/client": "^5.1.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-vue": "^9.0.0",
     "jsonwebtoken": "^9.0.0",
-    "zod": "^3.21.4",
+    "postcss": "^8.4.0",
+    "prettier": "^3.0.0",
+    "prisma": "^5.1.0",
+    "tailwindcss": "^3.4.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.0",
     "vitest": "^1.0.0",
-    "prisma": "^5.1.0",
-    "@prisma/client": "^5.1.0"
-  }
-  ,
-  "dependencies": {
-    "nuxt": "latest"
+    "zod": "^3.21.4"
   },
-  "scripts": {
-    "dev": "nuxt dev",
-    "build": "nuxt build",
-    "start": "nuxt start"
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "libsodium-wrappers": "^0.8.2",
+    "nuxt": "latest",
+    "pino": "^8.21.0",
+    "pino-pretty": "^11.0.0",
+    "stripe": "^14.0.0"
   }
 }

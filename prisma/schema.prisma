@@ -7,6 +7,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
 enum DayOfWeek {
   MONDAY
   TUESDAY
@@ -17,51 +21,164 @@ enum DayOfWeek {
   SUNDAY
 }
 
+enum UserRole {
+  CLIENT
+  COACH
+  ADMIN
+}
+
+enum SubscriptionType {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+  ATTENDED
+}
+
+enum ProgramType {
+  GAIN
+  LOSS
+}
+
+// ---------------------------------------------------------------------------
+// Core User Model
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(CLIENT)
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  subscriptions Subscription[]
+  payments      Payment[]
+  bookings      Booking[]
+  coachSessions Session[]  @relation("CoachSessions")
+  coachPrograms Program[]  @relation("CoachPrograms")
+  clientPrograms Program[] @relation("ClientPrograms")
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Gym Settings & Plans
+// ---------------------------------------------------------------------------
+
+model GymSettings {
+  id             String   @id @default(uuid())
+  name           String
+  slogan         String?
+  primaryColor   String?
+  secondaryColor String?
+  currency       String
+  address        String?
+  phone          String?
+  email          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BusinessHours {
+  id                String    @id @default(uuid())
+  dayOfWeek         DayOfWeek @unique
+  openTime          String
+  closeTime         String
+  isHolidayOverride Boolean   @default(false)
+}
+
 model SubscriptionPlan {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   name         String
   priceSingle  Int
   priceCouple  Int?
   validityDays Int
   maxReports   Int
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions Subscription[]
 }
 
-model BusinessHours {
-  id                 String    @id @default(uuid())
-  dayOfWeek          DayOfWeek @unique
-  openTime           String
-  closeTime          String
-  isHolidayOverride  Boolean   @default(false)
+// ---------------------------------------------------------------------------
+// Subscriptions & Payments (US1)
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String
+  subscriptionPlanId String?
+  type               SubscriptionType   @default(MONTHLY)
+  status             SubscriptionStatus @default(PENDING)
+  startDate          DateTime?
+  endDate            DateTime?
+  // legacy fields kept for backward-compat
+  startsAt           DateTime?
+  expiresAt          DateTime?
+  isActive           Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id])
+  subscriptionPlan SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
+  payments         Payment[]
+
+  @@index([userId])
 }
 
-model GymSettings {
-  id            String   @id @default(uuid())
-  name          String
-  slogan        String?
-  primaryColor  String?
-  secondaryColor String?
-  currency      String
-  address       String?
-  phone         String?
-  email         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Payment {
+  id                String        @id @default(uuid())
+  userId            String
+  subscriptionId    String?
+  stripeSessionId   String?
+  amount            Int           // in smallest currency unit
+  currency          String        @default("XOF")
+  status            PaymentStatus @default(PENDING)
+  providerReference String?       @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
+// Legacy Kkiapay models kept for backward-compat
 model PaymentOrder {
-  id               String   @id @default(uuid())
-  userId           String
-  subscriptionPlanId String
-  amount           Int
-  currency         String
-  status           String   @default("pending")
-  kkiapayOrderToken String?  @unique
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  transactions     Transaction[]
+  id                  String   @id @default(uuid())
+  userId              String
+  subscriptionPlanId  String
+  amount              Int
+  currency            String
+  status              String   @default("pending")
+  kkiapayOrderToken   String?  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  transactions Transaction[]
 }
 
 model Transaction {
@@ -75,16 +192,61 @@ model Transaction {
   rawPayload     Json
   createdAt      DateTime @default(now())
 
-  paymentOrder   PaymentOrder @relation(fields: [paymentOrderId], references: [id])
+  paymentOrder PaymentOrder @relation(fields: [paymentOrderId], references: [id])
 }
 
-model Subscription {
-  id             String   @id @default(uuid())
-  userId         String
-  subscriptionPlanId String
-  startsAt       DateTime
-  expiresAt      DateTime
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+// ---------------------------------------------------------------------------
+// Sessions & Bookings (US2)
+// ---------------------------------------------------------------------------
+
+model Session {
+  id        String   @id @default(uuid())
+  coachId   String
+  dateTime  DateTime
+  duration  Int      // minutes
+  capacity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach    User      @relation("CoachSessions", fields: [coachId], references: [id])
+  bookings Booking[]
+
+  @@index([coachId])
+  @@index([dateTime])
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  userId    String
+  sessionId String
+  status    BookingStatus @default(BOOKED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+// ---------------------------------------------------------------------------
+// Programs (US3)
+// ---------------------------------------------------------------------------
+
+model Program {
+  id        String      @id @default(uuid())
+  clientId  String
+  coachId   String
+  type      ProgramType @default(GAIN)
+  content   Json
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  client User @relation("ClientPrograms", fields: [clientId], references: [id])
+  coach  User @relation("CoachPrograms", fields: [coachId], references: [id])
+
+  @@index([clientId])
+  @@index([coachId])
 }
