@@ -31,7 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+[Gates determined by `.specify/memory/constitution.md`: ensure TypeScript `strict` enabled, ESLint/Prettier compliance, server-side runtime validation, minimum test coverage thresholds, role-based middleware checks, and adherence to the Nuxt `/app` vs `/server` structure. Document any justified exceptions.]
 
 ## Project Structure
 

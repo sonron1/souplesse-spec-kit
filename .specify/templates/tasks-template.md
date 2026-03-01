@@ -51,6 +51,8 @@ description: "Task list template for feature implementation"
 - [ ] T001 Create project structure per implementation plan
 - [ ] T002 Initialize [language] project with [framework] dependencies
 - [ ] T003 [P] Configure linting and formatting tools
+- [ ] T00A Enforce TypeScript `strict: true` and add `/types` directory (if TS project)
+- [ ] T00B Configure ESLint + Prettier rules per constitution (fail CI on warnings)
 
 ---
 
