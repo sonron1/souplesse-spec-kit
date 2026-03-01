@@ -1,4 +1,5 @@
-import jwt from 'jsonwebtoken'
+import jwt, { type SignOptions } from 'jsonwebtoken'
+import type { StringValue } from 'ms'
 
 export interface JwtPayload {
   sub: string // user id
@@ -17,16 +18,18 @@ function getSecret(key: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
 
 /** Sign an access token (short-lived). */
 export function signAccessToken(payload: Omit<JwtPayload, 'type' | 'iat' | 'exp'>): string {
-  return jwt.sign({ ...payload, type: 'access' }, getSecret('JWT_SECRET'), {
-    expiresIn: (process.env.JWT_EXPIRES_IN ?? '15m') as any,
-  })
+  const options: SignOptions = {
+    expiresIn: (process.env.JWT_EXPIRES_IN ?? '15m') as StringValue,
+  }
+  return jwt.sign({ ...payload, type: 'access' }, getSecret('JWT_SECRET'), options)
 }
 
 /** Sign a refresh token (long-lived). */
 export function signRefreshToken(payload: Omit<JwtPayload, 'type' | 'iat' | 'exp'>): string {
-  return jwt.sign({ ...payload, type: 'refresh' }, getSecret('JWT_REFRESH_SECRET'), {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
-  })
+  const options: SignOptions = {
+    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as StringValue,
+  }
+  return jwt.sign({ ...payload, type: 'refresh' }, getSecret('JWT_REFRESH_SECRET'), options)
 }
 
 /** Verify an access token. */
@@ -38,4 +41,3 @@ export function verifyJwt(token: string): JwtPayload {
 export function verifyRefreshToken(token: string): JwtPayload {
   return jwt.verify(token, getSecret('JWT_REFRESH_SECRET')) as JwtPayload
 }
-

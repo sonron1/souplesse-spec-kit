@@ -15,7 +15,9 @@ const mockAuth = vi.mocked(authService)
 const MOCK_TOKENS = { accessToken: 'access-token', refreshToken: 'refresh-token' }
 const MOCK_USER = { id: 'user-1', name: 'Test User', email: 'test@example.com', role: 'CLIENT' }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('POST /api/auth/register (route handler unit)', () => {
   it('calls authService.register and returns tokens', async () => {
@@ -32,7 +34,10 @@ describe('POST /api/auth/register (route handler unit)', () => {
   })
 
   it('propagates 409 when email is taken', async () => {
-    mockAuth.register.mockRejectedValue({ statusCode: 409, statusMessage: 'Email already registered' })
+    mockAuth.register.mockRejectedValue({
+      statusCode: 409,
+      statusMessage: 'Email already registered',
+    })
 
     await expect(
       authService.register({ name: 'X', email: 'dup@example.com', password: 'Password1!' })
@@ -51,9 +56,9 @@ describe('POST /api/auth/login (route handler unit)', () => {
   it('throws 401 for invalid credentials', async () => {
     mockAuth.login.mockRejectedValue({ statusCode: 401, statusMessage: 'Invalid credentials' })
 
-    await expect(
-      authService.login({ email: 'x@x.com', password: 'Bad1!' })
-    ).rejects.toMatchObject({ statusCode: 401 })
+    await expect(authService.login({ email: 'x@x.com', password: 'Bad1!' })).rejects.toMatchObject({
+      statusCode: 401,
+    })
   })
 })
 

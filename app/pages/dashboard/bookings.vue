@@ -43,42 +43,46 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: 'auth' })
 
-const { accessToken } = useAuth()
+  const { accessToken } = useAuth()
 
-interface Booking {
-  id: string
-  status: string
-  session?: { dateTime: string; duration: number }
-}
-
-const { data: bookings, pending, refresh } = await useLazyFetch<Booking[]>('/api/bookings', {
-  headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
-  default: () => [],
-})
-
-function statusClass(status: string) {
-  if (status === 'BOOKED') return 'text-green-600 bg-green-100'
-  if (status === 'CANCELLED') return 'text-red-600 bg-red-100'
-  return 'text-gray-600 bg-gray-100'
-}
-
-function formatDateTime(dt?: string) {
-  if (!dt) return '—'
-  return new Date(dt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
-}
-
-async function cancelBooking(id: string) {
-  if (!confirm('Annuler cette réservation ?')) return
-  try {
-    await $fetch(`/api/bookings/delete/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken.value}` },
-    })
-    await refresh()
-  } catch (e) {
-    alert('Impossible d\'annuler : ' + (e as { statusMessage?: string })?.statusMessage)
+  interface Booking {
+    id: string
+    status: string
+    session?: { dateTime: string; duration: number }
   }
-}
+
+  const {
+    data: bookings,
+    pending,
+    refresh,
+  } = await useLazyFetch<Booking[]>('/api/bookings', {
+    headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
+    default: () => [],
+  })
+
+  function statusClass(status: string) {
+    if (status === 'BOOKED') return 'text-green-600 bg-green-100'
+    if (status === 'CANCELLED') return 'text-red-600 bg-red-100'
+    return 'text-gray-600 bg-gray-100'
+  }
+
+  function formatDateTime(dt?: string) {
+    if (!dt) return '—'
+    return new Date(dt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+  }
+
+  async function cancelBooking(id: string) {
+    if (!confirm('Annuler cette réservation ?')) return
+    try {
+      await $fetch(`/api/bookings/delete/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+      await refresh()
+    } catch (e) {
+      alert("Impossible d'annuler : " + (e as { statusMessage?: string })?.statusMessage)
+    }
+  }
 </script>

@@ -9,7 +9,10 @@ export default defineEventHandler(async (event) => {
 
   const signature = getHeader(event, 'x-kkiapay-signature') || getHeader(event, 'x-signature')
 
-  const ok = await paymentsService.verifyWebhookSignature(rawString, signature as string | undefined)
+  const ok = await paymentsService.verifyWebhookSignature(
+    rawString,
+    signature as string | undefined
+  )
   if (!ok) {
     return { statusCode: 400, body: { error: 'invalid_signature' } }
   }
@@ -23,7 +26,8 @@ export default defineEventHandler(async (event) => {
   try {
     const res = await paymentsService.handleWebhook(parsed.data, JSON.parse(rawString))
     return { statusCode: 200, body: { ok: true, res } }
-  } catch (err: any) {
-    return { statusCode: 500, body: { error: 'webhook_processing_failed', message: err.message } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'webhook_processing_failed'
+    return { statusCode: 500, body: { error: 'webhook_processing_failed', message } }
   }
 })

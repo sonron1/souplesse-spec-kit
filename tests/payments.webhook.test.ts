@@ -20,11 +20,21 @@ describe('payments webhook handler', () => {
   })
 
   it('creates subscription when payment succeeded', async () => {
-    const envelope = { event: 'payment.succeeded', data: { id: 'pay_123', status: 'paid', reference: 'order1', amount: 5000, currency: 'XOF' } }
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_123', status: 'paid', reference: 'order1', amount: 5000, currency: 'XOF' },
+    }
 
     ;(prisma.transaction.findUnique as any).mockResolvedValue(null)
-    ;(prisma.paymentOrder.findUnique as any).mockResolvedValue({ id: 'order1', userId: 'user1', subscriptionPlanId: 'plan1' })
-    ;(prisma.subscriptionPlan.findUnique as any).mockResolvedValue({ id: 'plan1', validityDays: 30 })
+    ;(prisma.paymentOrder.findUnique as any).mockResolvedValue({
+      id: 'order1',
+      userId: 'user1',
+      subscriptionPlanId: 'plan1',
+    })
+    ;(prisma.subscriptionPlan.findUnique as any).mockResolvedValue({
+      id: 'plan1',
+      validityDays: 30,
+    })
 
     const res = await handleWebhook(envelope as any, envelope)
     expect(prisma.transaction.create).toHaveBeenCalled()

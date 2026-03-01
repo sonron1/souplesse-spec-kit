@@ -20,7 +20,10 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const parsed = AssignCoachSchema.safeParse(body)
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid payload: coachId and clientId (UUID) required' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid payload: coachId and clientId (UUID) required',
+    })
   }
 
   const { coachId, clientId } = parsed.data
@@ -32,10 +35,16 @@ export default defineEventHandler(async (event) => {
   ])
 
   if (!coach || coach.role !== 'COACH') {
-    throw createError({ statusCode: 422, statusMessage: 'coachId must reference a user with role COACH' })
+    throw createError({
+      statusCode: 422,
+      statusMessage: 'coachId must reference a user with role COACH',
+    })
   }
   if (!client || client.role !== 'CLIENT') {
-    throw createError({ statusCode: 422, statusMessage: 'clientId must reference a user with role CLIENT' })
+    throw createError({
+      statusCode: 422,
+      statusMessage: 'clientId must reference a user with role CLIENT',
+    })
   }
 
   // Upsert — idempotent: re-assigning the same pair is safe

@@ -10,7 +10,7 @@ import { subscriptionService } from '../../server/services/subscription.service'
 
 vi.mock('../../server/repositories/user.repository')
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     subscriptionPlan: { findUnique: vi.fn() },
     subscription: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
     paymentOrder: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
@@ -99,7 +99,11 @@ describe('US1 E2E: signup → purchase (Kkiapay) → webhook activation', () => 
 
     // 3. Simulate Kkiapay webhook → activation via subscriptionService
     mockPrisma.subscription.findUnique.mockResolvedValue(mockSub as never)
-    mockPrisma.subscription.update.mockResolvedValue({ ...mockSub, status: 'ACTIVE', isActive: true } as never)
+    mockPrisma.subscription.update.mockResolvedValue({
+      ...mockSub,
+      status: 'ACTIVE',
+      isActive: true,
+    } as never)
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(mockPlan as never)
 
     const activated = await subscriptionService.activateSubscription('sub-e2e')

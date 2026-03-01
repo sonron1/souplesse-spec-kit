@@ -22,7 +22,9 @@
           </p>
         </div>
         <span
-          :class="sub.status === 'ACTIVE' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'"
+          :class="
+            sub.status === 'ACTIVE' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
+          "
           class="px-3 py-1 rounded-full text-xs font-semibold"
         >
           {{ sub.status }}
@@ -33,20 +35,19 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: 'auth' })
 
-const { accessToken } = useAuth()
+  const { accessToken } = useAuth()
 
-const { data: subscriptions, pending } = await useLazyFetch<{ id: string; type: string; status: string; startDate: string; endDate: string }[]>(
-  '/api/subscriptions',
-  {
+  const { data: subscriptions, pending } = await useLazyFetch<
+    { id: string; type: string; status: string; startDate: string; endDate: string }[]
+  >('/api/subscriptions', {
     headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
     default: () => [],
-  }
-)
+  })
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('fr-FR')
-}
+  function formatDate(dateStr: string | null) {
+    if (!dateStr) return '—'
+    return new Date(dateStr).toLocaleDateString('fr-FR')
+  }
 </script>

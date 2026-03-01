@@ -7,7 +7,7 @@ import { verifyWebhookSignature, handleWebhook } from '../../server/services/pay
 import crypto from 'crypto'
 
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     transaction: { findUnique: vi.fn() },
     paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
     subscriptionPlan: { findUnique: vi.fn() },
@@ -55,11 +55,20 @@ describe('verifyWebhookSignature', () => {
 
 describe('handleWebhook — idempotency', () => {
   it('ignores duplicate paymentId (idempotent)', async () => {
-    mockPrisma.transaction.findUnique.mockResolvedValue({ id: 'tx-1', paymentId: 'pay_dup' } as never)
+    mockPrisma.transaction.findUnique.mockResolvedValue({
+      id: 'tx-1',
+      paymentId: 'pay_dup',
+    } as never)
 
     const envelope = {
       event: 'payment.succeeded',
-      data: { id: 'pay_dup', reference: 'order-1', amount: 5000, currency: 'XOF', status: 'success' },
+      data: {
+        id: 'pay_dup',
+        reference: 'order-1',
+        amount: 5000,
+        currency: 'XOF',
+        status: 'success',
+      },
     }
     const result = await handleWebhook(envelope as any, envelope)
     expect(result).toMatchObject({ ignored: true })

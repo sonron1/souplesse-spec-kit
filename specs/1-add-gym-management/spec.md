@@ -27,7 +27,7 @@
 - Q: Are SubscriptionPlan tiers free-form or enum-constrained? → A: Enum-constrained — `planType` column with values MONTHLY | QUARTERLY | ANNUAL | COUPLE_MONTHLY | COUPLE_QUARTERLY | COUPLE_ANNUAL
 - Q: Does FR-007 require full time-overlap detection or same-session deduplication only? → A: Same-session deduplication only — enforced via unique(userId, sessionId); no time-overlap check in v1
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Subscription & Activation (Priority: P1)
 
@@ -38,6 +38,7 @@ Un client crée un compte, choisit un abonnement, paie en ligne, et voit son abo
 **Independent Test**: Create a new account, purchase a monthly plan, simulate a successful provider webhook and verify the subscription is ACTIVE and user can book.
 
 **Acceptance Scenarios**:
+
 1. **Given** an unauthenticated visitor, **When** they register and pay, **Then** their subscription becomes ACTIVE only after a verified webhook.
 2. **Given** a user without active subscription, **When** they attempt to reserve, **Then** reservation is denied with an explanatory message.
 
@@ -52,6 +53,7 @@ Client views available sessions in a calendar and reserves a slot (subject to ca
 **Independent Test**: With an active subscription, reserve a slot that has capacity remaining; verify capacity decrements and double bookings are prevented.
 
 **Acceptance Scenarios**:
+
 1. **Given** a session at capacity N, **When** N users reserve, **Then** further reservations are rejected.
 2. **Given** a user with a CONFIRMED booking, **When** they attempt to cancel, **Then** the action is rejected with an explanatory message (no cancellation in v1).
 
@@ -66,6 +68,7 @@ Coach creates/modifies personalized programs and tracks client progress; only as
 **Independent Test**: Coach creates a program for an assigned client and modifies exercises; client can view but not edit.
 
 **Acceptance Scenarios**:
+
 1. **Given** a coach assigned to a client, **When** they edit the program, **Then** changes are persisted and visible to that client.
 2. **Given** an unauthorized coach, **When** they attempt to edit, **Then** the action is forbidden.
 
@@ -78,6 +81,7 @@ Admin sees totals (users, active subscriptions), revenue, and can export CSV.
 **Independent Test**: Admin logs in and verifies dashboard metrics match persisted records and can export CSV.
 
 **Acceptance Scenarios**:
+
 1. **Given** an admin, **When** they request exports, **Then** CSV with correct columns is delivered.
 2. **Given** non-admin, **When** they access dashboard, **Then** access is denied.
 
@@ -90,7 +94,7 @@ Admin sees totals (users, active subscriptions), revenue, and can export CSV.
 - Timezone differences for session times and bookings.
 - Concurrent reservations hitting capacity simultaneously (race conditions).
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -124,7 +128,7 @@ Admin sees totals (users, active subscriptions), revenue, and can export CSV.
 - **CoachClientAssignment**: id (UUID), coachId, clientId, assignedAt; unique on (coachId, clientId); created by ADMIN only
 - **BusinessHours**: id (UUID), dayOfWeek (0–6), openTime, closeTime
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
@@ -142,7 +146,7 @@ Admin sees totals (users, active subscriptions), revenue, and can export CSV.
 - **UI/UX**: Mobile-first responsive design; branding palette: black / yellow / white; no inline styles; no duplicated components; all form inputs must have a paired `<label>` for accessibility.
 - **Availability**: Webhook processing must be idempotent — duplicate webhooks MUST NOT create duplicate activations.
 
-## Constitution Compliance *(mandatory)*
+## Constitution Compliance _(mandatory)_
 
 - TypeScript `strict: true` required if using TypeScript; centralize types in `/types`.
 - ESLint + Prettier enforced; CI must fail on lint/type/test failures.
@@ -158,8 +162,7 @@ Admin sees totals (users, active subscriptions), revenue, and can export CSV.
 
 ## Notes / Next Steps
 
-- Define concrete API contracts for payment webhook and booking endpoints.  
-- Design database schema and indexes (sessions.booking count index).  
+- Define concrete API contracts for payment webhook and booking endpoints.
+- Design database schema and indexes (sessions.booking count index).
 - Create test fixtures for payment provider webhooks and concurrency booking tests.
-
-``` 
+```

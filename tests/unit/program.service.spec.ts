@@ -2,12 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { programService } from '../../server/services/program.service'
 
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     program: {
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn(),
+    },
+    coachClientAssignment: {
+      findUnique: vi.fn(),
     },
   },
 }))
@@ -28,10 +31,16 @@ const MOCK_PROGRAM = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('programService.createProgram', () => {
   it('creates a program assigned to coach and client', async () => {
+    mockPrisma.coachClientAssignment.findUnique.mockResolvedValue({
+      coachId: 'coach-1',
+      clientId: 'client-1',
+    } as never)
     mockPrisma.program.create.mockResolvedValue(MOCK_PROGRAM)
 
     const result = await programService.createProgram('coach-1', {
@@ -47,6 +56,10 @@ describe('programService.createProgram', () => {
 describe('programService.updateProgram', () => {
   it('allows the assigned coach to update their program', async () => {
     mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM)
+    mockPrisma.coachClientAssignment.findUnique.mockResolvedValue({
+      coachId: 'coach-1',
+      clientId: 'client-1',
+    } as never)
     const updated = { ...MOCK_PROGRAM, type: 'LOSS' as const }
     mockPrisma.program.update.mockResolvedValue(updated)
 
@@ -65,9 +78,9 @@ describe('programService.updateProgram', () => {
   it('throws 404 if program does not exist', async () => {
     mockPrisma.program.findUnique.mockResolvedValue(null)
 
-    await expect(
-      programService.updateProgram('bad-prog', 'coach-1', {})
-    ).rejects.toMatchObject({ statusCode: 404 })
+    await expect(programService.updateProgram('bad-prog', 'coach-1', {})).rejects.toMatchObject({
+      statusCode: 404,
+    })
   })
 })
 

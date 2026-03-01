@@ -8,6 +8,7 @@ excellent TypeScript support and aligns with the constitution's separation of
 `/app` and `/server` concerns. Nuxt 4.3.1 chosen for stability and Vite support.
 
 Alternatives considered:
+
 - Next.js + Node serverless (rejected: less native Vue ecosystem support)
 - Full separate backend (Fastify/FastAPI) (rejected: extra operational complexity)
 
@@ -44,5 +45,4 @@ Alternatives: PayPal (supported later as fallback)
   Vercel for frontend and a small server host for webhooks if low latency is needed.)
 
 Decision: treat hosting as flexible; document final choice in quickstart.
-
-``` 
+```

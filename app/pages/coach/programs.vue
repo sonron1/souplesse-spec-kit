@@ -23,7 +23,10 @@
     </div>
 
     <!-- Simple create form -->
-    <div v-if="showCreateForm" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div
+      v-if="showCreateForm"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    >
       <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 class="text-lg font-semibold mb-4">Nouveau programme</h2>
         <input v-model="newProgram.clientId" placeholder="ID Client" class="input mb-3" />
@@ -41,36 +44,40 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
-const { isCoach, accessToken } = useAuth()
-if (!isCoach.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: 'auth' })
+  const { isCoach, accessToken } = useAuth()
+  if (!isCoach.value) await navigateTo('/dashboard')
 
-interface Program {
-  id: string
-  clientId: string
-  type: string
-}
+  interface Program {
+    id: string
+    clientId: string
+    type: string
+  }
 
-const { data: programs, pending, refresh } = await useLazyFetch<Program[]>('/api/programs', {
-  headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
-  default: () => [],
-})
-
-const showCreateForm = ref(false)
-const newProgram = reactive({ clientId: '', type: 'GAIN' })
-
-function editProgram(_id: string) {
-  // TODO: open edit modal
-}
-
-async function createProgram() {
-  await $fetch('/api/programs', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken.value}` },
-    body: { ...newProgram, content: {} },
+  const {
+    data: programs,
+    pending,
+    refresh,
+  } = await useLazyFetch<Program[]>('/api/programs', {
+    headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
+    default: () => [],
   })
-  showCreateForm.value = false
-  newProgram.clientId = ''
-  await refresh()
-}
+
+  const showCreateForm = ref(false)
+  const newProgram = reactive({ clientId: '', type: 'GAIN' })
+
+  function editProgram(_id: string) {
+    // TODO: open edit modal
+  }
+
+  async function createProgram() {
+    await $fetch('/api/programs', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken.value}` },
+      body: { ...newProgram, content: {} },
+    })
+    showCreateForm.value = false
+    newProgram.clientId = ''
+    await refresh()
+  }
 </script>

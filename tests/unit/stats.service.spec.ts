@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { statsService } from '../../server/services/stats.service'
 
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     user: { count: vi.fn() },
     subscription: { count: vi.fn() },
     payment: { aggregate: vi.fn(), findMany: vi.fn() },
@@ -13,7 +13,9 @@ vi.mock('../../server/utils/prisma', () => ({
 import { prisma } from '../../server/utils/prisma'
 const mockPrisma = vi.mocked(prisma) as any
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('statsService.getDashboardStats', () => {
   it('returns aggregated dashboard stats', async () => {

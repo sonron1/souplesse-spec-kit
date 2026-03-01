@@ -1,22 +1,33 @@
 {
+  // Extends Nuxt-generated tsconfig so Volar resolves auto-imports (ref, computed,
+  // definePageMeta, navigateTo, $fetch, useAuth, …) in every Vue SFC.
+  "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "resolveJsonModule": true,
-    "types": ["node", "vitest"]
+    // Required when inheriting non-relative path mappings from .nuxt/tsconfig.json
+    "baseUrl": ".",
+    // Re-add node + vitest globals (.nuxt/tsconfig.json resets types to [])
+    "types": ["node", "vitest"],
+    // .nuxt/tsconfig.json enables this but it breaks array-index usage in server code
+    "noUncheckedIndexedAccess": false,
+    "noEmit": true
   },
   "include": [
+    // Nuxt type declarations (auto-imports, component types, …)
+    ".nuxt/nuxt.d.ts",
+    // App source (pages, components, composables under srcDir: 'app')
+    "app/**/*",
+    // Root-level Vue files outside srcDir
+    "components/**/*.vue",
+    "pages/**/*.vue",
+    // Server / API / Nitro handlers
     "server/**/*.ts",
+    // Tests
     "tests/**/*.ts",
+    // Prisma & shared types
     "prisma/**/*.ts",
     "types/**/*.ts",
-    "app/**/*.ts",
-    "app/**/*.vue"
+    "utils/**/*.ts",
+    // Performance & utility scripts
+    "scripts/**/*.ts"
   ]
 }

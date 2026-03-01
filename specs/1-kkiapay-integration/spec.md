@@ -3,15 +3,15 @@
 **Feature Branch**: `1-kkiapay-integration`  
 **Created**: 2026-03-01  
 **Status**: Draft  
-**Input**: User description: "Use the official Kkiapay Nuxt.js SDK to implement online payments. Integrate in a secure frontend checkout component; create server API to generate payment orders; validate payment success via webhook/service callback; update subscription status only after successful payment."  
+**Input**: User description: "Use the official Kkiapay Nuxt.js SDK to implement online payments. Integrate in a secure frontend checkout component; create server API to generate payment orders; validate payment success via webhook/service callback; update subscription status only after successful payment."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Purchase subscription (Priority: P1)
 
 As a customer I want to pay for a subscription in the app so that my membership becomes active immediately after payment.
 
-**Why this priority**: Core revenue path — without it users cannot subscribe.  
+**Why this priority**: Core revenue path — without it users cannot subscribe.
 
 **Independent Test**: End-to-end test that: user selects a subscription, opens the checkout, completes a simulated payment via Kkiapay sandbox, backend receives and validates webhook/callback, subscription status transitions from `pending` to `active`.
 
@@ -27,7 +27,7 @@ As a customer I want to pay for a subscription in the app so that my membership 
 
 As a customer I want to know if payment fails and be able to retry payment so that I can complete my purchase.
 
-**Why this priority**: Important UX for conversions and recovery from transient errors.  
+**Why this priority**: Important UX for conversions and recovery from transient errors.
 
 **Independent Test**: Simulate a failed payment in the sandbox and verify frontend shows clear failure message and user can reinitiate checkout; backend leaves subscription in `failed`/`pending` state until success.
 
@@ -58,7 +58,7 @@ As an admin I want to view and reconcile payment records so I can verify revenue
 - Race conditions between client success callback and webhook: server-side source-of-truth is webhook; client success should display optimistic confirmation but subscription activation must wait for backend verification.
 - Idempotency: webhook and order endpoints must be idempotent; use `orderId` or `paymentId` as idempotency key.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -80,7 +80,7 @@ As an admin I want to view and reconcile payment records so I can verify revenue
 - **Subscription**: Existing domain entity; new rules: `activationPendingPayment` flag or `pending` state until payment confirmed.
 - **User**: Reference to who purchased; use `userId` to link.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
@@ -89,7 +89,7 @@ As an admin I want to view and reconcile payment records so I can verify revenue
 - **SC-003**: Orders created via the backend must be recorded and retrievable; 100% of created orders have an associated `PaymentOrder` record.
 - **SC-004**: Error handling: when webhook signature verification fails, webhook is rejected and logged; the system raises at least one alert for repeated verification failures.
 
-## Constitution Compliance *(mandatory)*
+## Constitution Compliance _(mandatory)_
 
 - **TypeScript strict**: All new code must be TypeScript with strict compiler options.
 - **Server-side validation**: All backend endpoints must validate input with Zod schemas or similar.

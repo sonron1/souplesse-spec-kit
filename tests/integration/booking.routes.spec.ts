@@ -8,12 +8,19 @@ vi.mock('../../server/utils/logger', () => ({
 
 const mockBookingService = vi.mocked(bookingService)
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('Booking routes integration', () => {
   describe('POST /api/bookings (via service)', () => {
     it('books a session successfully', async () => {
-      const mockBooking = { id: 'book-1', userId: 'user-1', sessionId: 'sess-1', status: 'CONFIRMED' }
+      const mockBooking = {
+        id: 'book-1',
+        userId: 'user-1',
+        sessionId: 'sess-1',
+        status: 'CONFIRMED',
+      }
       mockBookingService.bookSession.mockResolvedValue(mockBooking as never)
 
       const result = await bookingService.bookSession('user-1', 'sess-1')
@@ -35,7 +42,7 @@ describe('Booking routes integration', () => {
       // unconditionally throws 405 at the handler level; the service has no
       // cancelBooking method. This test documents that contract.
       await expect(
-        Promise.reject({ statusCode: 405, statusMessage: 'Booking cancellation is not available' }),
+        Promise.reject({ statusCode: 405, statusMessage: 'Booking cancellation is not available' })
       ).rejects.toMatchObject({ statusCode: 405 })
     })
   })

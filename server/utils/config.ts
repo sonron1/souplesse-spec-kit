@@ -1,12 +1,15 @@
 import fs from 'fs'
 import path from 'path'
+import { z } from 'zod'
 import { BusinessConfigSchema } from '../validators/settings.schemas'
 
 const CFG_PATH = path.join(process.cwd(), 'server', 'config', 'business.config.json')
 
-let _config: any = null
+type ParsedBusinessConfig = z.infer<typeof BusinessConfigSchema>
 
-export function loadConfig() {
+let _config: ParsedBusinessConfig | null = null
+
+export function loadConfig(): ParsedBusinessConfig {
   if (_config) return _config
   if (!fs.existsSync(CFG_PATH)) throw new Error('business.config.json not found')
   const raw = fs.readFileSync(CFG_PATH, 'utf8')

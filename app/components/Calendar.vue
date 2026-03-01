@@ -23,44 +23,68 @@
 </template>
 
 <script setup lang="ts">
-interface Booking {
-  id: string
-  status: string
-  session?: { dateTime: string; duration: number }
-}
-
-const props = defineProps<{ bookings: Booking[] }>()
-
-const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-
-const calendarCells = computed(() => {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = today.getMonth()
-  const firstDay = new Date(year, month, 1)
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-
-  // ISO weekday: Mon=1, so adjust
-  const startOffset = (firstDay.getDay() + 6) % 7
-
-  const cells = []
-  for (let i = 0; i < startOffset; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) {
-    const cellDate = new Date(year, month, d)
-    const dateStr = cellDate.toDateString()
-    const booking = props.bookings.find(
-      (b) => b.session && new Date(b.session.dateTime).toDateString() === dateStr && b.status === 'BOOKED'
-    )
-    cells.push({
-      date: `${year}-${month}-${d}`,
-      day: d,
-      isToday: cellDate.toDateString() === today.toDateString(),
-      isPast: cellDate < today,
-      hasBooking: !!booking,
-      bookingTitle: booking ? `Séance à ${new Date(booking.session!.dateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : '',
-    })
+  interface Booking {
+    id: string
+    status: string
+    session?: { dateTime: string; duration: number }
   }
 
-  return cells.filter(Boolean)
-})
+  interface CalendarCell {
+    date: string
+    day: number | ''
+    isToday: boolean
+    isPast: boolean
+    hasBooking: boolean
+    bookingTitle: string
+  }
+
+  const props = defineProps<{ bookings: Booking[] }>()
+
+  const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+  const calendarCells = computed<CalendarCell[]>(() => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = today.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    // ISO weekday: Mon=1, so adjust
+    const startOffset = (firstDay.getDay() + 6) % 7
+
+    const cells: CalendarCell[] = []
+    for (let i = 0; i < startOffset; i++) {
+      cells.push({
+        date: `empty-${year}-${month}-${i}`,
+        day: '',
+        isToday: false,
+        isPast: false,
+        hasBooking: false,
+        bookingTitle: '',
+      })
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cellDate = new Date(year, month, d)
+      const dateStr = cellDate.toDateString()
+      const booking = props.bookings.find(
+        (b) =>
+          b.session &&
+          new Date(b.session.dateTime).toDateString() === dateStr &&
+          b.status === 'BOOKED'
+      )
+      cells.push({
+        date: `${year}-${month}-${d}`,
+        day: d,
+        isToday: cellDate.toDateString() === today.toDateString(),
+        isPast: cellDate < today,
+        hasBooking: !!booking,
+        bookingTitle: booking?.session
+          ? `Séance à ${new Date(booking.session.dateTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+          : '',
+      })
+    }
+
+    return cells
+  })
 </script>

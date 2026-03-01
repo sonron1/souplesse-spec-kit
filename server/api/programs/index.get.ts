@@ -11,7 +11,10 @@ export default defineEventHandler(async (event) => {
   // Coaches and admins can query any client; clients can only query themselves
   const targetClientId = clientId ?? user.sub
   if (user.role === 'CLIENT' && targetClientId !== user.sub) {
-    throw createError({ statusCode: 403, statusMessage: 'Clients may only view their own programs' })
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Clients may only view their own programs',
+    })
   }
 
   const programs = await programService.getProgramsByClient(targetClientId)

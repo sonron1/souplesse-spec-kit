@@ -1,5 +1,5 @@
 ﻿import { prisma } from '../utils/prisma'
-import { Prisma } from '@prisma/client'
+import { Prisma, DayOfWeek } from '@prisma/client'
 import { bookingRepository } from '../repositories/booking.repository'
 import { subscriptionService } from './subscription.service'
 import { createError } from 'h3'
@@ -7,14 +7,14 @@ import logger from '../utils/logger'
 import type { Booking } from '.prisma/client'
 
 /** Maps JavaScript Date.getDay() (0=Sun) to Prisma DayOfWeek enum values */
-const JS_DAY_TO_ENUM: Record<number, string> = {
-  0: 'SUNDAY',
-  1: 'MONDAY',
-  2: 'TUESDAY',
-  3: 'WEDNESDAY',
-  4: 'THURSDAY',
-  5: 'FRIDAY',
-  6: 'SATURDAY',
+const JS_DAY_TO_ENUM: Record<number, DayOfWeek> = {
+  0: 'SUNDAY' as DayOfWeek,
+  1: 'MONDAY' as DayOfWeek,
+  2: 'TUESDAY' as DayOfWeek,
+  3: 'WEDNESDAY' as DayOfWeek,
+  4: 'THURSDAY' as DayOfWeek,
+  5: 'FRIDAY' as DayOfWeek,
+  6: 'SATURDAY' as DayOfWeek,
 }
 
 export const bookingService = {
@@ -62,7 +62,7 @@ export const bookingService = {
       // 4. BusinessHours validation (FR-013)
       const dayEnum = JS_DAY_TO_ENUM[session.dateTime.getDay()]
       const hours = await tx.businessHours.findFirst({
-        where: { dayOfWeek: dayEnum as any },
+        where: { dayOfWeek: dayEnum },
       })
       if (hours) {
         const sessionTime = session.dateTime.toTimeString().slice(0, 5)

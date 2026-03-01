@@ -7,11 +7,23 @@ import { subscriptionService } from '../../server/services/subscription.service'
 import { bookingService } from '../../server/services/booking.service'
 
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     $transaction: vi.fn(),
     subscriptionPlan: { findUnique: vi.fn() },
-    subscription: { findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    booking: { count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+    subscription: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    booking: {
+      count: vi.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+    },
     session: { findUnique: vi.fn() },
   },
 }))
@@ -39,7 +51,9 @@ const SESSION = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('US2 E2E: booking flow', () => {
   it('user with active subscription books a session successfully', async () => {
@@ -48,7 +62,16 @@ describe('US2 E2E: booking flow', () => {
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
       fn({
         session: { findUnique: vi.fn().mockResolvedValue(SESSION) },
-        booking: { count: vi.fn().mockResolvedValue(0), create: vi.fn().mockResolvedValue({ id: 'book-e2e', userId: 'user-e2e', sessionId: 'sess-e2e', status: 'BOOKED' }) },
+        booking: {
+          count: vi.fn().mockResolvedValue(0),
+          create: vi.fn().mockResolvedValue({
+            id: 'book-e2e',
+            userId: 'user-e2e',
+            sessionId: 'sess-e2e',
+            status: 'BOOKED',
+          }),
+        },
+        businessHours: { findFirst: vi.fn().mockResolvedValue(null) },
       } as never)
     )
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { subscriptionService } from '../../server/services/subscription.service'
 
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     subscriptionPlan: {
       findUnique: vi.fn(),
     },
@@ -40,7 +40,9 @@ const MOCK_SUB = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('subscriptionService.createSubscription', () => {
   it('creates a PENDING subscription for a valid plan', async () => {
@@ -54,13 +56,16 @@ describe('subscriptionService.createSubscription', () => {
 
   it('throws 404 for non-existent plan', async () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(null)
-    await expect(subscriptionService.createSubscription('user-1', 'bad-plan')).rejects.toMatchObject(
-      { statusCode: 404 }
-    )
+    await expect(
+      subscriptionService.createSubscription('user-1', 'bad-plan')
+    ).rejects.toMatchObject({ statusCode: 404 })
   })
 
   it('throws 404 for inactive plan', async () => {
-    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue({ ...MOCK_PLAN, isActive: false } as never)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue({
+      ...MOCK_PLAN,
+      isActive: false,
+    } as never)
     await expect(subscriptionService.createSubscription('user-1', 'plan-1')).rejects.toMatchObject({
       statusCode: 404,
     })
@@ -77,7 +82,9 @@ describe('subscriptionService.activateSubscription', () => {
     const result = await subscriptionService.activateSubscription('sub-1')
     expect(result.status).toBe('ACTIVE')
     expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'ACTIVE', isActive: true }) })
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'ACTIVE', isActive: true }),
+      })
     )
   })
 

@@ -26,7 +26,7 @@ export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
   for (const key of Object.keys(result)) {
     const val = result[key]
     if (typeof val === 'string') {
-      (result as Record<string, unknown>)[key] = sanitizeHtml(val)
+      ;(result as Record<string, unknown>)[key] = sanitizeHtml(val)
     }
   }
   return result

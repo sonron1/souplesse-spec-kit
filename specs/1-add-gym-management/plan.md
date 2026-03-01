@@ -29,6 +29,7 @@ coach-managed training programs, progress tracking, and an admin dashboard with 
 ## Constitution Check
 
 GATE: The plan adheres to the constitution. Key verifications:
+
 - TypeScript `strict: true` (planned)
 - ESLint + Prettier configured in CI (planned)
 - Server-side runtime validation: Zod for request bodies (planned)
@@ -78,11 +79,11 @@ logic under `server/` as required by the constitution.
 
 ### Documented `any` Exceptions (Constitution I — requires justification)
 
-| Location | Usage | Justification | Removal Target |
-|---|---|---|---|
-| `server/utils/jwt.ts` | `expiresIn: env as any` | `jsonwebtoken` v9 overload types do not accept a generic `string`; type-safe signature requires `StringValue` from `ms` pkg | Upgrade `@types/jsonwebtoken` or replace with `jose` library |
-| `tests/**/*.spec.ts` | `vi.mocked(prisma) as any` | Prisma Client method types (`findUnique`, etc.) are not preserved through Vitest's `vi.mocked` without a complex generic helper | Add a typed `createMockPrisma()` factory in `tests/helpers/` when test infra is stabilized |
-| `tests/**/*.spec.ts` | `$transaction` mock fn typed `(tx: any) => any` | `Prisma.TransactionClient` is not re-exported by Vitest mock boundary | Same resolution as above |
+| Location              | Usage                                           | Justification                                                                                                                   | Removal Target                                                                             |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `server/utils/jwt.ts` | `expiresIn: env as any`                         | `jsonwebtoken` v9 overload types do not accept a generic `string`; type-safe signature requires `StringValue` from `ms` pkg     | Upgrade `@types/jsonwebtoken` or replace with `jose` library                               |
+| `tests/**/*.spec.ts`  | `vi.mocked(prisma) as any`                      | Prisma Client method types (`findUnique`, etc.) are not preserved through Vitest's `vi.mocked` without a complex generic helper | Add a typed `createMockPrisma()` factory in `tests/helpers/` when test infra is stabilized |
+| `tests/**/*.spec.ts`  | `$transaction` mock fn typed `(tx: any) => any` | `Prisma.TransactionClient` is not re-exported by Vitest mock boundary                                                           | Same resolution as above                                                                   |
 
 ### Payment Provider Change
 
@@ -90,4 +91,3 @@ Spec clarification (2026-03-01) establishes **Kkiapay** as the exclusive payment
 Stripe SDK and all Stripe-specific references previously in this plan have been replaced.
 Any implementation artifact still referencing Stripe (imports, env vars, tests) must be
 updated before the feature is merged.
-

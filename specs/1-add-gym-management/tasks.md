@@ -1,5 +1,5 @@
 ---
-description: "Task list for Souplesse Fitness - Gym Management"
+description: 'Task list for Souplesse Fitness - Gym Management'
 ---
 
 # Tasks: Souplesse Fitness — Gym Management
@@ -150,13 +150,13 @@ description: "Task list for Souplesse Fitness - Gym Management"
 
 ## Parallel Execution Examples
 
-- Run in parallel: `T002`, `T004`, `T00A` (non-overlapping files).  
+- Run in parallel: `T002`, `T004`, `T00A` (non-overlapping files).
 - Once foundational done: `US1` tasks (T011..T01B) and `US2` tasks (T01D..T01J) can run in parallel by different developers.
 
 ## Implementation Strategy
 
-- MVP first: complete Phase 1 + Phase 2, then implement US1 (subscriptions + payments) as MVP.  
-- Incremental delivery: after US1 validated, add US2 (bookings), then US3 (programs), then US4 (admin).  
+- MVP first: complete Phase 1 + Phase 2, then implement US1 (subscriptions + payments) as MVP.
+- Incremental delivery: after US1 validated, add US2 (bookings), then US3 (programs), then US4 (admin).
 - Tests-first where feasible: write unit/integration tests that fail before implementing behavior.
 
 ---

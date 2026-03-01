@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
-const { isCoach } = useAuth()
-if (!isCoach.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: 'auth' })
+  const { isCoach } = useAuth()
+  if (!isCoach.value) await navigateTo('/dashboard')
 </script>

@@ -13,7 +13,9 @@ export const sessionRepository = {
     return prisma.session.findUnique({ where: { id } })
   },
 
-  async findAll(opts: { page?: number; limit?: number; from?: Date; to?: Date } = {}): Promise<Session[]> {
+  async findAll(
+    opts: { page?: number; limit?: number; from?: Date; to?: Date } = {}
+  ): Promise<Session[]> {
     const { page = 1, limit = 20, from, to } = opts
     return prisma.session.findMany({
       where: {

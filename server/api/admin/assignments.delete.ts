@@ -20,7 +20,10 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const parsed = RemoveAssignmentSchema.safeParse(body)
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid payload: coachId and clientId (UUID) required' })
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid payload: coachId and clientId (UUID) required',
+    })
   }
 
   const { coachId, clientId } = parsed.data

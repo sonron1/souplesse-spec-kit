@@ -36,13 +36,20 @@ export const programService = {
   /**
    * Update a program — only the assigned coach who created it may edit.
    */
-  async updateProgram(programId: string, coachId: string, input: UpdateProgramInput): Promise<Program> {
+  async updateProgram(
+    programId: string,
+    coachId: string,
+    input: UpdateProgramInput
+  ): Promise<Program> {
     const program = await prisma.program.findUnique({ where: { id: programId } })
     if (!program) {
       throw createError({ statusCode: 404, statusMessage: 'Program not found' })
     }
     if (program.coachId !== coachId) {
-      throw createError({ statusCode: 403, statusMessage: 'Only the assigned coach may edit this program' })
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Only the assigned coach may edit this program',
+      })
     }
 
     // Verify assignment still exists (admin may have revoked it)
@@ -81,7 +88,11 @@ export const programService = {
   /**
    * Get a single program — validates the requesting user has access.
    */
-  async getProgramById(programId: string, requesterId: string, requesterRole: string): Promise<Program> {
+  async getProgramById(
+    programId: string,
+    requesterId: string,
+    requesterRole: string
+  ): Promise<Program> {
     const program = await prisma.program.findUnique({ where: { id: programId } })
     if (!program) {
       throw createError({ statusCode: 404, statusMessage: 'Program not found' })

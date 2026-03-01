@@ -35,25 +35,25 @@ souplesse-speckit/
 
 ## Role System
 
-| Role | Capabilities |
-|------|-------------|
-| `CLIENT` | Register, purchase subscription, view & book sessions, view own programs |
-| `COACH` | All client capabilities + create sessions, manage programs for assigned clients |
-| `ADMIN` | All above + assign coaches to clients, manage users, payment history, CSV export, KPI dashboard |
+| Role     | Capabilities                                                                                    |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| `CLIENT` | Register, purchase subscription, view & book sessions, view own programs                        |
+| `COACH`  | All client capabilities + create sessions, manage programs for assigned clients                 |
+| `ADMIN`  | All above + assign coaches to clients, manage users, payment history, CSV export, KPI dashboard |
 
 ## Data Model Summary
 
-| Entity | Key Fields |
-|--------|-----------|
-| `User` | id (UUID), name, email (unique), passwordHash, role |
-| `SubscriptionPlan` | id, name, planType (enum), priceSingle, priceCouple, validityDays, maxReports |
-| `Subscription` | id, userId, planId, activationDate, expiresAt, status, partnerUserId |
-| `Payment` | id, userId, amount (XOF int), kkiapayTransactionId (unique), status |
-| `Session` | id, coachId, dateTime (UTC), duration, capacity |
-| `Booking` | id, userId, sessionId, status; unique (userId, sessionId) |
-| `Program` | id, clientId, coachId, type, content (JSON) |
-| `CoachClientAssignment` | id, coachId, clientId; unique (coachId, clientId) |
-| `BusinessHours` | id, dayOfWeek, openTime, closeTime |
+| Entity                  | Key Fields                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `User`                  | id (UUID), name, email (unique), passwordHash, role                           |
+| `SubscriptionPlan`      | id, name, planType (enum), priceSingle, priceCouple, validityDays, maxReports |
+| `Subscription`          | id, userId, planId, activationDate, expiresAt, status, partnerUserId          |
+| `Payment`               | id, userId, amount (XOF int), kkiapayTransactionId (unique), status           |
+| `Session`               | id, coachId, dateTime (UTC), duration, capacity                               |
+| `Booking`               | id, userId, sessionId, status; unique (userId, sessionId)                     |
+| `Program`               | id, clientId, coachId, type, content (JSON)                                   |
+| `CoachClientAssignment` | id, coachId, clientId; unique (coachId, clientId)                             |
+| `BusinessHours`         | id, dayOfWeek, openTime, closeTime                                            |
 
 ### Subscription Plan Types (`PlanType` enum)
 
@@ -98,44 +98,49 @@ See [specs/1-add-gym-management/quickstart.md](specs/1-add-gym-management/quicks
 ## API Endpoints
 
 ### Auth
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/auth/register` | Create account |
-| `POST` | `/api/auth/login` | Get access + refresh tokens |
-| `POST` | `/api/auth/refresh` | Rotate refresh token |
-| `POST` | `/api/auth/logout` | Revoke refresh token |
+
+| Method | Path                 | Description                 |
+| ------ | -------------------- | --------------------------- |
+| `POST` | `/api/auth/register` | Create account              |
+| `POST` | `/api/auth/login`    | Get access + refresh tokens |
+| `POST` | `/api/auth/refresh`  | Rotate refresh token        |
+| `POST` | `/api/auth/logout`   | Revoke refresh token        |
 
 ### Sessions & Bookings
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/sessions` | List upcoming sessions (paginated) |
-| `POST` | `/api/sessions` | Create session (coach/admin) |
+
+| Method | Path            | Description                                                          |
+| ------ | --------------- | -------------------------------------------------------------------- |
+| `GET`  | `/api/sessions` | List upcoming sessions (paginated)                                   |
+| `POST` | `/api/sessions` | Create session (coach/admin)                                         |
 | `POST` | `/api/bookings` | Book a session (requires active subscription + within BusinessHours) |
 
 > ⚠️ Bookings are **final** in v1 — no cancellation endpoint.
 
 ### Programs
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/programs` | List client's programs |
-| `POST` | `/api/programs` | Create program (assigned coach only) |
-| `PUT` | `/api/programs/:id` | Update program (assigned coach only) |
+
+| Method | Path                | Description                          |
+| ------ | ------------------- | ------------------------------------ |
+| `GET`  | `/api/programs`     | List client's programs               |
+| `POST` | `/api/programs`     | Create program (assigned coach only) |
+| `PUT`  | `/api/programs/:id` | Update program (assigned coach only) |
 
 ### Payments (Kkiapay)
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/payments/create-session` | Initiate Kkiapay payment session |
+
+| Method | Path                            | Description                                 |
+| ------ | ------------------------------- | ------------------------------------------- |
+| `POST` | `/api/payments/create-session`  | Initiate Kkiapay payment session            |
 | `POST` | `/api/payments/kkiapay.webhook` | Kkiapay webhook (HMAC-verified, idempotent) |
 
 ### Admin
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/admin/stats` | KPIs: users, revenue, active subscriptions |
-| `GET` | `/api/admin/users` | Paginated user list |
-| `GET` | `/api/admin/payments` | Payment history |
-| `GET` | `/api/admin/export` | CSV export (users + payments) |
-| `POST` | `/api/admin/assignments` | Assign a coach to a client |
-| `DELETE` | `/api/admin/assignments` | Remove a coach-client assignment |
+
+| Method   | Path                     | Description                                |
+| -------- | ------------------------ | ------------------------------------------ |
+| `GET`    | `/api/admin/stats`       | KPIs: users, revenue, active subscriptions |
+| `GET`    | `/api/admin/users`       | Paginated user list                        |
+| `GET`    | `/api/admin/payments`    | Payment history                            |
+| `GET`    | `/api/admin/export`      | CSV export (users + payments)              |
+| `POST`   | `/api/admin/assignments` | Assign a coach to a client                 |
+| `DELETE` | `/api/admin/assignments` | Remove a coach-client assignment           |
 
 ## Payment Flow (Kkiapay)
 
@@ -167,14 +172,14 @@ Programs can only be created or edited by a coach **explicitly assigned** to the
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `JWT_SECRET` | ✅ | Secret for access tokens (≥32 chars) |
-| `JWT_REFRESH_SECRET` | ✅ | Secret for refresh tokens (≥32 chars) |
-| `KKIAPAY_SECRET_KEY` | ✅ | Kkiapay API key |
-| `KKIAPAY_WEBHOOK_SECRET` | ✅ | Kkiapay HMAC webhook secret |
-| `NUXT_PUBLIC_APP_URL` | ✅ | Public base URL (e.g. `http://localhost:3000`) |
+| Variable                 | Required | Description                                    |
+| ------------------------ | -------- | ---------------------------------------------- |
+| `DATABASE_URL`           | ✅       | PostgreSQL connection string                   |
+| `JWT_SECRET`             | ✅       | Secret for access tokens (≥32 chars)           |
+| `JWT_REFRESH_SECRET`     | ✅       | Secret for refresh tokens (≥32 chars)          |
+| `KKIAPAY_SECRET_KEY`     | ✅       | Kkiapay API key                                |
+| `KKIAPAY_WEBHOOK_SECRET` | ✅       | Kkiapay HMAC webhook secret                    |
+| `NUXT_PUBLIC_APP_URL`    | ✅       | Public base URL (e.g. `http://localhost:3000`) |
 
 ## Database & Migrations
 
@@ -213,7 +218,6 @@ CI blocks on any failure. Required repository secrets: `KKIAPAY_WEBHOOK_SECRET`,
 
 See the repository license or consult the project owner for licensing details.
 
-
 ## Architecture Overview
 
 ```
@@ -240,11 +244,11 @@ souplesse-speckit/
 
 ## Role System
 
-| Role    | Capabilities |
-|---------|-------------|
+| Role     | Capabilities                                                             |
+| -------- | ------------------------------------------------------------------------ |
 | `CLIENT` | Register, purchase subscription, view & book sessions, view own programs |
-| `COACH`  | All client capabilities + create sessions, manage assigned programs |
-| `ADMIN`  | All above + user management, payment history, CSV export, KPI dashboard |
+| `COACH`  | All client capabilities + create sessions, manage assigned programs      |
+| `ADMIN`  | All above + user management, payment history, CSV export, KPI dashboard  |
 
 ## Quick Start
 
@@ -285,41 +289,46 @@ See [specs/1-add-gym-management/quickstart.md](specs/1-add-gym-management/quicks
 ## API Endpoints
 
 ### Auth
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/auth/register` | Create account |
-| `POST` | `/api/auth/login` | Get access + refresh tokens |
-| `POST` | `/api/auth/refresh` | Rotate refresh token |
-| `POST` | `/api/auth/logout` | Revoke refresh token |
+
+| Method | Path                 | Description                 |
+| ------ | -------------------- | --------------------------- |
+| `POST` | `/api/auth/register` | Create account              |
+| `POST` | `/api/auth/login`    | Get access + refresh tokens |
+| `POST` | `/api/auth/refresh`  | Rotate refresh token        |
+| `POST` | `/api/auth/logout`   | Revoke refresh token        |
 
 ### Sessions & Bookings
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/sessions` | List upcoming sessions (paginated) |
-| `POST` | `/api/sessions` | Create session (coach/admin) |
-| `POST` | `/api/bookings` | Book a session (requires active subscription) |
-| `DELETE` | `/api/bookings/:id` | Cancel booking (≥2 h before session) |
+
+| Method   | Path                | Description                                   |
+| -------- | ------------------- | --------------------------------------------- |
+| `GET`    | `/api/sessions`     | List upcoming sessions (paginated)            |
+| `POST`   | `/api/sessions`     | Create session (coach/admin)                  |
+| `POST`   | `/api/bookings`     | Book a session (requires active subscription) |
+| `DELETE` | `/api/bookings/:id` | Cancel booking (≥2 h before session)          |
 
 ### Programs
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/programs` | List client's programs |
-| `POST` | `/api/programs` | Create program (coach/admin) |
-| `PUT` | `/api/programs/:id` | Update program (coach owner) |
+
+| Method | Path                | Description                  |
+| ------ | ------------------- | ---------------------------- |
+| `GET`  | `/api/programs`     | List client's programs       |
+| `POST` | `/api/programs`     | Create program (coach/admin) |
+| `PUT`  | `/api/programs/:id` | Update program (coach owner) |
 
 ### Payments
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/payments/create-session` | Create Stripe Checkout session |
-| `POST` | `/api/payments/webhook` | Stripe webhook handler (signature-verified) |
+
+| Method | Path                           | Description                                 |
+| ------ | ------------------------------ | ------------------------------------------- |
+| `POST` | `/api/payments/create-session` | Create Stripe Checkout session              |
+| `POST` | `/api/payments/webhook`        | Stripe webhook handler (signature-verified) |
 
 ### Admin
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/admin/stats` | KPIs: users, revenue, active subscriptions |
-| `GET` | `/api/admin/users` | Paginated user list |
-| `GET` | `/api/admin/payments` | Payment history |
-| `GET` | `/api/admin/export` | CSV export (users + payments) |
+
+| Method | Path                  | Description                                |
+| ------ | --------------------- | ------------------------------------------ |
+| `GET`  | `/api/admin/stats`    | KPIs: users, revenue, active subscriptions |
+| `GET`  | `/api/admin/users`    | Paginated user list                        |
+| `GET`  | `/api/admin/payments` | Payment history                            |
+| `GET`  | `/api/admin/export`   | CSV export (users + payments)              |
 
 ## Payment Flow (Stripe)
 
@@ -335,19 +344,18 @@ Client → POST /api/payments/create-session
 
 ## Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `JWT_SECRET` | ✅ | Secret for access tokens (≥32 chars) |
-| `JWT_REFRESH_SECRET` | ✅ | Secret for refresh tokens (≥32 chars) |
-| `STRIPE_SECRET_KEY` | ✅ | Stripe API secret key |
-| `STRIPE_WEBHOOK_SECRET` | ✅ | Stripe webhook signing secret |
-| `KKIAPAY_WEBHOOK_SECRET` | ✅ | Kkiapay HMAC webhook secret |
-| `KKIAPAY_SECRET_KEY` | ✅ | Kkiapay API key |
-| `NUXT_PUBLIC_APP_URL` | ✅ | Public base URL (e.g. `http://localhost:3000`) |
+| Variable                 | Required | Description                                    |
+| ------------------------ | -------- | ---------------------------------------------- |
+| `DATABASE_URL`           | ✅       | PostgreSQL connection string                   |
+| `JWT_SECRET`             | ✅       | Secret for access tokens (≥32 chars)           |
+| `JWT_REFRESH_SECRET`     | ✅       | Secret for refresh tokens (≥32 chars)          |
+| `STRIPE_SECRET_KEY`      | ✅       | Stripe API secret key                          |
+| `STRIPE_WEBHOOK_SECRET`  | ✅       | Stripe webhook signing secret                  |
+| `KKIAPAY_WEBHOOK_SECRET` | ✅       | Kkiapay HMAC webhook secret                    |
+| `KKIAPAY_SECRET_KEY`     | ✅       | Kkiapay API key                                |
+| `NUXT_PUBLIC_APP_URL`    | ✅       | Public base URL (e.g. `http://localhost:3000`) |
 
-Database & Migrations
----------------------
+## Database & Migrations
 
 This project uses Prisma with Postgres. Migration SQL files are included under `prisma/migrations` for Postgres.
 
@@ -359,8 +367,7 @@ npx prisma migrate deploy      # apply migrations to a production/staging DB
 npx prisma migrate dev         # local development (creates a dev migration entry)
 ```
 
-Testing
--------
+## Testing
 
 Run tests locally with:
 
@@ -370,8 +377,7 @@ npm test
 
 Tests are written with Vitest and include unit tests for services and integration-style tests for webhook handling. CI will run the test suite using repository secrets for integration checks.
 
-Payments integration
---------------------
+## Payments integration
 
 This branch includes a Kkiapay integration as a feature example:
 
@@ -379,16 +385,15 @@ This branch includes a Kkiapay integration as a feature example:
 - Frontend: `components/PaymentCheckout.vue`, `utils/kkiapay.client.ts`, and `pages/subscribe.vue` example.
 
 Important notes:
+
 - Webhook signature verification is implemented using HMAC-SHA256 against `KKIAPAY_WEBHOOK_SECRET` — ensure the value matches your provider settings.
 - Payment processing is idempotent: the webhook handler records `Transaction` records and creates `Subscription` only after verified, unique success events.
 
-CI / GitHub Actions
--------------------
+## CI / GitHub Actions
 
 The `.github/workflows/payment-integration.yml` workflow runs installs, type checks, and tests. It expects the repository secrets `KKIAPAY_WEBHOOK_SECRET`, `KKIAPAY_SECRET_KEY`, and `DATABASE_URL` to be set in the repository settings.
 
-Contributing
-------------
+## Contributing
 
 1. Create a feature branch named descriptively, e.g. `feat/your-feature`.
 2. Run tests and linters locally before pushing.
@@ -399,24 +404,20 @@ When you provide a temporary token to help automate tasks (like uploading secret
 1. Go to GitHub → Settings → Developer settings → Personal access tokens (classic) or Personal access tokens (fine-grained).
 2. Locate and revoke the token.
 
-Security
---------
+## Security
 
 - Do not commit `.env` files or secrets. Use repository secrets for CI and environment variable management in deployment.
 - Rotate provider keys and webhook secrets if they were shared outside secure channels.
 
-Notes and troubleshooting
--------------------------
+## Notes and troubleshooting
 
 - If you see unexpected failures due to missing `DATABASE_URL`, confirm the env var is set and reachable from your environment.
 - If the Nuxt dev server fails to start locally, ensure Node.js and npm versions match the project's expectations and run `npm ci` to produce a clean `node_modules`.
 
-Contact / Support
------------------
+## Contact / Support
 
 If you need help with this repo or the payments integration, open an issue or ping the repo owner.
 
-License
--------
+## License
 
 See the repository license (if present) or consult the project owner for licensing details.

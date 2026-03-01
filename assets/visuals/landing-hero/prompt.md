@@ -4,6 +4,7 @@ Prompt:
 "Black man and Black woman training together in a modern gym in Calavi, Bénin — vibrant black, yellow and white color palette, warm natural light from large windows, dynamic motion, sweat-glossed skin, high-energy, shallow depth of field, cinematic 35mm, crisp details, optimistic mood, realistic photographic style, film grain subtle, color grade warm, soft rim light, no logos"
 
 Suggested generator settings (Stable Diffusion / SD WebUI style):
+
 - Sampler: Euler a / DPM++
 - Steps: 28-40
 - CFG scale: 7.5-9

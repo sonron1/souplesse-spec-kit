@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('../server/utils/prisma', () => {
   return {
@@ -31,9 +31,19 @@ describe('payments.service', () => {
     const plan = { id: 'plan1', priceCents: 5000, currency: 'XOF' }
     ;(prisma.subscriptionPlan.findUnique as any).mockResolvedValue(plan)
 
-    const createdOrder = { id: 'order1', userId: 'user1', subscriptionPlanId: 'plan1', amount: 5000, currency: 'XOF', status: 'pending' }
+    const createdOrder = {
+      id: 'order1',
+      userId: 'user1',
+      subscriptionPlanId: 'plan1',
+      amount: 5000,
+      currency: 'XOF',
+      status: 'pending',
+    }
     ;(prisma.paymentOrder.create as any).mockResolvedValue(createdOrder)
-    ;(prisma.paymentOrder.update as any).mockResolvedValue({ ...createdOrder, kkiapayOrderToken: `mock-token-order1` })
+    ;(prisma.paymentOrder.update as any).mockResolvedValue({
+      ...createdOrder,
+      kkiapayOrderToken: `mock-token-order1`,
+    })
 
     const res = await createPaymentOrder({ userId: 'user1', subscriptionPlanId: 'plan1' })
     expect(res.kkiapayToken).toContain('mock-token-')

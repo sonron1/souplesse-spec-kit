@@ -1,10 +1,9 @@
 import { prisma } from '../utils/prisma'
-import { KkiapayWebhookEnvelopeType } from '../validators/payments.schemas'
+import type { KkiapayWebhookEnvelopeType } from '../validators/payments.schemas'
 import crypto from 'crypto'
 
 const KKIAPAY_API_BASE = process.env.KKIAPAY_API_BASE || 'https://api.kkiapay.me'
 const KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY
-const KKIAPAY_WEBHOOK_SECRET = process.env.KKIAPAY_WEBHOOK_SECRET
 
 export async function createPaymentOrder(opts: { userId: string; subscriptionPlanId: string }) {
   const { userId, subscriptionPlanId } = opts
@@ -62,7 +61,10 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
 
   // mock token for local/dev/test
   const mockToken = `mock-token-${order.id}`
-  await prisma.paymentOrder.update({ where: { id: order.id }, data: { kkiapayOrderToken: mockToken } })
+  await prisma.paymentOrder.update({
+    where: { id: order.id },
+    data: { kkiapayOrderToken: mockToken },
+  })
 
   return { order, kkiapayToken: mockToken }
 }
@@ -81,13 +83,20 @@ export async function verifyWebhookSignature(rawBody: string, signatureHeader?: 
   }
 }
 
-export async function handleWebhook(envelope: KkiapayWebhookEnvelopeType, rawPayload: any) {
+export async function handleWebhook(
+  envelope: KkiapayWebhookEnvelopeType,
+  rawPayload: Record<string, unknown>
+) {
   const event = envelope.event
   const data = envelope.data
 
   // assume data contains paymentId and reference (our order id)
   const paymentId = data.id || data.paymentId || data.payment_id
-  const reference = data.reference || data.metadata?.reference || data.metadata?.orderReference || data.meta?.reference
+  const reference =
+    data.reference ||
+    data.metadata?.reference ||
+    data.metadata?.orderReference ||
+    data.meta?.reference
   const amount = typeof data.amount === 'number' ? data.amount : data.amountCents || null
   const currency = data.currency || null
 
@@ -113,14 +122,18 @@ export async function handleWebhook(envelope: KkiapayWebhookEnvelopeType, rawPay
     },
   })
 
-  if (paymentOrder && (data.status === 'success' || data.status === 'paid' || event === 'payment.succeeded')) {
+  if (
+    paymentOrder &&
+    (data.status === 'success' || data.status === 'paid' || event === 'payment.succeeded')
+  ) {
     await prisma.paymentOrder.update({ where: { id: paymentOrder.id }, data: { status: 'paid' } })
     // activate subscription for user: create Subscription using plan validity
     try {
-      const plan = await prisma.subscriptionPlan.findUnique({ where: { id: paymentOrder.subscriptionPlanId } })
+      const plan = await prisma.subscriptionPlan.findUnique({
+        where: { id: paymentOrder.subscriptionPlanId },
+      })
       const now = new Date()
-      let startsAt = now
-      let expiresAt = new Date(now)
+      const expiresAt = new Date(now)
       if (plan && typeof plan.validityDays === 'number') {
         expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
       } else {

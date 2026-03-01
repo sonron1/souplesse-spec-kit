@@ -52,17 +52,27 @@ export const BusinessConfigSchema = z.object({
   openingHours: OpeningHoursSchema,
   subscriptionPlans: z.array(SubscriptionPlanSchema),
   dressCode: z.array(z.string()),
-  location: z.object({
-    address: z.string().optional(),
-    phone: z.string().optional(),
-    email: z.string().optional(),
-  }).optional(),
-  branding: z.object({ primaryColors: z.array(z.string()).optional(), theme: z.string().optional(), style: z.string().optional() }).optional(),
-  rules: z.object({
-    calculateValidityFromActivationDate: z.boolean().optional(),
-    maxReportsEnforced: z.boolean().optional(),
-    priceCoupleNullable: z.boolean().optional(),
-    bookingOutsideOpeningHoursRejected: z.boolean().optional(),
-  }).optional(),
+  location: z
+    .object({
+      address: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().optional(),
+    })
+    .optional(),
+  branding: z
+    .object({
+      primaryColors: z.array(z.string()).optional(),
+      theme: z.string().optional(),
+      style: z.string().optional(),
+    })
+    .optional(),
+  rules: z
+    .object({
+      calculateValidityFromActivationDate: z.boolean().optional(),
+      maxReportsEnforced: z.boolean().optional(),
+      priceCoupleNullable: z.boolean().optional(),
+      bookingOutsideOpeningHoursRejected: z.boolean().optional(),
+    })
+    .optional(),
   adminEditable: z.record(z.boolean()).optional(),
 })

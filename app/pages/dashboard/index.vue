@@ -5,7 +5,9 @@
     <div v-if="!user" class="text-gray-500">Chargement...</div>
 
     <div v-else>
-      <p class="text-lg mb-4">Bienvenue, <strong>{{ user.name }}</strong> 👋</p>
+      <p class="text-lg mb-4">
+        Bienvenue, <strong>{{ user.name }}</strong> 👋
+      </p>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-white rounded-lg shadow p-4">
@@ -33,15 +35,15 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: 'auth' })
 
-const { user, accessToken } = useAuth()
+  const { user, accessToken } = useAuth()
 
-const { data: bookings } = await useLazyFetch('/api/bookings', {
-  headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
-})
+  const { data: bookings } = await useLazyFetch('/api/bookings', {
+    headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
+  })
 
-const subscriptionStatus = computed(() => {
-  return 'Actif' // TODO: fetch real subscription status
-})
+  const subscriptionStatus = computed(() => {
+    return 'Actif' // TODO: fetch real subscription status
+  })
 </script>

@@ -15,8 +15,7 @@ interface QueryLog {
 
 const queries: QueryLog[] = []
 
-// @ts-ignore — Prisma event typing requires $on to be cast
-prisma.$on('query' as never, (e: QueryLog) => {
+prisma.$on('query', (e) => {
   queries.push({ query: e.query, duration: e.duration })
 })
 

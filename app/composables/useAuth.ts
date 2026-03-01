@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { useCookie, useRouter, navigateTo } from 'nuxt/app'
+import { useCookie, navigateTo } from 'nuxt/app'
 import { $fetch } from 'ofetch'
 
 interface AuthUser {
@@ -24,7 +24,6 @@ const refreshTokenCookie = useCookie<string | null>('refresh_token', {
 })
 
 export function useAuth() {
-  const router = useRouter()
   const isLoggedIn = computed(() => !!accessToken.value)
   const isAdmin = computed(() => user.value?.role === 'ADMIN')
   const isCoach = computed(() => user.value?.role === 'COACH' || user.value?.role === 'ADMIN')

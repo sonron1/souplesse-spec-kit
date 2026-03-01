@@ -28,8 +28,8 @@ export default defineEventHandler(async (event) => {
       orderId: result.order.id,
       kkiapayToken: result.kkiapayToken,
     }
-  } catch (err: any) {
-    throw createError({ statusCode: 500, statusMessage: err.message ?? 'Payment order creation failed' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Payment order creation failed'
+    throw createError({ statusCode: 500, statusMessage: message })
   }
 })
-

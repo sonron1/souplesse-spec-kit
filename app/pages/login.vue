@@ -1,17 +1,15 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
     <div class="w-full max-w-md">
-      <h1 class="text-3xl font-bold text-center text-primary-700 mb-8">
-        Souplesse Fitness
-      </h1>
+      <h1 class="text-3xl font-bold text-center text-primary-700 mb-8">Souplesse Fitness</h1>
 
-      <form
-        class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8"
-        @submit.prevent="handleLogin"
-      >
+      <form class="bg-white shadow-md rounded-lg px-8 pt-6 pb-8" @submit.prevent="handleLogin">
         <h2 class="text-xl font-semibold mb-6">Connexion</h2>
 
-        <div v-if="error" class="bg-red-50 border border-red-300 text-red-700 rounded px-4 py-2 mb-4 text-sm">
+        <div
+          v-if="error"
+          class="bg-red-50 border border-red-300 text-red-700 rounded px-4 py-2 mb-4 text-sm"
+        >
           {{ error }}
         </div>
 
@@ -28,7 +26,9 @@
         </div>
 
         <div class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="password">Mot de passe</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="password"
+            >Mot de passe</label
+          >
           <input
             id="password"
             v-model="form.password"
@@ -58,24 +58,24 @@
 </template>
 
 <script setup lang="ts">
-const { login } = useAuth()
+  const { login } = useAuth()
 
-const form = reactive({ email: '', password: '' })
-const loading = ref(false)
-const error = ref<string | null>(null)
+  const form = reactive({ email: '', password: '' })
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-definePageMeta({ layout: 'auth' })
+  definePageMeta({ layout: 'auth' })
 
-async function handleLogin() {
-  error.value = null
-  loading.value = true
-  try {
-    await login(form.email, form.password)
-  } catch (e: unknown) {
-    const err = e as { data?: { message?: string }; statusMessage?: string }
-    error.value = err?.data?.message ?? err?.statusMessage ?? 'Erreur de connexion'
-  } finally {
-    loading.value = false
+  async function handleLogin() {
+    error.value = null
+    loading.value = true
+    try {
+      await login(form.email, form.password)
+    } catch (e: unknown) {
+      const err = e as { data?: { message?: string }; statusMessage?: string }
+      error.value = err?.data?.message ?? err?.statusMessage ?? 'Erreur de connexion'
+    } finally {
+      loading.value = false
+    }
   }
-}
 </script>

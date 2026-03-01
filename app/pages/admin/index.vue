@@ -19,21 +19,21 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
-const { isAdmin, accessToken } = useAuth()
-if (!isAdmin.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: 'auth' })
+  const { isAdmin, accessToken } = useAuth()
+  if (!isAdmin.value) await navigateTo('/dashboard')
 
-interface Stats {
-  totalUsers: number
-  activeSubscriptions: number
-  totalRevenue: number
-  totalBookings: number
-  revenueByMonth: { month: string; total: number }[]
-}
+  interface Stats {
+    totalUsers: number
+    activeSubscriptions: number
+    totalRevenue: number
+    totalBookings: number
+    revenueByMonth: { month: string; total: number }[]
+  }
 
-const { data: statsResp, pending } = await useLazyFetch<{ stats: Stats }>('/api/admin/stats', {
-  headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
-})
+  const { data: statsResp, pending } = await useLazyFetch<{ stats: Stats }>('/api/admin/stats', {
+    headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
+  })
 
-const stats = computed(() => statsResp.value?.stats)
+  const stats = computed(() => statsResp.value?.stats)
 </script>

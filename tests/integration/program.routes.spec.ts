@@ -8,12 +8,20 @@ vi.mock('../../server/utils/logger', () => ({
 
 const mockProgram = vi.mocked(programService)
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('Program routes integration', () => {
   describe('POST /api/programs (via service)', () => {
     it('coach creates a program', async () => {
-      const p = { id: 'prog-1', coachId: 'coach-1', clientId: 'client-1', type: 'GAIN', content: {} }
+      const p = {
+        id: 'prog-1',
+        coachId: 'coach-1',
+        clientId: 'client-1',
+        type: 'GAIN',
+        content: {},
+      }
       mockProgram.createProgram.mockResolvedValue(p as never)
 
       const result = await programService.createProgram('coach-1', {

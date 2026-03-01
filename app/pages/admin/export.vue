@@ -22,27 +22,32 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
-const { isAdmin, accessToken } = useAuth()
-if (!isAdmin.value) await navigateTo('/dashboard')
+  definePageMeta({
+    middleware: () => {
+      const { isAdmin } = useAuth()
+      if (!isAdmin.value) return navigateTo('/dashboard')
+    },
+  })
 
-const exporting = ref(false)
+  const { accessToken } = useAuth()
 
-async function exportPayments() {
-  exporting.value = true
-  try {
-    const blob = await $fetch<Blob>('/api/admin/export', {
-      responseType: 'blob',
-      headers: { Authorization: `Bearer ${accessToken.value}` },
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  } finally {
-    exporting.value = false
+  const exporting = ref(false)
+
+  async function exportPayments() {
+    exporting.value = true
+    try {
+      const blob = await $fetch<Blob>('/api/admin/export', {
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      exporting.value = false
+    }
   }
-}
 </script>

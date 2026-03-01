@@ -7,7 +7,7 @@
 ## Content Quality
 
 - [x] No implementation details (languages, frameworks, APIs)  
-	*Note: The spec references Kkiapay SDK intentionally because the requirement is to use the official SDK.*
+       _Note: The spec references Kkiapay SDK intentionally because the requirement is to use the official SDK._
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
@@ -33,4 +33,3 @@
 ## Notes
 
 - Checklist validated on 2026-03-01. No outstanding [NEEDS CLARIFICATION] markers.
-

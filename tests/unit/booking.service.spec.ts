@@ -2,10 +2,16 @@
 import { bookingService } from '../../server/services/booking.service'
 
 vi.mock('../../server/utils/prisma', () => ({
-  default: {
+  prisma: {
     $transaction: vi.fn(),
     session: { findUnique: vi.fn() },
-    booking: { count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+    booking: {
+      count: vi.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+    },
     businessHours: { findFirst: vi.fn() },
   },
 }))
@@ -44,7 +50,9 @@ const MOCK_BOOKING = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('bookingService.bookSession', () => {
   it('creates a booking when all conditions are met', async () => {
@@ -53,7 +61,10 @@ describe('bookingService.bookSession', () => {
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
       fn({
         session: { findUnique: vi.fn().mockResolvedValue(MOCK_SESSION) },
-        booking: { count: vi.fn().mockResolvedValue(3), create: vi.fn().mockResolvedValue(MOCK_BOOKING) },
+        booking: {
+          count: vi.fn().mockResolvedValue(3),
+          create: vi.fn().mockResolvedValue(MOCK_BOOKING),
+        },
         businessHours: { findFirst: vi.fn().mockResolvedValue(null) },
       } as never)
     )
@@ -94,17 +105,17 @@ describe('bookingService.bookSession', () => {
   })
 
   it('throws 422 if session is outside business hours (FR-013)', async () => {
-    // Session at 07:00 â€” before business opens at 08:00
+    // Session at 05:00 UTC — before business opens at 08:00 (any timezone up to UTC+3)
     const earlySession = {
       ...MOCK_SESSION,
-      dateTime: new Date('2026-03-02T07:00:00.000Z'), // Monday 07:00 UTC
+      dateTime: new Date('2026-03-02T05:00:00.000Z'), // Monday 05:00 UTC
     }
     mockSubscription.hasActiveSubscription.mockResolvedValue(true)
     mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
       fn({
         session: { findUnique: vi.fn().mockResolvedValue(earlySession) },
-        booking: { count: vi.fn().mockResolvedValue(0) },
+        booking: { count: vi.fn().mockResolvedValue(0), create: vi.fn() },
         businessHours: {
           findFirst: vi.fn().mockResolvedValue({
             dayOfWeek: 'MONDAY',

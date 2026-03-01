@@ -6,7 +6,7 @@ import { prisma } from '../../utils/prisma'
 function toCsvRow(values: (string | number | null | undefined)[]): string {
   return values
     .map((v) => {
-      const s = v == null ? '' : String(v)
+      const s = v === null || v === undefined ? '' : String(v)
       return `"${s.replace(/"/g, '""')}"`
     })
     .join(',')
@@ -21,7 +21,15 @@ export default defineEventHandler(async (event) => {
     include: { user: { select: { name: true, email: true } } },
   })
 
-  const header = toCsvRow(['id', 'user_name', 'user_email', 'amount', 'currency', 'status', 'created_at'])
+  const header = toCsvRow([
+    'id',
+    'user_name',
+    'user_email',
+    'amount',
+    'currency',
+    'status',
+    'created_at',
+  ])
   const rows = payments.map((p: (typeof payments)[number]) =>
     toCsvRow([
       p.id,

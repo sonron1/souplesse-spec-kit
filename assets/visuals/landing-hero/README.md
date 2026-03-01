@@ -1,6 +1,7 @@
 Landing Hero Assets
 
 Files added:
+
 - `prompt.md` — final prompt and generator guidance
 - `negative_prompt.txt` — negative prompt to avoid artifacts and unwanted subjects
 - `variants.md` — aspect ratio and export recommendations

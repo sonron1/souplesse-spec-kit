@@ -46,21 +46,21 @@ npm run dev
 
 ## 5. Key Routes
 
-| Route | Access | Description |
-|---|---|---|
-| `POST /api/auth/register` | Public | Register a new user |
-| `POST /api/auth/login` | Public | Login, receive tokens |
-| `POST /api/auth/refresh` | Public | Refresh access token |
-| `POST /api/auth/logout` | Authenticated | Logout |
-| `GET /api/sessions` | Public | List training sessions |
-| `POST /api/sessions` | Coach/Admin | Create a session |
-| `POST /api/bookings` | Authenticated (Active sub) | Book a session (bookings are final — no cancellation in v1) |
-| `GET /api/admin/stats` | Admin | Dashboard stats |
-| `GET /api/admin/users` | Admin | List all users |
-| `GET /api/admin/payments` | Admin | List all payments |
-| `GET /api/admin/export` | Admin | CSV export |
-| `POST /api/admin/assignments` | Admin | Assign a coach to a client |
-| `DELETE /api/admin/assignments` | Admin | Remove a coach-client assignment |
+| Route                           | Access                     | Description                                                 |
+| ------------------------------- | -------------------------- | ----------------------------------------------------------- |
+| `POST /api/auth/register`       | Public                     | Register a new user                                         |
+| `POST /api/auth/login`          | Public                     | Login, receive tokens                                       |
+| `POST /api/auth/refresh`        | Public                     | Refresh access token                                        |
+| `POST /api/auth/logout`         | Authenticated              | Logout                                                      |
+| `GET /api/sessions`             | Public                     | List training sessions                                      |
+| `POST /api/sessions`            | Coach/Admin                | Create a session                                            |
+| `POST /api/bookings`            | Authenticated (Active sub) | Book a session (bookings are final — no cancellation in v1) |
+| `GET /api/admin/stats`          | Admin                      | Dashboard stats                                             |
+| `GET /api/admin/users`          | Admin                      | List all users                                              |
+| `GET /api/admin/payments`       | Admin                      | List all payments                                           |
+| `GET /api/admin/export`         | Admin                      | CSV export                                                  |
+| `POST /api/admin/assignments`   | Admin                      | Assign a coach to a client                                  |
+| `DELETE /api/admin/assignments` | Admin                      | Remove a coach-client assignment                            |
 
 ## 6. Running Tests
 
@@ -81,8 +81,8 @@ Coverage thresholds: 80% global, 100% for auth and payments.
 
 ## 8. User Roles
 
-| Role | Capabilities |
-|---|---|
-| `CLIENT` | Book sessions, view subscriptions/programs |
-| `COACH` | Create/edit programs, create sessions, all CLIENT capabilities |
-| `ADMIN` | All, plus admin dashboard and user management |
+| Role     | Capabilities                                                   |
+| -------- | -------------------------------------------------------------- |
+| `CLIENT` | Book sessions, view subscriptions/programs                     |
+| `COACH`  | Create/edit programs, create sessions, all CLIENT capabilities |
+| `ADMIN`  | All, plus admin dashboard and user management                  |
