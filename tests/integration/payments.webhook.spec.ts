@@ -35,9 +35,9 @@ vi.mock('../../server/utils/logger', () => ({
 
 import Stripe from 'stripe'
 import { subscriptionService } from '../../server/services/subscription.service'
-import prisma from '../../server/utils/prisma'
+import { prisma } from '../../server/utils/prisma'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma) as any
 const mockSubscription = vi.mocked(subscriptionService)
 
 beforeEach(() => {

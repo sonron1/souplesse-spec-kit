@@ -15,7 +15,7 @@ const mockAuth = vi.mocked(authService)
 const MOCK_TOKENS = { accessToken: 'access-token', refreshToken: 'refresh-token' }
 const MOCK_USER = { id: 'user-1', name: 'Test User', email: 'test@example.com', role: 'CLIENT' }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('POST /api/auth/register (route handler unit)', () => {
   it('calls authService.register and returns tokens', async () => {

@@ -22,7 +22,7 @@ vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
-import prisma from '../../server/utils/prisma'
+import { prisma } from '../../server/utils/prisma'
 import { bookingRepository } from '../../server/repositories/booking.repository'
 
 const mockPrisma = vi.mocked(prisma)
@@ -39,13 +39,13 @@ const SESSION = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('US2 E2E: booking flow', () => {
   it('user with active subscription books a session successfully', async () => {
     mockSubscription.hasActiveSubscription.mockResolvedValue(true)
     mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
-    mockPrisma.$transaction.mockImplementation(async (fn) =>
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
       fn({
         session: { findUnique: vi.fn().mockResolvedValue(SESSION) },
         booking: { count: vi.fn().mockResolvedValue(0), create: vi.fn().mockResolvedValue({ id: 'book-e2e', userId: 'user-e2e', sessionId: 'sess-e2e', status: 'BOOKED' }) },
@@ -59,7 +59,7 @@ describe('US2 E2E: booking flow', () => {
   it('session at capacity rejects further bookings', async () => {
     mockSubscription.hasActiveSubscription.mockResolvedValue(true)
     mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
-    mockPrisma.$transaction.mockImplementation(async (fn) =>
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
       fn({
         session: { findUnique: vi.fn().mockResolvedValue(SESSION) },
         booking: { count: vi.fn().mockResolvedValue(2) }, // capacity=2, full

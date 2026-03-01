@@ -1,10 +1,11 @@
-import prisma from '../utils/prisma'
+import { prisma } from '../utils/prisma'
+import { Prisma } from '@prisma/client'
 import { sessionRepository } from '../repositories/session.repository'
 import { bookingRepository } from '../repositories/booking.repository'
 import { subscriptionService } from './subscription.service'
 import { createError } from 'h3'
 import logger from '../utils/logger'
-import type { Booking } from '@prisma/client'
+import type { Booking } from '.prisma/client'
 
 // Cancellations allowed up to this many hours before the session
 const CANCELLATION_WINDOW_HOURS = 2
@@ -39,7 +40,7 @@ export const bookingService = {
     }
 
     // 3. Atomic capacity check via transaction
-    const booking = await prisma.$transaction(async (tx) => {
+    const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const session = await tx.session.findUnique({ where: { id: sessionId } })
       if (!session) {
         throw createError({ statusCode: 404, statusMessage: 'Session not found' })

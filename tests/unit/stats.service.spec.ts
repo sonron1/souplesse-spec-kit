@@ -10,10 +10,10 @@ vi.mock('../../server/utils/prisma', () => ({
   },
 }))
 
-import prisma from '../../server/utils/prisma'
-const mockPrisma = vi.mocked(prisma)
+import { prisma } from '../../server/utils/prisma'
+const mockPrisma = vi.mocked(prisma) as any
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('statsService.getDashboardStats', () => {
   it('returns aggregated dashboard stats', async () => {

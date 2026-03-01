@@ -1,5 +1,5 @@
-import prisma from '../utils/prisma'
-import type { User, UserRole } from '@prisma/client'
+import { prisma } from '../utils/prisma'
+import type { User, UserRole } from '.prisma/client'
 
 export type CreateUserInput = {
   name: string

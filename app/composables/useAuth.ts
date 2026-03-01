@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
-import { useCookie, useRouter, navigateTo } from '#app'
+import { useCookie, useRouter, navigateTo } from 'nuxt/app'
+import { $fetch } from 'ofetch'
 
 interface AuthUser {
   id: string

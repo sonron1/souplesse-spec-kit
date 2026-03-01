@@ -18,14 +18,14 @@ function getSecret(key: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
 /** Sign an access token (short-lived). */
 export function signAccessToken(payload: Omit<JwtPayload, 'type' | 'iat' | 'exp'>): string {
   return jwt.sign({ ...payload, type: 'access' }, getSecret('JWT_SECRET'), {
-    expiresIn: (process.env.JWT_EXPIRES_IN ?? '15m') as string,
+    expiresIn: (process.env.JWT_EXPIRES_IN ?? '15m') as any,
   })
 }
 
 /** Sign a refresh token (long-lived). */
 export function signRefreshToken(payload: Omit<JwtPayload, 'type' | 'iat' | 'exp'>): string {
   return jwt.sign({ ...payload, type: 'refresh' }, getSecret('JWT_REFRESH_SECRET'), {
-    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as string,
+    expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
   })
 }
 

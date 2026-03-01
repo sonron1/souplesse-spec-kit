@@ -1,7 +1,7 @@
 import { defineEventHandler, setHeader } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { requireAdmin } from '../../middleware/role.middleware'
-import prisma from '../../utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 function toCsvRow(values: (string | number | null | undefined)[]): string {
   return values
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const header = toCsvRow(['id', 'user_name', 'user_email', 'amount', 'currency', 'status', 'created_at'])
-  const rows = payments.map((p) =>
+  const rows = payments.map((p: (typeof payments)[number]) =>
     toCsvRow([
       p.id,
       p.user?.name,

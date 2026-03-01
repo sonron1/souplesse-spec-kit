@@ -8,7 +8,7 @@ vi.mock('../../server/utils/logger', () => ({
 
 const mockProgram = vi.mocked(programService)
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('Program routes integration', () => {
   describe('POST /api/programs (via service)', () => {

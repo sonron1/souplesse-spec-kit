@@ -39,8 +39,8 @@ vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
-import prisma from '../../server/utils/prisma'
-const mockPrisma = vi.mocked(prisma)
+import { prisma } from '../../server/utils/prisma'
+const mockPrisma = vi.mocked(prisma) as any
 
 describe('paymentService', () => {
   beforeEach(() => {

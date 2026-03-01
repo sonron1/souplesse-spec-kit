@@ -12,14 +12,15 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
   const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } })
   if (!plan) throw new Error('SubscriptionPlan not found')
 
-  const amount = plan.priceCents
+  const amount = plan.priceSingle
+  const currency = 'XOF'
 
   const order = await prisma.paymentOrder.create({
     data: {
       userId,
       subscriptionPlanId,
       amount,
-      currency: plan.currency,
+      currency,
       status: 'pending',
     },
   })
@@ -28,7 +29,7 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
   if (KKIAPAY_SECRET_KEY) {
     const payload = {
       amount,
-      currency: plan.currency,
+      currency,
       reference: order.id,
       // optional metadata
       metadata: { userId, subscriptionPlanId },

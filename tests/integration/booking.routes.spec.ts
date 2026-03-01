@@ -8,7 +8,7 @@ vi.mock('../../server/utils/logger', () => ({
 
 const mockBookingService = vi.mocked(bookingService)
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('Booking routes integration', () => {
   describe('POST /api/bookings (via service)', () => {

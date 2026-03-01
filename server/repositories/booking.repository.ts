@@ -1,4 +1,4 @@
-import prisma from '../utils/prisma'
+import { prisma } from '../utils/prisma'
 import type { Booking } from '@prisma/client'
 
 export const bookingRepository = {

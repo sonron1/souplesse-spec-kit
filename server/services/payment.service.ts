@@ -1,9 +1,9 @@
 import Stripe from 'stripe'
-import prisma from '../utils/prisma'
+import { prisma } from '../utils/prisma'
 import { subscriptionService } from './subscription.service'
 import { createError } from 'h3'
 import logger from '../utils/logger'
-import type { Payment } from '@prisma/client'
+import type { Payment } from '.prisma/client'
 
 function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY

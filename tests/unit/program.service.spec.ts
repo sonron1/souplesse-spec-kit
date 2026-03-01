@@ -15,8 +15,8 @@ vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
-import prisma from '../../server/utils/prisma'
-const mockPrisma = vi.mocked(prisma)
+import { prisma } from '../../server/utils/prisma'
+const mockPrisma = vi.mocked(prisma) as any
 
 const MOCK_PROGRAM = {
   id: 'prog-1',
@@ -28,7 +28,7 @@ const MOCK_PROGRAM = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('programService.createProgram', () => {
   it('creates a program assigned to coach and client', async () => {

@@ -23,12 +23,16 @@ export default defineEventHandler(async (event) => {
     body.type
   )
 
+  // Fetch plan price separately since createSubscription doesn't include the relation
+  const { prisma } = await import('../../utils/prisma')
+  const plan = await prisma.subscriptionPlan.findUnique({ where: { id: body.planId } })
+
   // Create a Stripe Checkout Session
   const session = await paymentService.createStripeSession({
     userId: user.sub,
     subscriptionId: subscription.id,
     planId: body.planId,
-    amount: subscription.subscriptionPlan?.priceSingle ?? 0,
+    amount: plan?.priceSingle ?? 0,
     currency: 'XOF',
     successUrl: body.successUrl,
     cancelUrl: body.cancelUrl,

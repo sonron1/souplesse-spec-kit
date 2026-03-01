@@ -17,8 +17,8 @@ describe('admin settings handlers', () => {
   it('GET handler returns gym, hours, plans after admin check', async () => {
     // mock services
     const mockGym = { name: 'G' }
-    const mockHours = []
-    const mockPlans = []
+    const mockHours: unknown[] = []
+    const mockPlans: unknown[] = []
 
     // mock requireAdmin to be a no-op
     const stubRequireAdmin = vi.fn().mockResolvedValue({ sub: 'u1', role: 'ADMIN' })

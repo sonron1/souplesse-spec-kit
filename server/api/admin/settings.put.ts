@@ -1,3 +1,4 @@
+import { defineEventHandler, readBody, createError } from 'h3'
 import { z } from 'zod'
 import { GymSettingsSchema, OpeningHoursSchema } from '../../validators/settings.schemas'
 import { updateGymSettings, upsertBusinessHours } from '../../services/settings.service'

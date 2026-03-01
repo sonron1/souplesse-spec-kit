@@ -1,11 +1,11 @@
-import { defineEventHandler, getHeader, readBody, useRawBody } from 'h3'
+import { defineEventHandler, getHeader, readBody, readRawBody } from 'h3'
 import paymentsService from '../../services/payments.service'
 import { KkiapayWebhookEnvelope } from '../../validators/payments.schemas'
 
 export default defineEventHandler(async (event) => {
   // read raw body for signature verification
-  const raw = await useRawBody(event)
-  const rawString = raw instanceof Buffer ? raw.toString('utf8') : JSON.stringify(await readBody(event))
+  const raw = await readRawBody(event)
+  const rawString = raw ?? JSON.stringify(await readBody(event))
 
   const signature = getHeader(event, 'x-kkiapay-signature') || getHeader(event, 'x-signature')
 

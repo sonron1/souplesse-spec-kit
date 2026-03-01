@@ -3,21 +3,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // Provide nitro-like globals used by the middleware
 ;(global as any).createError = (opts: any) => Object.assign(new Error(opts.statusMessage), { statusCode: opts.statusCode })
 
+vi.mock('../../server/utils/jwt', () => ({
+  verifyJwt: (token: string) => {
+    if (token === 'badtoken') throw new Error('Invalid token')
+    if (token === 'admin-token') return { sub: 'u1', role: 'ADMIN' }
+    return { sub: 'u1', role: 'USER' }
+  },
+}))
+
 describe('requireAdmin middleware', () => {
   const JWT_SECRET = 'test-secret'
 
   beforeEach(() => {
     vi.resetModules()
-    // mock jwt verification util used by middleware to avoid env dependence
-    vi.mock('../../server/utils/jwt', () => ({
-      verifyJwt: (token: string) => {
-        if (token === 'badtoken') throw new Error('Invalid token')
-        if (token === 'admin-token') return { sub: 'u1', role: 'ADMIN' }
-        return { sub: 'u1', role: 'USER' }
-      }
-    }))
     // ensure no residual globals
-    (global as any).getHeader = () => undefined
+    ;(global as any).getHeader = () => undefined
   })
 
   it('attaches user when token is valid and role is ADMIN', async () => {

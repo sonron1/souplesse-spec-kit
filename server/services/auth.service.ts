@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 import { userRepository } from '../repositories/user.repository'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt'
 import { createError } from 'h3'

@@ -8,7 +8,7 @@ vi.mock('../../server/utils/logger', () => ({
 
 const mockStats = vi.mocked(statsService)
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('Admin routes integration', () => {
   describe('GET /api/admin/stats', () => {

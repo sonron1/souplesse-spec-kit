@@ -1,7 +1,7 @@
-import prisma from '../utils/prisma'
+import { prisma } from '../utils/prisma'
 import { createError } from 'h3'
 import logger from '../utils/logger'
-import type { Subscription } from '@prisma/client'
+import type { Subscription } from '.prisma/client'
 
 export const subscriptionService = {
   /**

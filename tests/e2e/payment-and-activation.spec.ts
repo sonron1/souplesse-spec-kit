@@ -40,11 +40,11 @@ vi.mock('../../server/utils/jwt', () => ({
   verifyRefreshToken: vi.fn(),
 }))
 
-import prisma from '../../server/utils/prisma'
+import { prisma } from '../../server/utils/prisma'
 import { userRepository } from '../../server/repositories/user.repository'
 import Stripe from 'stripe'
 
-const mockPrisma = vi.mocked(prisma)
+const mockPrisma = vi.mocked(prisma) as any
 const mockUserRepo = vi.mocked(userRepository)
 
 beforeEach(() => {

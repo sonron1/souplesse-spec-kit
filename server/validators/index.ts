@@ -62,7 +62,7 @@ export function sanitizeStrings<T extends Record<string, unknown>>(input: T): T 
   const result = { ...input }
   for (const key of Object.keys(result)) {
     if (typeof result[key] === 'string') {
-      result[key] = (result[key] as string).trim() as unknown as T[keyof T]
+      (result as Record<string, unknown>)[key] = (result[key] as string).trim()
     }
   }
   return result

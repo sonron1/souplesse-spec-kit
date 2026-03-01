@@ -2,22 +2,24 @@ import { defineEventHandler } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { requireAdmin } from '../../middleware/role.middleware'
 import { validateQuery, paginationSchema } from '../../validators/index'
-import prisma from '../../utils/prisma'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
   requireAdmin(user)
 
   const query = validateQuery(event, paginationSchema)
+  const page = query.page ?? 1
+  const limit = query.limit ?? 20
   const [payments, total] = await Promise.all([
     prisma.payment.findMany({
-      skip: (query.page - 1) * query.limit,
-      take: query.limit,
+      skip: (page - 1) * limit,
+      take: limit,
       orderBy: { createdAt: 'desc' },
       include: { user: { select: { id: true, name: true, email: true } } },
     }),
     prisma.payment.count(),
   ])
 
-  return { success: true, payments, total, page: query.page, limit: query.limit }
+  return { success: true, payments, total, page, limit }
 })

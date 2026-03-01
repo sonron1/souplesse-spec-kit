@@ -21,8 +21,8 @@ vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
-import prisma from '../../server/utils/prisma'
-const mockPrisma = vi.mocked(prisma)
+import { prisma } from '../../server/utils/prisma'
+const mockPrisma = vi.mocked(prisma) as any
 
 const MOCK_PLAN = { id: 'plan-1', name: 'Monthly', isActive: true, validityDays: 30 }
 const MOCK_SUB = {
@@ -40,7 +40,7 @@ const MOCK_SUB = {
   updatedAt: new Date(),
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('subscriptionService.createSubscription', () => {
   it('creates a PENDING subscription for a valid plan', async () => {

@@ -1,7 +1,7 @@
-import prisma from '../utils/prisma'
+import { prisma } from '../utils/prisma'
 import { createError } from 'h3'
 import logger from '../utils/logger'
-import type { Program } from '@prisma/client'
+import type { Program } from '.prisma/client'
 import type { CreateProgramInput, UpdateProgramInput } from '../validators/program.schemas'
 
 export const programService = {
@@ -15,7 +15,7 @@ export const programService = {
         coachId,
         clientId: input.clientId,
         type: input.type,
-        content: input.content,
+        content: input.content as object,
       },
     })
     logger.info({ programId: program.id, coachId, clientId: input.clientId }, 'Program created')
@@ -38,7 +38,7 @@ export const programService = {
       where: { id: programId },
       data: {
         ...(input.type !== undefined && { type: input.type }),
-        ...(input.content !== undefined && { content: input.content }),
+        ...(input.content !== undefined && { content: input.content as object }),
       },
     })
     logger.info({ programId, coachId }, 'Program updated')
