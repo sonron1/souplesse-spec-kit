@@ -12,22 +12,90 @@
   },
 
   "subscriptionPlans": [
-    { "name": "Séance", "priceSingle": 1500, "priceCouple": null, "validityDays": 1, "maxReports": 0, "isActive": true },
-    { "name": "Carnet 10 séances", "priceSingle": 10000, "priceCouple": null, "validityDays": 30, "maxReports": 0, "isActive": true },
-    { "name": "Carnet 15 séances", "priceSingle": 20000, "priceCouple": null, "validityDays": 90, "maxReports": 0, "isActive": true },
-    { "name": "Abonnement 1 mois", "priceSingle": 15000, "priceCouple": 25000, "validityDays": 30, "maxReports": 0, "isActive": true },
-    { "name": "Suivi personnel", "priceSingle": 20000, "priceCouple": 40000, "validityDays": 30, "maxReports": 1, "isActive": true },
-    { "name": "Abonnement 3 mois", "priceSingle": 40000, "priceCouple": 75000, "validityDays": 90, "maxReports": 2, "isActive": true },
-    { "name": "Abonnement 6 mois", "priceSingle": 70000, "priceCouple": 120000, "validityDays": 180, "maxReports": 2, "isActive": true },
-    { "name": "Abonnement 1 an", "priceSingle": 120000, "priceCouple": 200000, "validityDays": 365, "maxReports": 3, "isActive": true },
-    { "name": "Autres activités", "priceSingle": 10000, "priceCouple": null, "validityDays": 30, "maxReports": 0, "isActive": true }
+    {
+      "name": "Séance",
+      "planType": "MONTHLY",
+      "priceSingle": 1500,
+      "priceCouple": null,
+      "validityDays": 1,
+      "maxReports": 0,
+      "isActive": true
+    },
+    {
+      "name": "Carnet 10 séances",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "isActive": true
+    },
+    {
+      "name": "Carnet 15 séances",
+      "planType": "QUARTERLY",
+      "priceSingle": 20000,
+      "priceCouple": null,
+      "validityDays": 90,
+      "maxReports": 0,
+      "isActive": true
+    },
+    {
+      "name": "Abonnement 1 mois",
+      "planType": "COUPLE_MONTHLY",
+      "priceSingle": 15000,
+      "priceCouple": 25000,
+      "validityDays": 30,
+      "maxReports": 0,
+      "isActive": true
+    },
+    {
+      "name": "Suivi personnel",
+      "planType": "COUPLE_MONTHLY",
+      "priceSingle": 20000,
+      "priceCouple": 40000,
+      "validityDays": 30,
+      "maxReports": 1,
+      "isActive": true
+    },
+    {
+      "name": "Abonnement 3 mois",
+      "planType": "COUPLE_QUARTERLY",
+      "priceSingle": 40000,
+      "priceCouple": 75000,
+      "validityDays": 90,
+      "maxReports": 2,
+      "isActive": true
+    },
+    {
+      "name": "Abonnement 6 mois",
+      "planType": "COUPLE_QUARTERLY",
+      "priceSingle": 70000,
+      "priceCouple": 120000,
+      "validityDays": 180,
+      "maxReports": 2,
+      "isActive": true
+    },
+    {
+      "name": "Abonnement 1 an",
+      "planType": "COUPLE_ANNUAL",
+      "priceSingle": 120000,
+      "priceCouple": 200000,
+      "validityDays": 365,
+      "maxReports": 3,
+      "isActive": true
+    },
+    {
+      "name": "Autres activités",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "isActive": true
+    }
   ],
 
-  "dressCode": [
-    "Sport outfit mandatory",
-    "Sport shoes mandatory",
-    "Towel mandatory"
-  ],
+  "dressCode": ["Sport outfit mandatory", "Sport shoes mandatory", "Towel mandatory"],
 
   "location": {
     "address": "Face clôture Lita au bord des pavés. En quittant le Carrefour Lita pour le Carrefour Tankpé",
@@ -36,7 +104,7 @@
   },
 
   "branding": {
-    "primaryColors": ["black","yellow","white"],
+    "primaryColors": ["black", "white", "gold"],
     "theme": "Fitness / Musculation",
     "style": "Modern, sporty, energetic"
   },

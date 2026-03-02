@@ -1,4 +1,9 @@
-import { getGymSettings, getBusinessHours, getSubscriptionPlans } from '../../services/settings.service'
+import { defineEventHandler } from 'h3'
+import {
+  getGymSettings,
+  getBusinessHours,
+  getSubscriptionPlans,
+} from '../../services/settings.service'
 import { requireAdmin } from '../../middleware/admin.middleware'
 
 export default defineEventHandler(async (event) => {

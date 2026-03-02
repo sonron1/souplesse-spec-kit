@@ -24,5 +24,4 @@ Guidelines:
 
 Admin-editable fields are flagged in the `adminEditable` section; other
 fields should be changed only by a migration or approved configuration update.
-
-``` 
+```

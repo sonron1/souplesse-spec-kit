@@ -29,6 +29,7 @@ programs, progress tracking, and an admin dashboard with exports.
 ## Constitution Check
 
 GATE: The plan adheres to the constitution. Key verifications:
+
 - TypeScript `strict: true` (planned)
 - ESLint + Prettier configured in CI (planned)
 - Server-side runtime validation: Zod for request bodies (planned)
@@ -79,4 +80,3 @@ logic under `server/` as required by the constitution.
 No constitution violations identified. If a future decision requires a
 violation (e.g., temporarily allowing `any`), it must include justification
 and a migration plan.
-

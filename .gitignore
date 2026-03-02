@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+
+# Nuxt generated files
+.nuxt
+.output
+.nitro
+.cache
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist
+
+# Logs
+*.log
+logs/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Test & coverage artifacts
+coverage/
+reports/load/
+
+# Prisma generated (regenerate with `npx prisma generate`)
+# node_modules/.prisma is already covered above

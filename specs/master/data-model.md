@@ -1,9 +1,10 @@
-```markdown
+````markdown
 # Data Model (Conceptual) — Souplesse Fitness
 
 ## Entities
 
 ### User
+
 - `id: UUID`
 - `name: string`
 - `email: string` (unique, indexed)
@@ -13,10 +14,12 @@
 - `updatedAt: DateTime`
 
 Validation rules:
+
 - email required, normalized
 - passwordHash never exposed
 
 ### Subscription
+
 - `id: UUID`
 - `userId: UUID` (FK, indexed)
 - `type: 'MONTHLY' | 'QUARTERLY' | 'YEARLY'`
@@ -25,6 +28,7 @@ Validation rules:
 - `endDate: DateTime`
 
 ### Payment
+
 - `id: UUID`
 - `userId: UUID` (indexed)
 - `subscriptionId: UUID` (indexed)
@@ -35,6 +39,7 @@ Validation rules:
 - `createdAt: DateTime`
 
 ### Session
+
 - `id: UUID`
 - `coachId: UUID` (indexed)
 - `dateTime: DateTime`
@@ -43,6 +48,7 @@ Validation rules:
 - `createdAt: DateTime`
 
 ### Booking
+
 - `id: UUID`
 - `userId: UUID` (indexed)
 - `sessionId: UUID` (indexed)
@@ -50,6 +56,7 @@ Validation rules:
 - `createdAt: DateTime`
 
 ### Program
+
 - `id: UUID`
 - `clientId: UUID` (indexed)
 - `coachId: UUID` (indexed)
@@ -58,6 +65,7 @@ Validation rules:
 - `createdAt: DateTime`
 
 ## Indexes / Performance
+
 - Index on `User.email`, `Payment.createdAt`, `Booking.sessionId`, `Subscription.userId`.
 - Consider materialized views or cached aggregates for admin dashboard metrics.
 
@@ -76,5 +84,8 @@ model User {
 
 // Additional models follow the conceptual definitions above
 ```
+````
 
-``` 
+```
+
+```

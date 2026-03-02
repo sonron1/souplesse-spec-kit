@@ -1,4 +1,4 @@
-```markdown
+````markdown
 # Quickstart — Local Development (Souplesse Fitness)
 
 Prerequisites: Docker, Node 18+, pnpm or npm, Git
@@ -14,6 +14,7 @@ Prerequisites: Docker, Node 18+, pnpm or npm, Git
 ```powershell
 docker compose up -d
 ```
+````
 
 3. Install deps and generate Prisma client:
 
@@ -40,7 +41,10 @@ pnpm test:e2e
 ```
 
 Notes:
+
 - Webhooks: use `stripe listen` in dev and forward to `/api/payments/webhook/stripe`.
 - CI will run lint, type-check, unit & integration tests, then build.
 
-``` 
+```
+
+```

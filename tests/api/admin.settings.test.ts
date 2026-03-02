@@ -1,10 +1,15 @@
 import jwt from 'jsonwebtoken'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// Provide nitro-like globals used by handlers
-;(global as any).defineEventHandler = (fn: any) => fn
-;(global as any).readBody = async (ev: any) => ev.body
-;(global as any).createError = (opts: any) => Object.assign(new Error(opts.statusMessage), { statusCode: opts.statusCode })
+// Mock h3 so defineEventHandler is a passthrough and readBody returns event.body
+vi.mock('h3', () => ({
+  defineEventHandler: (fn: any) => fn,
+  readBody: async (ev: any) => ev.body,
+  createError: (opts: any) =>
+    Object.assign(new Error(opts.statusMessage), { statusCode: opts.statusCode }),
+  getHeader: (ev: any, name: string) => ev.node?.req?.headers?.[name.toLowerCase()],
+  setHeader: () => {},
+}))
 
 describe('admin settings handlers', () => {
   const JWT_SECRET = 'test-secret'
@@ -17,8 +22,8 @@ describe('admin settings handlers', () => {
   it('GET handler returns gym, hours, plans after admin check', async () => {
     // mock services
     const mockGym = { name: 'G' }
-    const mockHours = []
-    const mockPlans = []
+    const mockHours: unknown[] = []
+    const mockPlans: unknown[] = []
 
     // mock requireAdmin to be a no-op
     const stubRequireAdmin = vi.fn().mockResolvedValue({ sub: 'u1', role: 'ADMIN' })
@@ -31,11 +36,22 @@ describe('admin settings handlers', () => {
     }))
 
     // ensure requireAdmin is the stub
-    vi.doMock('../../server/middleware/admin.middleware', () => ({ requireAdmin: stubRequireAdmin }))
+    vi.doMock('../../server/middleware/admin.middleware', () => ({
+      requireAdmin: stubRequireAdmin,
+    }))
 
     const handler = (await import('../../server/api/admin/settings.get')).default
 
-    const event: any = { node: { req: { headers: { authorization: 'Bearer ' + jwt.sign({ sub: 'u1', role: 'ADMIN' }, JWT_SECRET) } } }, context: {} }
+    const event: any = {
+      node: {
+        req: {
+          headers: {
+            authorization: 'Bearer ' + jwt.sign({ sub: 'u1', role: 'ADMIN' }, JWT_SECRET),
+          },
+        },
+      },
+      context: {},
+    }
     const res = await handler(event)
     expect(res).toEqual({ gym: mockGym, hours: mockHours, plans: mockPlans })
     expect(stubRequireAdmin).toHaveBeenCalled()
@@ -46,8 +62,13 @@ describe('admin settings handlers', () => {
     const updateGymSettings = vi.fn().mockResolvedValue(savedGym)
     const upsertBusinessHours = vi.fn().mockResolvedValue(true)
 
-    vi.doMock('../../server/services/settings.service', () => ({ updateGymSettings, upsertBusinessHours }))
-    vi.doMock('../../server/middleware/admin.middleware', () => ({ requireAdmin: vi.fn().mockResolvedValue({ role: 'ADMIN' }) }))
+    vi.doMock('../../server/services/settings.service', () => ({
+      updateGymSettings,
+      upsertBusinessHours,
+    }))
+    vi.doMock('../../server/middleware/admin.middleware', () => ({
+      requireAdmin: vi.fn().mockResolvedValue({ role: 'ADMIN' }),
+    }))
 
     const handler = (await import('../../server/api/admin/settings.put')).default
 
@@ -57,10 +78,16 @@ describe('admin settings handlers', () => {
         mondayToFriday: { open: '08:00', close: '20:00' },
         saturday: { open: '09:00', close: '14:00' },
         sundayAndHolidays: { open: '00:00', close: '00:00' },
-      }
+      },
     }
 
-    const event: any = { body: mockBody, node: { req: { headers: { authorization: 'Bearer ' + jwt.sign({ role: 'ADMIN' }, JWT_SECRET) } } }, context: {} }
+    const event: any = {
+      body: mockBody,
+      node: {
+        req: { headers: { authorization: 'Bearer ' + jwt.sign({ role: 'ADMIN' }, JWT_SECRET) } },
+      },
+      context: {},
+    }
     const res = await handler(event)
     expect(res).toHaveProperty('ok', true)
     expect(updateGymSettings).toHaveBeenCalled()

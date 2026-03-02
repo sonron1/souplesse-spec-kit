@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Minor implementation hints present (payment providers named as options) — acceptable as they reflect user preference; design remains provider-agnostic.
-- Next actions: create API contracts, data model (schema + indexes), and test fixtures for webhooks and concurrency.
+- Payment provider is Kkiapay (primary and exclusive in v1); Stripe and PayPal are out of scope.
+- API contracts (`contracts/payment-webhook.md`, `contracts/booking-api.md`) and `data-model.md` are intentionally deferred to v2 per plan.md; no action needed.
