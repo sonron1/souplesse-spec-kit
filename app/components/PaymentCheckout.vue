@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-  import useKkiapay from '~/utils/kkiapay.client'
+  import useKkiapay from '../../utils/kkiapay.client'
 
   interface CreateOrderResponse {
     kkiapayToken?: string

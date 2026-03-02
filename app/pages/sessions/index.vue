@@ -14,7 +14,7 @@
         <label class="label">Jusqu'au</label>
         <input v-model="toDate" type="date" class="input w-44" />
       </div>
-      <button class="btn-primary" @click="refresh">Filtrer</button>
+      <button class="btn-primary" @click="() => refresh()">Filtrer</button>
       <button class="btn-secondary" @click="resetFilters">Réinitialiser</button>
     </div>
 
