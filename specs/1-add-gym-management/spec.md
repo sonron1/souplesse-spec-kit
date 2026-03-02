@@ -17,7 +17,7 @@
 - Q: Is only one subscription active per user allowed? → A: Yes — exactly one ACTIVE subscription per user at any time
 - Q: What conditions must all be met for a booking to be accepted? → A: Authenticated user + ACTIVE subscription + session within BusinessHours + capacity not exceeded + no duplicate booking for same session
 - Q: What are the JWT token security requirements? → A: Access token expires in 15 min; refresh token stored as bcrypt hash (never plaintext)
-- Q: What are the UI/UX baseline requirements? → A: Mobile-first; branding colors black/yellow/white; no inline styles; no duplicated components; label+input pairing mandatory for accessibility
+- Q: What are the UI/UX baseline requirements? → A: Mobile-first; branding colors black/white/gold; no inline styles; no duplicated components; label+input pairing mandatory for accessibility
 - Q: What data integrity rules apply globally? → A: UUID primary keys on all entities; atomic transactions for payment+subscription operations; unique constraints on email, kkiapayTransactionId, and (userId, sessionId) booking pair
 - Q: What are role-specific access boundaries? → A: ADMIN full access; COACH manages sessions + assigned client programs (cannot modify plans); CLIENT views own data only; all checks enforced server-side
 - Q: What should the unique payment reference field be named on the Payment entity? → A: kkiapayTransactionId — explicit to Kkiapay as current exclusive provider
@@ -143,7 +143,7 @@ Admin sees totals (users, active subscriptions), revenue, and can export CSV.
 - **Performance**: API median response time < 300ms; no N+1 database queries; pagination required for all lists > 20 items; aggregations computed at database level.
 - **Security**: bcrypt password hashing (min cost 10); JWT access token 15 min expiry; refresh token stored as bcrypt hash; Zod validation on every API route; rate limiting on `/auth` and `/payments` endpoints; no secrets exposed to frontend.
 - **Data Integrity**: UUID primary keys on all entities; atomic transactions for payment + subscription operations; unique constraints on email, kkiapayTransactionId, and (userId, sessionId) booking pair.
-- **UI/UX**: Mobile-first responsive design; branding palette: black / yellow / white; no inline styles; no duplicated components; all form inputs must have a paired `<label>` for accessibility.
+- **UI/UX**: Mobile-first responsive design; branding palette: black / white / gold; no inline styles; no duplicated components; all form inputs must have a paired `<label>` for accessibility.
 - **Availability**: Webhook processing must be idempotent — duplicate webhooks MUST NOT create duplicate activations.
 
 ## Constitution Compliance _(mandatory)_

@@ -15,15 +15,16 @@ interface AuthTokens {
 }
 
 const user = ref<AuthUser | null>(null)
-const accessToken = useCookie<string | null>('access_token', { secure: true, sameSite: 'strict' })
-const refreshTokenCookie = useCookie<string | null>('refresh_token', {
-  httpOnly: false,
-  secure: true,
-  sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60,
-})
 
 export function useAuth() {
+  const accessToken = useCookie<string | null>('access_token', { secure: true, sameSite: 'strict' })
+  const refreshTokenCookie = useCookie<string | null>('refresh_token', {
+    httpOnly: false,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60,
+  })
+
   const isLoggedIn = computed(() => !!accessToken.value)
   const isAdmin = computed(() => user.value?.role === 'ADMIN')
   const isCoach = computed(() => user.value?.role === 'COACH' || user.value?.role === 'ADMIN')

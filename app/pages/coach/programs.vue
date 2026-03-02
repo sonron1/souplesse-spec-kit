@@ -1,42 +1,87 @@
 <template>
-  <div class="p-6">
-    <h1 class="text-2xl font-bold mb-6">Programmes entraînement</h1>
+  <div>
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Programmes d'entraînement</h1>
+      <button class="btn-primary" @click="openCreate">+ Nouveau programme</button>
+    </div>
 
-    <div v-if="pending" class="text-gray-400">Chargement...</div>
+    <SkeletonLoader v-if="pending" :count="3" :height="72" />
 
-    <div v-else class="space-y-4">
+    <div v-else-if="!programs?.length" class="card text-center py-12 text-gray-500">
+      <p class="text-lg font-medium mb-2">Aucun programme créé</p>
+      <p class="text-sm mb-4">Créez votre premier programme pour un client.</p>
+      <button class="btn-primary" @click="openCreate">+ Nouveau programme</button>
+    </div>
+
+    <div v-else class="space-y-3">
       <div
         v-for="program in programs"
         :key="program.id"
-        class="bg-white rounded-lg shadow p-4 flex items-center justify-between"
+        class="card flex items-center justify-between gap-4"
       >
         <div>
-          <p class="font-semibold">Client: {{ program.clientId }}</p>
-          <p class="text-sm text-gray-500">Type: {{ program.type }}</p>
+          <p class="font-semibold text-gray-900">Client : <span class="font-mono text-xs text-gray-500">{{ program.clientId }}</span></p>
+          <p class="text-sm text-gray-500 mt-0.5">
+            Type :
+            <span class="badge-gold">{{ program.type === 'GAIN' ? 'Prise de masse' : 'Perte de poids' }}</span>
+          </p>
         </div>
-        <button class="text-primary-600 text-sm hover:underline" @click="editProgram(program.id)">
-          Modifier
-        </button>
+        <button class="btn-secondary text-sm" @click="openEdit(program)">Modifier</button>
       </div>
-
-      <button class="btn-primary mt-4" @click="showCreateForm = true">+ Nouveau programme</button>
     </div>
 
-    <!-- Simple create form -->
+    <!-- Create modal -->
     <div
-      v-if="showCreateForm"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+      v-if="showCreateModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
     >
-      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h2 class="text-lg font-semibold mb-4">Nouveau programme</h2>
-        <input v-model="newProgram.clientId" placeholder="ID Client" class="input mb-3" />
-        <select v-model="newProgram.type" class="input mb-4">
-          <option value="GAIN">Prise de masse</option>
-          <option value="LOSS">Perte de poids</option>
-        </select>
-        <div class="flex gap-3 justify-end">
-          <button class="btn-secondary" @click="showCreateForm = false">Annuler</button>
-          <button class="btn-primary" @click="createProgram">Créer</button>
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h2 class="text-lg font-bold mb-5">Nouveau programme</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="label">ID Client (UUID)</label>
+            <input v-model="createForm.clientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" class="input" />
+          </div>
+          <div>
+            <label class="label">Type</label>
+            <select v-model="createForm.type" class="input">
+              <option value="GAIN">Prise de masse</option>
+              <option value="LOSS">Perte de poids</option>
+            </select>
+          </div>
+          <p v-if="createError" class="text-red-600 text-sm">{{ createError }}</p>
+        </div>
+        <div class="flex gap-3 justify-end mt-6">
+          <button class="btn-secondary" @click="showCreateModal = false">Annuler</button>
+          <button class="btn-primary" :disabled="saving" @click="submitCreate">
+            {{ saving ? 'Création…' : 'Créer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit modal -->
+    <div
+      v-if="showEditModal"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+    >
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h2 class="text-lg font-bold mb-5">Modifier le programme</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="label">Type</label>
+            <select v-model="editForm.type" class="input">
+              <option value="GAIN">Prise de masse</option>
+              <option value="LOSS">Perte de poids</option>
+            </select>
+          </div>
+          <p v-if="editError" class="text-red-600 text-sm">{{ editError }}</p>
+        </div>
+        <div class="flex gap-3 justify-end mt-6">
+          <button class="btn-secondary" @click="showEditModal = false">Annuler</button>
+          <button class="btn-primary" :disabled="saving" @click="submitEdit">
+            {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
         </div>
       </div>
     </div>
@@ -51,33 +96,83 @@
   interface Program {
     id: string
     clientId: string
-    type: string
+    type: 'GAIN' | 'LOSS'
   }
+
+  const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
   const {
-    data: programs,
+    data: response,
     pending,
     refresh,
-  } = await useLazyFetch<Program[]>('/api/programs', {
-    headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
-    default: () => [],
+  } = await useLazyFetch<{ success: boolean; programs: Program[] }>('/api/programs', {
+    headers: authHeaders,
+    default: () => ({ success: true, programs: [] }),
   })
 
-  const showCreateForm = ref(false)
-  const newProgram = reactive({ clientId: '', type: 'GAIN' })
+  const programs = computed(() => response.value?.programs ?? [])
 
-  function editProgram(_id: string) {
-    // TODO: open edit modal
+  // --- Create ---
+  const showCreateModal = ref(false)
+  const createForm = reactive({ clientId: '', type: 'GAIN' as 'GAIN' | 'LOSS' })
+  const createError = ref('')
+  const saving = ref(false)
+
+  function openCreate() {
+    createForm.clientId = ''
+    createForm.type = 'GAIN'
+    createError.value = ''
+    showCreateModal.value = true
   }
 
-  async function createProgram() {
-    await $fetch('/api/programs', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken.value}` },
-      body: { ...newProgram, content: {} },
-    })
-    showCreateForm.value = false
-    newProgram.clientId = ''
-    await refresh()
+  async function submitCreate() {
+    createError.value = ''
+    saving.value = true
+    try {
+      await $fetch('/api/programs', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+        body: { clientId: createForm.clientId, type: createForm.type, content: {} },
+      })
+      showCreateModal.value = false
+      await refresh()
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      createError.value = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur inconnue'
+    } finally {
+      saving.value = false
+    }
+  }
+
+  // --- Edit ---
+  const showEditModal = ref(false)
+  const editingId = ref('')
+  const editForm = reactive({ type: 'GAIN' as 'GAIN' | 'LOSS' })
+  const editError = ref('')
+
+  function openEdit(program: Program) {
+    editingId.value = program.id
+    editForm.type = program.type
+    editError.value = ''
+    showEditModal.value = true
+  }
+
+  async function submitEdit() {
+    editError.value = ''
+    saving.value = true
+    try {
+      await $fetch(`/api/programs/${editingId.value}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+        body: { type: editForm.type },
+      })
+      showEditModal.value = false
+      await refresh()
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      editError.value = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur inconnue'
+    } finally {
+      saving.value = false
+    }
   }
 </script>

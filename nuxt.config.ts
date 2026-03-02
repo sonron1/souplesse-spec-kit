@@ -7,6 +7,8 @@ export default defineNuxtConfig({
   // directory structure: UI under app/, server stays under server/
   srcDir: 'app',
 
+  css: ['~/assets/css/main.css'],
+
   modules: ['@nuxtjs/tailwindcss'],
 
   tailwindcss: {

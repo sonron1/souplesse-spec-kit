@@ -25,7 +25,8 @@ export async function requireAdmin(event: H3Event) {
   return payload
 }
 
-// Nitro middleware default export
-export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+// Nitro requires a default export from files in server/middleware/.
+// Admin auth is enforced explicitly per-route via requireAdmin() above.
+export default defineEventHandler((_event) => {
+  // intentional no-op — do not block non-admin routes here
 })
