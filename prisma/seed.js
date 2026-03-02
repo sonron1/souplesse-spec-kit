@@ -242,6 +242,83 @@ async function main() {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
+  // ── Extra fake clients (5 more for realistic demo) ────────────────────────
+  const extraClients = [
+    { email: 'aminata.kone@test.com',       name: 'Aminata Koné',       subPlan: 'Abonnement 1 mois',   bookSessions: 2, assignToCoach: true  },
+    { email: 'koffi.mensah@test.com',        name: 'Koffi Mensah',        subPlan: 'Carnet 10 séances',  bookSessions: 1, assignToCoach: false },
+    { email: 'fatoumata.diallo@test.com',    name: 'Fatoumata Diallo',    subPlan: null,                  bookSessions: 0, assignToCoach: true  },
+    { email: 'oumar.traore@test.com',        name: 'Oumar Traoré',        subPlan: 'Abonnement 3 mois',  bookSessions: 1, assignToCoach: false },
+    { email: 'blessing.okonkwo@test.com',    name: 'Blessing Okonkwo',    subPlan: 'Carnet 15 séances',  bookSessions: 2, assignToCoach: false },
+  ]
+
+  const EXTRA_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
+  const coachForExtras = await prisma.user.findUnique({ where: { email: 'coach@demo.com' } })
+
+  for (const ec of extraClients) {
+    // Upsert client user
+    const clientRec = await prisma.user.upsert({
+      where:  { email: ec.email },
+      update: { name: ec.name },
+      create: { name: ec.name, email: ec.email, role: 'CLIENT', passwordHash: EXTRA_PASSWORD_HASH },
+    })
+
+    // Assign to coach
+    if (ec.assignToCoach && coachForExtras) {
+      await prisma.coachClientAssignment.upsert({
+        where: { coachId_clientId: { coachId: coachForExtras.id, clientId: clientRec.id } },
+        update: {},
+        create: { coachId: coachForExtras.id, clientId: clientRec.id },
+      })
+    }
+
+    // Create subscription
+    if (ec.subPlan) {
+      const subPlanRec = await prisma.subscriptionPlan.findFirst({ where: { name: ec.subPlan } })
+      if (subPlanRec) {
+        const existingSub = await prisma.subscription.findFirst({ where: { userId: clientRec.id, status: 'ACTIVE' } })
+        if (!existingSub) {
+          const start = new Date()
+          const end   = new Date(start)
+          end.setDate(end.getDate() + subPlanRec.validityDays)
+          await prisma.subscription.create({
+            data: {
+              userId:             clientRec.id,
+              subscriptionPlanId: subPlanRec.id,
+              type:               'MONTHLY',
+              status:             'ACTIVE',
+              isActive:           true,
+              activationDate:     start,
+              startsAt:           start,
+              expiresAt:          end,
+              maxReports:         subPlanRec.maxReports,
+            },
+          })
+        }
+      }
+    }
+
+    // Book sessions (reuse coach sessions already created)
+    if (ec.bookSessions > 0 && coachForExtras) {
+      const coachSessions = await prisma.session.findMany({
+        where: { coachId: coachForExtras.id },
+        orderBy: { dateTime: 'asc' },
+        take: ec.bookSessions + 2,
+      })
+      let booked = 0
+      for (const sess of coachSessions) {
+        if (booked >= ec.bookSessions) break
+        const already = await prisma.booking.findFirst({ where: { sessionId: sess.id, userId: clientRec.id } })
+        if (!already) {
+          await prisma.booking.create({ data: { userId: clientRec.id, sessionId: sess.id, status: 'CONFIRMED' } })
+          booked++
+        }
+      }
+    }
+  }
+
+  console.log('Extra fake clients seeded: Aminata, Koffi, Fatoumata, Oumar, Blessing (password: Demo1234!)')
+  // ─────────────────────────────────────────────────────────────────────────
+
   console.log('Seeding complete.')
   await prisma.$disconnect()
 }

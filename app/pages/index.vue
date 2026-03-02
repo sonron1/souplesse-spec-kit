@@ -44,8 +44,8 @@
         <div class="reveal relative hidden lg:block" style="--delay:200ms">
           <div class="relative rounded-3xl overflow-hidden aspect-[4/5] shadow-2xl">
             <img
-              src="https://images.pexels.com/photos/2628215/pexels-photo-2628215.jpeg?auto=compress&cs=tinysrgb&w=900&h=1100&dpr=1"
-              alt="Souplesse Fitness – séance de musculation"
+              src="https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=900&h=1100&dpr=1"
+              alt="Souplesse Fitness – athlète musculation"
               class="w-full h-full object-cover"
               loading="eager"
             />
@@ -84,7 +84,7 @@
         <div class="grid grid-cols-3 gap-3 h-72">
           <div class="relative rounded-2xl overflow-hidden group">
             <img
-              src="https://images.pexels.com/photos/260352/pexels-photo-260352.jpeg?auto=compress&cs=tinysrgb&w=600&h=600&dpr=1"
+              src="https://images.pexels.com/photos/3763873/pexels-photo-3763873.jpeg?auto=compress&cs=tinysrgb&w=600&h=600&dpr=1"
               alt="Équipements musculation"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
@@ -93,7 +93,7 @@
           </div>
           <div class="relative rounded-2xl overflow-hidden group col-span-1">
             <img
-              src="https://images.pexels.com/photos/2204196/pexels-photo-2204196.jpeg?auto=compress&cs=tinysrgb&w=600&h=700&dpr=1"
+              src="https://images.pexels.com/photos/3837757/pexels-photo-3837757.jpeg?auto=compress&cs=tinysrgb&w=600&h=700&dpr=1"
               alt="Séance avec coach"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
@@ -102,8 +102,8 @@
           </div>
           <div class="relative rounded-2xl overflow-hidden group">
             <img
-              src="https://images.pexels.com/photos/4164772/pexels-photo-4164772.jpeg?auto=compress&cs=tinysrgb&w=600&h=600&dpr=1"
-              alt="Salle de fitness"
+              src="https://images.pexels.com/photos/2261477/pexels-photo-2261477.jpeg?auto=compress&cs=tinysrgb&w=600&h=600&dpr=1"
+              alt="Entraînement intensif"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
             />
@@ -445,14 +445,14 @@
   ]
 
   const activities = [
-    { name: 'Musculation', icon: '💪', photo: 'https://images.pexels.com/photos/2628215/pexels-photo-2628215.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Musculation', icon: '💪', photo: 'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
     { name: 'Cardio-training', icon: '🏃', photo: 'https://images.pexels.com/photos/3838937/pexels-photo-3838937.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
-    { name: 'Crossfit', icon: '🔥', photo: 'https://images.pexels.com/photos/2261485/pexels-photo-2261485.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
-    { name: 'Stretching & Souplesse', icon: '🧘', photo: 'https://images.pexels.com/photos/4753892/pexels-photo-4753892.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
-    { name: 'Cours collectifs', icon: '👯', photo: 'https://images.pexels.com/photos/1638336/pexels-photo-1638336.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
-    { name: 'Renforcement musculaire', icon: '⚡', photo: 'https://images.pexels.com/photos/2475875/pexels-photo-2475875.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
-    { name: 'Perte de poids', icon: '🎯', photo: 'https://images.pexels.com/photos/1480530/pexels-photo-1480530.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
-    { name: 'Prise de masse', icon: '📈', photo: 'https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Crossfit', icon: '🔥', photo: 'https://images.pexels.com/photos/2261477/pexels-photo-2261477.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Stretching & Souplesse', icon: '🧘', photo: 'https://images.pexels.com/photos/3822906/pexels-photo-3822906.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Cours collectifs', icon: '👯', photo: 'https://images.pexels.com/photos/3076516/pexels-photo-3076516.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Renforcement musculaire', icon: '⚡', photo: 'https://images.pexels.com/photos/3490348/pexels-photo-3490348.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Perte de poids', icon: '🎯', photo: 'https://images.pexels.com/photos/3837757/pexels-photo-3837757.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
+    { name: 'Prise de masse', icon: '📈', photo: 'https://images.pexels.com/photos/4162449/pexels-photo-4162449.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=1' },
   ]
 
   const today = new Date().getDay()

@@ -5,66 +5,115 @@
     </div>
 
     <div v-else>
-      <!-- Welcome banner -->
-      <div class="card bg-black text-white mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold">
-            Bonjour, {{ user.name }} !
-          </h1>
-          <p class="text-gray-400 text-sm mt-1">Bienvenue sur votre espace Souplesse.</p>
+      <!-- Welcome banner with image -->
+      <div class="relative rounded-2xl overflow-hidden mb-6 min-h-[140px]">
+        <img
+          src="https://images.pexels.com/photos/3838937/pexels-photo-3838937.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400&dpr=1"
+          alt="Souplesse Fitness"
+          class="absolute inset-0 w-full h-full object-cover"
+        />
+        <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
+        <div class="relative z-10 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p class="text-primary-400 text-xs font-bold uppercase tracking-widest mb-1">Espace personnel</p>
+            <h1 class="text-2xl font-bold text-white">
+              Bonjour, {{ user.name.split(' ')[0] }} !
+            </h1>
+            <p class="text-gray-300 text-sm mt-0.5">Bienvenue sur votre espace Souplesse Fitness.</p>
+          </div>
+          <NuxtLink to="/sessions" class="btn-primary self-start sm:self-auto shrink-0 gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Voir les séances
+          </NuxtLink>
         </div>
-        <NuxtLink to="/sessions" class="btn-primary self-start sm:self-auto">
-          Voir les séances
-        </NuxtLink>
       </div>
 
       <!-- KPI cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <!-- Subscription status -->
-        <div class="card">
-          <p class="text-sm text-gray-500 mb-1">Abonnement</p>
-          <div v-if="subPending" class="h-7 bg-gray-100 rounded animate-pulse w-24" />
-          <p v-else class="text-xl font-bold mt-1">
-            <span
-              v-if="activeSubscription"
-              class="text-primary-600"
-            >{{ activeSubscription.subscriptionPlan?.name ?? activeSubscription.type }}</span>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Abonnement</p>
+            <div class="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            </div>
+          </div>
+          <div v-if="subPending" class="h-6 bg-gray-100 rounded animate-pulse w-24 mb-2" />
+          <p v-else class="text-base font-bold mt-1">
+            <span v-if="activeSubscription" class="text-primary-600">
+              {{ activeSubscription.subscriptionPlan?.name ?? activeSubscription.type }}
+            </span>
             <span v-else class="text-gray-400">Aucun abonnement</span>
           </p>
           <p v-if="activeSubscription?.expiresAt" class="text-xs text-gray-400 mt-1">
             Expire le {{ formatDate(activeSubscription.expiresAt) }}
           </p>
+          <NuxtLink v-if="!activeSubscription" to="/subscribe" class="mt-3 inline-flex text-xs font-semibold text-primary-600 hover:text-primary-500 transition-colors">
+            Souscrire →
+          </NuxtLink>
         </div>
 
         <!-- Next booking -->
-        <div class="card">
-          <p class="text-sm text-gray-500 mb-1">Prochaine séance</p>
-          <div v-if="bookingsPending" class="h-7 bg-gray-100 rounded animate-pulse w-32" />
-          <p v-else-if="nextBooking" class="text-base font-semibold mt-1 text-gray-800">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Prochaine séance</p>
+            <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div v-if="bookingsPending" class="h-6 bg-gray-100 rounded animate-pulse w-32 mb-2" />
+          <p v-else-if="nextBooking" class="text-sm font-bold mt-1 text-gray-800 leading-snug">
             {{ formatDateTime(nextBooking.session?.dateTime) }}
           </p>
-          <p v-else class="text-gray-400 mt-1">—</p>
+          <p v-else class="text-gray-400 mt-1 text-sm">Aucune réservation</p>
+          <NuxtLink to="/sessions" class="mt-2 inline-flex text-xs font-semibold text-green-600 hover:text-green-500 transition-colors">
+            Réserver une séance →
+          </NuxtLink>
         </div>
 
         <!-- Total bookings -->
-        <div class="card">
-          <p class="text-sm text-gray-500 mb-1">Réservations</p>
-          <div v-if="bookingsPending" class="h-7 bg-gray-100 rounded animate-pulse w-12" />
-          <p v-else class="text-3xl font-bold text-primary-600 mt-1">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Séances réservées</p>
+            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+          </div>
+          <div v-if="bookingsPending" class="h-9 bg-gray-100 rounded animate-pulse w-12 mb-2" />
+          <p v-else class="text-3xl font-bold text-blue-600 mt-1">
             {{ bookings?.length ?? 0 }}
           </p>
+          <p class="text-xs text-gray-400 mt-1">au total</p>
         </div>
       </div>
 
       <!-- Quick actions -->
-      <div class="card">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800">Actions rapides</h2>
-        <div class="flex flex-wrap gap-3">
-          <NuxtLink to="/dashboard/bookings" class="btn-primary">Mes réservations</NuxtLink>
-          <NuxtLink to="/sessions" class="btn-secondary">Séances disponibles</NuxtLink>
-          <NuxtLink to="/dashboard/subscriptions" class="btn-secondary">Mon abonnement</NuxtLink>
-          <NuxtLink v-if="!activeSubscription" to="/subscribe" class="btn-secondary text-primary-600 border-primary-400">
-            Souscrire un abonnement
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Actions rapides</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <NuxtLink to="/dashboard/bookings" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all">
+            <div class="w-9 h-9 rounded-lg bg-blue-500 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </div>
+            <span class="text-xs font-bold text-blue-700 text-center leading-tight">Mes réservations</span>
+          </NuxtLink>
+          <NuxtLink to="/sessions" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-primary-50 hover:bg-primary-100 border border-primary-100 transition-all">
+            <div class="w-9 h-9 rounded-lg bg-primary-500 flex items-center justify-center">
+              <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <span class="text-xs font-bold text-primary-700 text-center leading-tight">Séances dispo</span>
+          </NuxtLink>
+          <NuxtLink to="/dashboard/subscriptions" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-green-50 hover:bg-green-100 border border-green-100 transition-all">
+            <div class="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            </div>
+            <span class="text-xs font-bold text-green-700 text-center leading-tight">Mon abonnement</span>
+          </NuxtLink>
+          <NuxtLink to="/dashboard/programs" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-100 transition-all">
+            <div class="w-9 h-9 rounded-lg bg-purple-500 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            </div>
+            <span class="text-xs font-bold text-purple-700 text-center leading-tight">Mes programmes</span>
           </NuxtLink>
         </div>
       </div>

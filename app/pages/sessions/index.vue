@@ -27,41 +27,59 @@
     </div>
 
     <!-- Empty -->
-    <div v-else-if="!sessions?.length" class="card text-gray-500 text-center py-12">
-      <p class="text-lg font-medium mb-2">Aucune séance disponible</p>
-      <p class="text-sm">Revenez bientôt ou modifiez les filtres de date.</p>
+    <div v-else-if="!sessions?.length" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+      <svg class="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <p class="text-lg font-semibold text-gray-700 mb-1">Aucune séance disponible</p>
+      <p class="text-sm text-gray-400">Revenez bientôt ou modifiez les filtres de date.</p>
     </div>
 
     <!-- Session list -->
-    <div v-else class="space-y-4">
+    <div v-else class="space-y-3">
       <div
         v-for="session in sessions"
         :key="session.id"
-        class="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-primary-200 transition-colors"
       >
-        <div>
-          <p class="font-semibold text-gray-900 text-base">
-            {{ formatDateTime(session.dateTime) }}
-          </p>
-          <p class="text-sm text-gray-500 mt-0.5">
-            Durée : <span class="font-medium">{{ session.duration }} min</span>
-            &nbsp;·&nbsp; Capacité : <span class="font-medium">{{ session.capacity }} places</span>
-          </p>
+        <!-- Left: date + info -->
+        <div class="flex items-start gap-4">
+          <div class="shrink-0 w-14 h-14 rounded-xl bg-primary-50 flex flex-col items-center justify-center border border-primary-100">
+            <span class="text-primary-600 font-extrabold text-lg leading-none">{{ new Date(session.dateTime).getDate() }}</span>
+            <span class="text-primary-500 text-xs font-semibold uppercase">{{ new Date(session.dateTime).toLocaleString('fr-FR', { month: 'short' }) }}</span>
+          </div>
+          <div>
+            <p class="font-bold text-gray-900">
+              {{ formatDateTime(session.dateTime) }}
+            </p>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+              <span class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {{ session.duration }} min
+              </span>
+              <span v-if="session.location" class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                {{ session.location }}
+              </span>
+              <span v-if="session.coach?.name" class="flex items-center gap-1 text-xs text-gray-500">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {{ session.coach.name }}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span
-            :class="remaining(session) > 0 ? 'badge-success' : 'badge-danger'"
-          >
-            {{ remaining(session) > 0 ? `${remaining(session)} place(s)` : 'Complet' }}
-          </span>
-
+        <!-- Right: capacity + button -->
+        <div class="flex items-center gap-3 sm:shrink-0">
+          <div class="text-center min-w-[4rem]">
+            <p class="text-lg font-extrabold" :class="remaining(session) > 0 ? 'text-green-600' : 'text-red-500'">{{ remaining(session) }}</p>
+            <p class="text-xs text-gray-400 leading-tight">place(s)<br>dispo</p>
+          </div>
           <button
             :disabled="remaining(session) === 0 || bookingInProgress === session.id"
             class="btn-primary"
             @click="bookSession(session.id)"
           >
             <span v-if="bookingInProgress === session.id">Réservation…</span>
+            <span v-else-if="remaining(session) === 0">Complet</span>
             <span v-else>Réserver</span>
           </button>
         </div>
@@ -91,6 +109,8 @@
     duration: number
     capacity: number
     coachId: string
+    location?: string | null
+    coach?: { id: string; name: string } | null
     _count?: { bookings: number }
   }
 

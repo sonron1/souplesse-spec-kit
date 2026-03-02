@@ -6,6 +6,12 @@ export type CreateSessionInput = {
   dateTime: Date
   duration: number
   capacity: number
+  location?: string
+}
+
+export type SessionWithMeta = Session & {
+  _count: { bookings: number }
+  coach: { id: string; name: string } | null
 }
 
 export const sessionRepository = {
@@ -15,7 +21,7 @@ export const sessionRepository = {
 
   async findAll(
     opts: { page?: number; limit?: number; from?: Date; to?: Date } = {}
-  ): Promise<Session[]> {
+  ): Promise<SessionWithMeta[]> {
     const { page = 1, limit = 20, from, to } = opts
     return prisma.session.findMany({
       where: {
@@ -29,8 +35,9 @@ export const sessionRepository = {
       orderBy: { dateTime: 'asc' },
       include: {
         _count: { select: { bookings: { where: { status: 'CONFIRMED' } } } },
+        coach: { select: { id: true, name: true } },
       },
-    })
+    }) as Promise<SessionWithMeta[]>
   },
 
   async create(data: CreateSessionInput): Promise<Session> {
