@@ -5,6 +5,18 @@
       <span class="text-sm text-gray-500">Total : {{ total ?? '—' }}</span>
     </div>
 
+    <!-- Search bar -->
+    <div class="card mb-4 flex items-center gap-3 py-3 px-4">
+      <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+      <input
+        v-model="search"
+        type="text"
+        placeholder="Rechercher par nom ou email…"
+        class="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+      />
+      <button v-if="search" class="text-gray-400 hover:text-gray-600" @click="search = ''">✕</button>
+    </div>
+
     <SkeletonLoader v-if="pending" :count="5" :height="60" />
 
     <div v-else-if="error" class="card text-red-600">
@@ -25,7 +37,7 @@
           </thead>
           <tbody class="divide-y divide-gray-50">
             <tr
-              v-for="u in users"
+              v-for="u in filteredUsers"
               :key="u.id"
               class="hover:bg-gray-50 transition-colors"
             >
@@ -83,6 +95,7 @@
 
   const page = ref(1)
   const limit = 20
+  const search = ref('')
 
   const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
@@ -100,6 +113,14 @@
   const users = computed(() => data.value?.users ?? [])
   const total = computed(() => data.value?.total ?? 0)
   const hasNextPage = computed(() => page.value * limit < total.value)
+
+  const filteredUsers = computed(() => {
+    const q = search.value.toLowerCase().trim()
+    if (!q) return users.value
+    return users.value.filter(
+      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    )
+  })
 
   async function changePage(delta: number) {
     page.value = Math.max(1, page.value + delta)
