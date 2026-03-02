@@ -170,6 +170,7 @@ model Payment {
   provider             String        @default("kkiapay")
   kkiapayTransactionId String?       @unique
   status               PaymentStatus @default(PENDING)
+  rawPayload           Json?         // raw provider response for audit/reconciliation (FR-007)
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 

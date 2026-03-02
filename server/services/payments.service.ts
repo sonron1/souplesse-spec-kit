@@ -215,7 +215,7 @@ export async function confirmPayment(opts: {
 
   const amount: number = verifyData?.amount ?? verifyData?.data?.amount ?? plan.priceSingle
 
-  // Record the payment
+  // Record the payment with raw provider response (FR-007)
   const payment = await prisma.payment.create({
     data: {
       userId,
@@ -224,6 +224,7 @@ export async function confirmPayment(opts: {
       provider: 'kkiapay',
       kkiapayTransactionId: transactionId,
       status: 'CONFIRMED',
+      rawPayload: verifyData as object,
     },
   })
 
