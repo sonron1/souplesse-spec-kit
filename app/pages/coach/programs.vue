@@ -20,7 +20,7 @@
         class="card flex items-center justify-between gap-4"
       >
         <div>
-          <p class="font-semibold text-gray-900">Client : <span class="font-mono text-xs text-gray-500">{{ program.clientId }}</span></p>
+          <p class="font-semibold text-gray-900">Client : <span class="text-gray-800">{{ program.client?.name ?? program.client?.email ?? program.clientId }}</span></p>
           <p class="text-sm text-gray-500 mt-0.5">
             Type :
             <span class="badge-gold">{{ program.type === 'GAIN' ? 'Prise de masse' : 'Perte de poids' }}</span>
@@ -39,8 +39,14 @@
         <h2 class="text-lg font-bold mb-5">Nouveau programme</h2>
         <div class="space-y-4">
           <div>
-            <label class="label">ID Client (UUID)</label>
-            <input v-model="createForm.clientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" class="input" />
+            <label class="label">Client</label>
+            <select v-model="createForm.clientId" class="input">
+              <option value="" disabled>Sélectionner un client…</option>
+              <option v-for="c in assignedClients" :key="c.id" :value="c.id">
+                {{ c.name }} ({{ c.email }})
+              </option>
+            </select>
+            <p v-if="!assignedClients.length" class="text-xs text-gray-400 mt-1">Aucun client assigné pour l'instant.</p>
           </div>
           <div>
             <label class="label">Type</label>
@@ -97,9 +103,23 @@
     id: string
     clientId: string
     type: 'GAIN' | 'LOSS'
+    client?: { id: string; name: string; email: string } | null
+  }
+
+  interface AssignedClient {
+    id: string
+    name: string
+    email: string
   }
 
   const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
+
+  // Fetch coach's assigned clients for the dropdown
+  const { data: clientsData } = await useLazyFetch<{ success: boolean; clients: AssignedClient[] }>('/api/coach/clients', {
+    headers: authHeaders,
+    default: () => ({ success: true, clients: [] }),
+  })
+  const assignedClients = computed(() => clientsData.value?.clients ?? [])
 
   const {
     data: response,

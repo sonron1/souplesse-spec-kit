@@ -29,7 +29,7 @@
         <p class="text-xs text-primary-600 font-bold uppercase tracking-widest mb-2">Abonnement actuel</p>
         <h3 class="text-xl font-extrabold text-gray-900 mb-1">{{ activeSub.subscriptionPlan?.name ?? activeSub.type }}</h3>
         <p class="text-sm text-gray-600 mb-3">
-          Du <strong>{{ formatDate(activeSub.startDate) }}</strong> au <strong>{{ formatDate(activeSub.endDate) }}</strong>
+          Du <strong>{{ formatDate(activeSub.startsAt) }}</strong> au <strong>{{ formatDate(activeSub.expiresAt) }}</strong>
         </p>
         <div class="flex items-center gap-2">
           <div class="h-2 flex-1 bg-white rounded-full overflow-hidden border border-primary-200">
@@ -38,7 +38,7 @@
               :style="`width: ${progressPct(activeSub)}%`"
             />
           </div>
-          <span class="text-xs text-gray-500 whitespace-nowrap">{{ daysLeft(activeSub.endDate) }} jour(s) restant(s)</span>
+          <span class="text-xs text-gray-500 whitespace-nowrap">{{ daysLeft(activeSub.expiresAt) }} jour(s) restant(s)</span>
         </div>
       </div>
 
@@ -51,7 +51,7 @@
         <div>
           <p class="font-semibold text-gray-800">{{ sub.subscriptionPlan?.name ?? sub.type }}</p>
           <p class="text-xs text-gray-500 mt-0.5">
-            Du {{ formatDate(sub.startDate) }} au {{ formatDate(sub.endDate) }}
+            Du {{ formatDate(sub.startsAt) }} au {{ formatDate(sub.expiresAt) }}
           </p>
         </div>
         <span
@@ -74,8 +74,8 @@
     id: string
     type: string
     status: string
-    startDate: string
-    endDate: string
+    startsAt: string | null
+    expiresAt: string | null
     subscriptionPlan?: { name: string; planType: string } | null
   }
 
@@ -99,9 +99,9 @@
   }
 
   function progressPct(sub: Subscription) {
-    if (!sub.startDate || !sub.endDate) return 0
-    const total = new Date(sub.endDate).getTime() - new Date(sub.startDate).getTime()
-    const elapsed = Date.now() - new Date(sub.startDate).getTime()
+    if (!sub.startsAt || !sub.expiresAt) return 0
+    const total = new Date(sub.expiresAt).getTime() - new Date(sub.startsAt).getTime()
+    const elapsed = Date.now() - new Date(sub.startsAt).getTime()
     return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
   }
 </script>

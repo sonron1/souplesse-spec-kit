@@ -51,13 +51,13 @@
 
         <div class="flex items-center gap-3">
           <span
-            :class="session.capacity > 0 ? 'badge-success' : 'badge-danger'"
+            :class="remaining(session) > 0 ? 'badge-success' : 'badge-danger'"
           >
-            {{ session.capacity > 0 ? 'Places disponibles' : 'Complet' }}
+            {{ remaining(session) > 0 ? `${remaining(session)} place(s)` : 'Complet' }}
           </span>
 
           <button
-            :disabled="session.capacity === 0 || bookingInProgress === session.id"
+            :disabled="remaining(session) === 0 || bookingInProgress === session.id"
             class="btn-primary"
             @click="bookSession(session.id)"
           >
@@ -91,6 +91,7 @@
     duration: number
     capacity: number
     coachId: string
+    _count?: { bookings: number }
   }
 
   interface SessionsResponse {
@@ -156,6 +157,10 @@
     setTimeout(() => {
       toastMessage.value = ''
     }, 3500)
+  }
+
+  function remaining(s: Session) {
+    return Math.max(0, s.capacity - (s._count?.bookings ?? 0))
   }
 
   function formatDateTime(dt: string) {
