@@ -17,6 +17,7 @@
 
 <script setup lang="ts">
   import type { ListenerData } from 'kkiapay'
+  type KkiapayInstance = typeof import('kkiapay')
 
   interface ConfirmResponse {
     statusCode?: number
@@ -34,7 +35,8 @@
     (e: 'error', msg: string): void
   }>()
 
-  const { $kkiapay } = useNuxtApp()
+  const { $kkiapay: _kkiapay } = useNuxtApp()
+  const $kkiapay = _kkiapay as KkiapayInstance
   const { accessToken } = useAuth()
   const runtimeConfig = useRuntimeConfig()
   const loading = ref(false)
