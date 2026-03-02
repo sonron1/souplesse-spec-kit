@@ -22,12 +22,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({
-    middleware: () => {
-      const { isAdmin } = useAuth()
-      if (!isAdmin.value) return navigateTo('/dashboard')
-    },
-  })
+  definePageMeta({ middleware: ['auth', 'admin'] })
 
   const { accessToken } = useAuth()
 

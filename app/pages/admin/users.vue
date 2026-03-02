@@ -123,9 +123,8 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
-  const { isAdmin, accessToken } = useAuth()
-  if (!isAdmin.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: ['auth', 'admin'] })
+  const { accessToken } = useAuth()
 
   interface SafeUser {
     id: string

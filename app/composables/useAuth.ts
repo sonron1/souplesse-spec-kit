@@ -14,6 +14,7 @@ interface AuthTokens {
   refreshToken: string
 }
 
+// Module-level user ref — shared across all useAuth() calls
 const user = ref<AuthUser | null>(null)
 
 export function useAuth() {
@@ -24,10 +25,22 @@ export function useAuth() {
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60,
   })
+  // Persist user info in cookie so it survives page refresh
+  const userInfoCookie = useCookie<AuthUser | null>('user_info', {
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60,
+  })
+
+  // Hydrate module-level user ref from cookie on each call (idempotent)
+  if (!user.value && userInfoCookie.value) {
+    user.value = userInfoCookie.value
+  }
 
   const isLoggedIn = computed(() => !!accessToken.value)
   const isAdmin = computed(() => user.value?.role === 'ADMIN')
   const isCoach = computed(() => user.value?.role === 'COACH' || user.value?.role === 'ADMIN')
+  const isClient = computed(() => user.value?.role === 'CLIENT')
 
   async function register(name: string, email: string, password: string) {
     const data = await $fetch<{ user: AuthUser; tokens: AuthTokens }>('/api/auth/register', {
@@ -35,7 +48,7 @@ export function useAuth() {
       body: { name, email, password },
     })
     _setSession(data.user, data.tokens)
-    await navigateTo('/dashboard')
+    await _redirectByRole(data.user.role)
   }
 
   async function login(email: string, password: string) {
@@ -44,7 +57,13 @@ export function useAuth() {
       body: { email, password },
     })
     _setSession(data.user, data.tokens)
-    await navigateTo('/dashboard')
+    await _redirectByRole(data.user.role)
+  }
+
+  async function _redirectByRole(role: string) {
+    if (role === 'ADMIN') await navigateTo('/admin')
+    else if (role === 'COACH') await navigateTo('/coach')
+    else await navigateTo('/dashboard')
   }
 
   async function logout() {
@@ -78,15 +97,17 @@ export function useAuth() {
 
   function _setSession(u: AuthUser, tokens: AuthTokens) {
     user.value = u
+    userInfoCookie.value = u // persist user to cookie
     accessToken.value = tokens.accessToken
     refreshTokenCookie.value = tokens.refreshToken
   }
 
   function _clearSession() {
     user.value = null
+    userInfoCookie.value = null
     accessToken.value = null
     refreshTokenCookie.value = null
   }
 
-  return { user, isLoggedIn, isAdmin, isCoach, accessToken, register, login, logout, refresh }
+  return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh }
 }

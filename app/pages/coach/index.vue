@@ -126,9 +126,8 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
-  const { isCoach, user, accessToken } = useAuth()
-  if (!isCoach.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: ['auth', 'coach'] })
+  const { user, accessToken } = useAuth()
 
   const initials = computed(() => {
     if (!user.value?.name) return '?'

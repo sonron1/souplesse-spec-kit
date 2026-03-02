@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: ['auth', 'client-only'] })
 
   interface Plan {
     id: string

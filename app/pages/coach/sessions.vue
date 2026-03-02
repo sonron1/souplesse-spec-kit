@@ -127,9 +127,8 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
-  const { isCoach, accessToken } = useAuth()
-  if (!isCoach.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: ['auth', 'coach'] })
+  const { accessToken } = useAuth()
 
   interface Session {
     id: string

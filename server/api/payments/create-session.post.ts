@@ -1,5 +1,6 @@
 import { defineEventHandler, createError } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
+import { requireRole } from '../../utils/role'
 import { validateBody } from '../../validators/index'
 import { createPaymentOrder } from '../../services/payments.service'
 import { z } from 'zod'
@@ -15,6 +16,7 @@ const createSessionSchema = z.object({
  */
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
+  requireRole(user, 'CLIENT') // Only clients can purchase subscriptions
   const body = await validateBody(event, createSessionSchema)
 
   try {

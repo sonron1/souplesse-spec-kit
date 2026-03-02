@@ -17,13 +17,19 @@
         <!-- ── Desktop nav (lg+) ─────────────────────────────── -->
         <nav class="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
 
-          <!-- CLIENT links (everyone) -->
-          <NuxtLink to="/dashboard" class="nav-pill" active-class="nav-pill-active" exact>
+          <!-- Dashboard link — adapts to role -->
+          <NuxtLink
+            :to="isAdmin ? '/admin' : isCoach ? '/coach' : '/dashboard'"
+            class="nav-pill"
+            active-class="nav-pill-active"
+            exact
+          >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             Tableau de bord
           </NuxtLink>
 
-          <template v-if="!isAdmin">
+          <!-- CLIENT-only links (hidden from coaches and admins) -->
+          <template v-if="isClient">
             <NuxtLink to="/sessions" class="nav-pill" active-class="nav-pill-active">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
               Séances
@@ -201,8 +207,8 @@
               <!-- Nav sections -->
               <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-1">
 
-                <!-- Section: Espace Personnel -->
-                <div v-if="!isAdmin">
+                <!-- Section: Espace Personnel — clients only -->
+                <div v-if="isClient">
                   <p class="drawer-section-label">Espace personnel</p>
                   <NuxtLink to="/dashboard" class="drawer-link" active-class="drawer-link-active" exact @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -300,7 +306,7 @@
 </template>
 
 <script setup lang="ts">
-  const { user, isAdmin, isCoach, logout } = useAuth()
+  const { user, isAdmin, isCoach, isClient, logout } = useAuth()
   const route = useRoute()
 
   const drawerOpen = ref(false)

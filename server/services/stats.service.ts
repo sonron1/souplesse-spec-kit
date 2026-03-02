@@ -2,9 +2,13 @@ import { prisma } from '../utils/prisma'
 
 export interface DashboardStats {
   totalUsers: number
+  totalCoaches: number
+  totalClients: number
   activeSubscriptions: number
   totalRevenue: number
   totalBookings: number
+  totalSessions: number
+  upcomingSessions: number
   revenueByMonth: { month: string; total: number }[]
 }
 
@@ -14,14 +18,28 @@ export const statsService = {
    * Uses Prisma aggregation queries to avoid N+1.
    */
   async getDashboardStats(): Promise<DashboardStats> {
-    const [totalUsers, activeSubscriptions, revenueAgg, totalBookings] = await Promise.all([
+    const now = new Date()
+    const [
+      totalUsers,
+      totalCoaches,
+      totalClients,
+      activeSubscriptions,
+      revenueAgg,
+      totalBookings,
+      totalSessions,
+      upcomingSessions,
+    ] = await Promise.all([
       prisma.user.count(),
+      prisma.user.count({ where: { role: 'COACH' } }),
+      prisma.user.count({ where: { role: 'CLIENT' } }),
       prisma.subscription.count({ where: { status: 'ACTIVE' } }),
       prisma.payment.aggregate({
         where: { status: 'CONFIRMED' },
         _sum: { amount: true },
       }),
       prisma.booking.count({ where: { status: 'CONFIRMED' } }),
+      prisma.session.count(),
+      prisma.session.count({ where: { dateTime: { gte: now } } }),
     ])
 
     const totalRevenue = revenueAgg._sum.amount ?? 0
@@ -45,6 +63,16 @@ export const statsService = {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, total]) => ({ month, total }))
 
-    return { totalUsers, activeSubscriptions, totalRevenue, totalBookings, revenueByMonth }
+    return {
+      totalUsers,
+      totalCoaches,
+      totalClients,
+      activeSubscriptions,
+      totalRevenue,
+      totalBookings,
+      totalSessions,
+      upcomingSessions,
+      revenueByMonth,
+    }
   },
 }

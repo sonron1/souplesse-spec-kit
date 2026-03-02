@@ -66,7 +66,49 @@
         </div>
       </div>
 
-      <!-- Revenue by month -->
+      <!-- Second row KPI: breakdown -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Coachs</p>
+            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-gray-900">{{ stats.totalCoaches }}</p>
+          <p class="text-xs text-gray-400">entraîneurs actifs</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Clients</p>
+            <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-green-600">{{ stats.totalClients }}</p>
+          <p class="text-xs text-gray-400">membres inscrits</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Séances</p>
+            <div class="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-gray-900">{{ stats.totalSessions }}</p>
+          <p class="text-xs text-gray-400">au total planifiées</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">À venir</p>
+            <div class="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-teal-600">{{ stats.upcomingSessions }}</p>
+          <p class="text-xs text-gray-400">séances à venir</p>
+        </div>
+      </div>
       <div v-if="stats.revenueByMonth?.length" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
         <h2 class="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
           <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -78,7 +120,7 @@
             <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
               <div
                 class="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full"
-                :style="`width: ${Math.round((row.total / stats.totalRevenue) * 100)}%`"
+                :style="`width: ${stats.totalRevenue > 0 ? Math.round((row.total / stats.totalRevenue) * 100) : 0}%`"
               />
             </div>
             <span class="text-sm font-bold text-gray-900 tabular-nums w-28 text-right shrink-0">{{ formatCurrency(row.total) }} F</span>
@@ -121,15 +163,18 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
-  const { isAdmin, accessToken } = useAuth()
-  if (!isAdmin.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: ['auth', 'admin'] })
+  const { accessToken } = useAuth()
 
   interface Stats {
     totalUsers: number
+    totalCoaches: number
+    totalClients: number
     activeSubscriptions: number
     totalRevenue: number
     totalBookings: number
+    totalSessions: number
+    upcomingSessions: number
     revenueByMonth: { month: string; total: number }[]
   }
 

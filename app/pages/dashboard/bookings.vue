@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: ['auth', 'client-only'] })
 
   const { accessToken } = useAuth()
   const cancelError = ref('')
