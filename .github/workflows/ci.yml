@@ -15,6 +15,21 @@ jobs:
       matrix:
         node-version: [18.x]
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: souplesse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +46,14 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://localhost:5432/test' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
 
       - name: Lint
         run: npm run lint
@@ -46,7 +68,8 @@ jobs:
         run: npm run test:coverage
         env:
           CI: true
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://localhost:5432/test' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32-chars-long!!' }}
           JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'ci-test-refresh-secret-32chars!!' }}
           KKIAPAY_SECRET_KEY: ${{ secrets.KKIAPAY_SECRET_KEY || 'ci-test-key' }}
@@ -55,5 +78,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://localhost:5432/test' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
+          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
 
