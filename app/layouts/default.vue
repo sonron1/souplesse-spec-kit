@@ -59,16 +59,11 @@
           <!-- Admin section -->
           <template v-if="isAdmin">
             <span class="text-gray-600">|</span>
-            <NuxtLink
-              to="/admin"
-              class="nav-link"
-              active-class="nav-link-active"
-            >Admin</NuxtLink>
-            <NuxtLink
-              to="/admin/users"
-              class="nav-link"
-              active-class="nav-link-active"
-            >Utilisateurs</NuxtLink>
+            <NuxtLink to="/admin" class="nav-link" active-class="nav-link-active">Admin</NuxtLink>
+            <NuxtLink to="/admin/users" class="nav-link" active-class="nav-link-active">Utilisateurs</NuxtLink>
+            <NuxtLink to="/admin/payments" class="nav-link" active-class="nav-link-active">Paiements</NuxtLink>
+            <NuxtLink to="/admin/assignments" class="nav-link" active-class="nav-link-active">Assignations</NuxtLink>
+            <NuxtLink to="/admin/settings" class="nav-link" active-class="nav-link-active">Paramètres</NuxtLink>
           </template>
         </nav>
 
@@ -112,6 +107,9 @@
         <template v-if="isAdmin">
           <NuxtLink to="/admin" class="mobile-nav-link" @click="mobileOpen = false">Admin</NuxtLink>
           <NuxtLink to="/admin/users" class="mobile-nav-link" @click="mobileOpen = false">Utilisateurs</NuxtLink>
+          <NuxtLink to="/admin/payments" class="mobile-nav-link" @click="mobileOpen = false">Paiements</NuxtLink>
+          <NuxtLink to="/admin/assignments" class="mobile-nav-link" @click="mobileOpen = false">Assignations</NuxtLink>
+          <NuxtLink to="/admin/settings" class="mobile-nav-link" @click="mobileOpen = false">Paramètres</NuxtLink>
         </template>
       </div>
     </header>

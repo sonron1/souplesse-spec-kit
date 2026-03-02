@@ -25,7 +25,8 @@
         <div class="flex-1">
           <h3 class="text-lg font-bold text-gray-900 mb-1">{{ plan.name }}</h3>
           <p class="text-sm text-gray-500 mb-3">
-            Valide {{ plan.validityDays }} jours
+            Valide <strong>{{ plan.validityDays }} jours</strong>
+            <span v-if="plan.maxReports"> · jusqu'à <strong>{{ plan.maxReports }} bilans</strong></span>
           </p>
           <p class="text-3xl font-extrabold text-primary-600 mb-1">
             {{ formatPrice(plan.priceSingle) }}
@@ -34,13 +35,23 @@
         </div>
 
         <div class="mt-6 space-y-2">
+          <p v-if="planErrors[plan.id]" class="text-red-600 text-sm">
+            {{ planErrors[plan.id] }}
+          </p>
           <PaymentCheckout
             :subscription-plan-id="plan.id"
             :amount="plan.priceSingle"
             :amount-label="formatPrice(plan.priceSingle)"
             @success="onPaymentSuccess(plan.id)"
-            @error="onPaymentError"
+            @error="(msg: string) => onPaymentError(plan.id, msg)"
           />
+          <button
+            v-if="planErrors[plan.id]"
+            class="w-full btn-secondary text-sm"
+            @click="clearPlanError(plan.id)"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     </div>
@@ -68,6 +79,7 @@
     name: string
     priceSingle: number
     validityDays: number
+    maxReports?: number | null
     currency?: string
   }
 
@@ -102,6 +114,13 @@
     }).format(xof)
   }
 
+  // Per-plan error state (for retry UX)
+  const planErrors = reactive<Record<string, string>>({})
+
+  function clearPlanError(planId: string) {
+    delete planErrors[planId]
+  }
+
   // Toast
   const toast = reactive({ message: '', type: 'success' as 'success' | 'error' })
 
@@ -111,11 +130,14 @@
     setTimeout(() => { toast.message = '' }, 4000)
   }
 
-  function onPaymentSuccess(_planId: string) {
-    showToast('Paiement réussi ! Votre abonnement sera activé sous peu.', 'success')
+  async function onPaymentSuccess(_planId: string) {
+    showToast('Paiement réussi ! Redirection vers votre abonnement…', 'success')
+    await new Promise((r) => setTimeout(r, 2000))
+    await navigateTo('/dashboard/subscriptions')
   }
 
-  function onPaymentError(msg: string) {
+  function onPaymentError(planId: string, msg: string) {
+    planErrors[planId] = `Paiement échoué : ${msg}`
     showToast(`Paiement échoué : ${msg}`, 'error')
   }
 </script>

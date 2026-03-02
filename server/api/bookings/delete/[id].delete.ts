@@ -1,13 +1,45 @@
-import { defineEventHandler, createError } from 'h3'
+import { defineEventHandler, getRouterParam, createError } from 'h3'
+import { requireAuth } from '../../../middleware/auth.middleware'
+import { prisma } from '../../../utils/prisma'
+import logger from '../../../utils/logger'
 
 /**
- * DELETE /api/bookings/:id
- * Cancellation is not available in v1 (FR-017).
- * Confirmed bookings are final.
+ * DELETE /api/bookings/delete/:id
+ * Cancel a booking. Only the owner (or admin) can cancel their own bookings.
+ * Only CONFIRMED bookings that haven't started yet can be cancelled.
  */
-export default defineEventHandler(async (_event) => {
-  throw createError({
-    statusCode: 405,
-    statusMessage: 'Booking cancellation is not available. Confirmed bookings are final.',
+export default defineEventHandler(async (event) => {
+  const user = requireAuth(event)
+  const id = getRouterParam(event, 'id')
+
+  if (!id) throw createError({ statusCode: 400, statusMessage: 'Booking ID required' })
+
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { session: true },
   })
+
+  if (!booking) throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
+
+  // Only owner or admin can cancel
+  if (booking.userId !== user.sub && user.role !== 'ADMIN') {
+    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+  }
+
+  if (booking.status === 'CANCELLED') {
+    throw createError({ statusCode: 409, statusMessage: 'Booking is already cancelled' })
+  }
+
+  // Cannot cancel a session that has already started
+  if (booking.session && new Date(booking.session.dateTime) < new Date()) {
+    throw createError({ statusCode: 409, statusMessage: 'Cannot cancel a session that has already started' })
+  }
+
+  const updated = await prisma.booking.update({
+    where: { id },
+    data: { status: 'CANCELLED' },
+  })
+
+  logger.info({ bookingId: id, userId: user.sub }, 'Booking cancelled')
+  return { success: true, booking: updated }
 })

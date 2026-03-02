@@ -33,6 +33,7 @@
               <th class="px-4 py-3 text-left font-medium text-gray-600">Email</th>
               <th class="px-4 py-3 text-left font-medium text-gray-600">Rôle</th>
               <th class="px-4 py-3 text-left font-medium text-gray-600">Inscrit le</th>
+              <th class="px-4 py-3 text-left font-medium text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-50">
@@ -47,6 +48,14 @@
                 <span :class="roleClass(u.role)">{{ u.role }}</span>
               </td>
               <td class="px-4 py-3 text-gray-500">{{ formatDate(u.createdAt) }}</td>
+              <td class="px-4 py-3">
+                <button
+                  class="text-xs text-primary-600 hover:text-primary-700 font-medium underline"
+                  @click="openRoleModal(u)"
+                >
+                  Changer le rôle
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -69,6 +78,47 @@
         </div>
       </div>
     </div>
+
+    <!-- Role change modal -->
+    <div
+      v-if="roleModal.open"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+    >
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+        <h2 class="text-lg font-bold mb-1">Changer le rôle</h2>
+        <p class="text-sm text-gray-500 mb-5">
+          {{ roleModal.user?.name }} ({{ roleModal.user?.email }})
+        </p>
+        <div class="mb-4">
+          <label class="label">Nouveau rôle</label>
+          <select v-model="roleModal.selected" class="input">
+            <option value="CLIENT">CLIENT</option>
+            <option value="COACH">COACH</option>
+            <option value="ADMIN">ADMIN</option>
+          </select>
+        </div>
+        <p v-if="roleModal.error" class="text-red-600 text-sm mb-3">{{ roleModal.error }}</p>
+        <div class="flex gap-3 justify-end">
+          <button class="btn-secondary" @click="closeRoleModal">Annuler</button>
+          <button class="btn-primary" :disabled="roleModal.saving" @click="submitRoleChange">
+            {{ roleModal.saving ? 'Enregistrement…' : 'Confirmer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <Teleport to="body">
+      <div
+        v-if="toast.message"
+        :class="[
+          'fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium',
+          toast.type === 'success' ? 'bg-primary-600 text-black' : 'bg-red-600 text-white',
+        ]"
+      >
+        {{ toast.message }}
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -99,12 +149,7 @@
 
   const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
-  const {
-    data,
-    pending,
-    error,
-    refresh,
-  } = await useLazyFetch<UsersResponse>('/api/admin/users', {
+  const { data, pending, error, refresh } = await useLazyFetch<UsersResponse>('/api/admin/users', {
     headers: authHeaders,
     query: computed(() => ({ page: page.value, limit })),
     default: () => ({ success: true, users: [], total: 0, page: 1, limit }),
@@ -129,11 +174,61 @@
 
   function roleClass(role: string) {
     if (role === 'ADMIN') return 'badge-gold'
-    if (role === 'COACH') return 'badge-neutral'
     return 'badge-neutral'
   }
 
   function formatDate(d: string) {
     return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  // Role modal
+  const roleModal = reactive({
+    open: false,
+    user: null as SafeUser | null,
+    selected: 'CLIENT' as string,
+    saving: false,
+    error: '',
+  })
+
+  function openRoleModal(u: SafeUser) {
+    roleModal.user = u
+    roleModal.selected = u.role
+    roleModal.error = ''
+    roleModal.open = true
+  }
+
+  function closeRoleModal() {
+    roleModal.open = false
+    roleModal.user = null
+  }
+
+  async function submitRoleChange() {
+    if (!roleModal.user) return
+    roleModal.error = ''
+    roleModal.saving = true
+    try {
+      await $fetch(`/api/admin/users/${roleModal.user.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+        body: { role: roleModal.selected },
+      })
+      closeRoleModal()
+      showToast('Rôle mis à jour avec succès.', 'success')
+      await refresh()
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      roleModal.error = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur inconnue'
+    } finally {
+      roleModal.saving = false
+    }
+  }
+
+  // Toast
+  const toast = reactive({ message: '', type: 'success' as 'success' | 'error' })
+
+  function showToast(msg: string, type: 'success' | 'error' = 'success') {
+    toast.message = msg
+    toast.type = type
+    setTimeout(() => { toast.message = '' }, 3500)
   }
 </script>
