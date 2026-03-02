@@ -24,12 +24,27 @@
       >
         <div class="flex-1">
           <h3 class="text-lg font-bold text-gray-900 mb-1">{{ plan.name }}</h3>
-          <p class="text-sm text-gray-500 mb-3">
+          <p class="text-sm text-gray-500 mb-2">
             Valide <strong>{{ plan.validityDays }} jours</strong>
             <span v-if="plan.maxReports"> · jusqu'à <strong>{{ plan.maxReports }} bilans</strong></span>
           </p>
+
+          <!-- Solo / Couple toggle -->
+          <div v-if="plan.priceCouples" class="flex gap-1 mb-3 p-1 bg-gray-100 rounded-lg w-fit">
+            <button
+              :class="coupleMode[plan.id] !== 'couple' ? 'bg-white shadow text-gray-900 font-semibold' : 'text-gray-500'"
+              class="px-3 py-1 rounded-md text-xs transition-all"
+              @click="coupleMode[plan.id] = 'single'"
+            >Solo</button>
+            <button
+              :class="coupleMode[plan.id] === 'couple' ? 'bg-white shadow text-gray-900 font-semibold' : 'text-gray-500'"
+              class="px-3 py-1 rounded-md text-xs transition-all"
+              @click="coupleMode[plan.id] = 'couple'"
+            >Couple</button>
+          </div>
+
           <p class="text-3xl font-extrabold text-primary-600 mb-1">
-            {{ formatPrice(plan.priceSingle) }}
+            {{ formatPrice(activePrice(plan)) }}
           </p>
           <p class="text-xs text-gray-400">XOF — paiement unique</p>
         </div>
@@ -40,8 +55,8 @@
           </p>
           <PaymentCheckout
             :subscription-plan-id="plan.id"
-            :amount="plan.priceSingle"
-            :amount-label="formatPrice(plan.priceSingle)"
+            :amount="activePrice(plan)"
+            :amount-label="formatPrice(activePrice(plan))"
             @success="onPaymentSuccess(plan.id)"
             @error="(msg: string) => onPaymentError(plan.id, msg)"
           />
@@ -78,9 +93,19 @@
     id: string
     name: string
     priceSingle: number
+    priceCouples?: number | null
     validityDays: number
     maxReports?: number | null
     currency?: string
+  }
+
+  // Per-plan solo/couple toggle state
+  const coupleMode = reactive<Record<string, 'single' | 'couple'>>({})
+
+  function activePrice(plan: Plan): number {
+    return coupleMode[plan.id] === 'couple' && plan.priceCouples
+      ? plan.priceCouples
+      : plan.priceSingle
   }
 
   interface PlansResponse {
