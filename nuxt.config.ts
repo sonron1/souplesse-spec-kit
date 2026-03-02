@@ -9,6 +9,19 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  app: {
+    head: {
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap',
+        },
+      ],
+    },
+  },
+
   modules: ['@nuxtjs/tailwindcss'],
 
   tailwindcss: {
@@ -37,6 +50,8 @@ export default defineNuxtConfig({
     public: {
       appName: process.env.NUXT_PUBLIC_APP_NAME ?? 'Souplesse Fitness',
       apiBase: process.env.NUXT_PUBLIC_API_BASE ?? '/api',
+      kkiapayPublicKey: process.env.NUXT_PUBLIC_KKIAPAY_PUBLIC_KEY ?? '',
+      kkiapayIsSandbox: process.env.NUXT_PUBLIC_KKIAPAY_IS_SANDBOX !== 'false',
     },
   },
 

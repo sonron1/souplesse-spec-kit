@@ -1,7 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
 @layer components {
-  /* Primary button — gold on black */
+  /* Primary button — yellow on black */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-primary-500 text-black font-semibold text-sm transition-colors hover:bg-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-primary-400 text-black font-semibold text-sm transition-colors hover:bg-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed;
   }
 
   /* Secondary / ghost button */

@@ -163,4 +163,88 @@ export async function handleWebhook(
   return { processed: true, tx }
 }
 
-export default { createPaymentOrder, verifyWebhookSignature, handleWebhook }
+export default { createPaymentOrder, verifyWebhookSignature, handleWebhook, confirmPayment }
+
+export async function confirmPayment(opts: {
+  userId: string
+  transactionId: string
+  subscriptionPlanId: string
+}) {
+  const { userId, transactionId, subscriptionPlanId } = opts
+
+  // Idempotency: if Payment with this transactionId already exists, return existing subscription
+  const existing = await prisma.payment.findUnique({
+    where: { kkiapayTransactionId: transactionId },
+  })
+  if (existing) {
+    const sub = await prisma.subscription.findFirst({
+      where: { userId, subscriptionPlanId, isActive: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return { subscriptionId: sub?.id ?? null }
+  }
+
+  // Verify transaction with KKiaPay
+  const secretKey = KKIAPAY_SECRET_KEY
+  if (!secretKey) throw new Error('KKIAPAY_SECRET_KEY not configured')
+
+  const verifyRes = await fetch(
+    `${KKIAPAY_API_BASE}/api/v1/transactions/${encodeURIComponent(transactionId)}/status`,
+    {
+      headers: {
+        'x-secret-key': secretKey,
+        Accept: 'application/json',
+      },
+    }
+  )
+
+  if (!verifyRes.ok) {
+    const text = await verifyRes.text()
+    throw new Error(`KKiaPay verification failed: ${verifyRes.status} ${text}`)
+  }
+
+  const verifyData = await verifyRes.json()
+  const status: string = verifyData?.status ?? verifyData?.data?.status ?? ''
+
+  if (!['SUCCESS', 'success', 'SUCCESSFUL', 'successful'].includes(status)) {
+    throw new Error(`Transaction not successful: ${status}`)
+  }
+
+  const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } })
+  if (!plan) throw new Error('SubscriptionPlan not found')
+
+  const amount: number = verifyData?.amount ?? verifyData?.data?.amount ?? plan.priceSingle
+
+  // Record the payment
+  const payment = await prisma.payment.create({
+    data: {
+      userId,
+      amount,
+      currency: 'XOF',
+      provider: 'kkiapay',
+      kkiapayTransactionId: transactionId,
+      status: 'CONFIRMED',
+    },
+  })
+
+  // Activate subscription
+  const now = new Date()
+  const expiresAt = new Date(now)
+  expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
+
+  const subscription = await prisma.subscription.create({
+    data: {
+      userId,
+      subscriptionPlanId,
+      type: 'MONTHLY',
+      status: 'ACTIVE',
+      isActive: true,
+      activationDate: now,
+      startsAt: now,
+      expiresAt,
+      payments: { connect: { id: payment.id } },
+    },
+  })
+
+  return { subscriptionId: subscription.id }
+}

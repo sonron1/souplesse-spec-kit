@@ -20,6 +20,7 @@ async function main() {
     await prisma.subscriptionPlan.upsert({
       where: { name: p.name },
       update: {
+        planType: p.planType,
         priceSingle: p.priceSingle,
         priceCouple: p.priceCouple === null ? null : p.priceCouple,
         validityDays: p.validityDays,
@@ -28,6 +29,7 @@ async function main() {
       },
       create: {
         name: p.name,
+        planType: p.planType,
         priceSingle: p.priceSingle,
         priceCouple: p.priceCouple === null ? null : p.priceCouple,
         validityDays: p.validityDays,

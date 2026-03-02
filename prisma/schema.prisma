@@ -121,7 +121,7 @@ model BusinessHours {
 
 model SubscriptionPlan {
   id           String   @id @default(uuid())
-  name         String
+  name         String   @unique
   planType     PlanType
   priceSingle  Int
   priceCouple  Int?

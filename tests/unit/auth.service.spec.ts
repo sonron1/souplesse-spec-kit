@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { authService } from '../../server/services/auth.service'
 import { userRepository } from '../../server/repositories/user.repository'
-import * as bcrypt from 'bcryptjs'
+import bcrypt from 'bcryptjs'
 import * as jwtUtils from '../../server/utils/jwt'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────

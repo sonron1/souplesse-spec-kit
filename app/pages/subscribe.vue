@@ -36,6 +36,7 @@
         <div class="mt-6 space-y-2">
           <PaymentCheckout
             :subscription-plan-id="plan.id"
+            :amount="plan.priceSingle"
             :amount-label="formatPrice(plan.priceSingle)"
             @success="onPaymentSuccess(plan.id)"
             @error="onPaymentError"
@@ -79,7 +80,7 @@
   const plans = ref<Plan[]>([])
   const errorMsg = ref('')
 
-  const { data, error } = await useFetch<PlansResponse | Plan[]>('/api/subscription-plans.get')
+  const { data, error } = await useFetch<PlansResponse | Plan[]>('/api/subscription-plans')
   if (error.value) {
     errorMsg.value = 'Impossible de charger les abonnements.'
   } else if (data.value) {

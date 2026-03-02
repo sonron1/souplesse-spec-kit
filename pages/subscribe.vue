@@ -34,7 +34,7 @@
   const plans = ref<SubscriptionPlanResponse[]>([])
   const loading = ref(true)
 
-  const { data, error } = await useFetch<PlansApiResponse>('/api/subscription-plans.get')
+  const { data, error } = await useFetch<PlansApiResponse>('/api/subscription-plans')
   if (!error.value && data.value) {
     // data returns { statusCode, body }
     const body = data.value.body ?? (data.value as unknown as SubscriptionPlanResponse[])

@@ -1,16 +1,8 @@
--- Migration: add payments (PaymentOrder, Transaction) and DayOfWeek enum
+-- Migration: add payments (PaymentOrder, Transaction)
 -- Generated: 2026-03-01
 
 -- Ensure pgcrypto for gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
--- Create enum DayOfWeek if it doesn't exist
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dayofweek') THEN
-    CREATE TYPE "DayOfWeek" AS ENUM ('MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY');
-  END IF;
-END$$;
 
 -- PaymentOrder table
 CREATE TABLE IF NOT EXISTS "PaymentOrder" (

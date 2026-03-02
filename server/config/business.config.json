@@ -14,6 +14,7 @@
   "subscriptionPlans": [
     {
       "name": "Séance",
+      "planType": "MONTHLY",
       "priceSingle": 1500,
       "priceCouple": null,
       "validityDays": 1,
@@ -22,6 +23,7 @@
     },
     {
       "name": "Carnet 10 séances",
+      "planType": "MONTHLY",
       "priceSingle": 10000,
       "priceCouple": null,
       "validityDays": 30,
@@ -30,6 +32,7 @@
     },
     {
       "name": "Carnet 15 séances",
+      "planType": "QUARTERLY",
       "priceSingle": 20000,
       "priceCouple": null,
       "validityDays": 90,
@@ -38,6 +41,7 @@
     },
     {
       "name": "Abonnement 1 mois",
+      "planType": "COUPLE_MONTHLY",
       "priceSingle": 15000,
       "priceCouple": 25000,
       "validityDays": 30,
@@ -46,6 +50,7 @@
     },
     {
       "name": "Suivi personnel",
+      "planType": "COUPLE_MONTHLY",
       "priceSingle": 20000,
       "priceCouple": 40000,
       "validityDays": 30,
@@ -54,6 +59,7 @@
     },
     {
       "name": "Abonnement 3 mois",
+      "planType": "COUPLE_QUARTERLY",
       "priceSingle": 40000,
       "priceCouple": 75000,
       "validityDays": 90,
@@ -62,6 +68,7 @@
     },
     {
       "name": "Abonnement 6 mois",
+      "planType": "COUPLE_QUARTERLY",
       "priceSingle": 70000,
       "priceCouple": 120000,
       "validityDays": 180,
@@ -70,6 +77,7 @@
     },
     {
       "name": "Abonnement 1 an",
+      "planType": "COUPLE_ANNUAL",
       "priceSingle": 120000,
       "priceCouple": 200000,
       "validityDays": 365,
@@ -78,6 +86,7 @@
     },
     {
       "name": "Autres activités",
+      "planType": "MONTHLY",
       "priceSingle": 10000,
       "priceCouple": null,
       "validityDays": 30,

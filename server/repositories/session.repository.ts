@@ -28,7 +28,7 @@ export const sessionRepository = {
       take: limit,
       orderBy: { dateTime: 'asc' },
       include: {
-        _count: { select: { bookings: { where: { status: 'BOOKED' } } } },
+        _count: { select: { bookings: { where: { status: 'CONFIRMED' } } } },
       },
     })
   },
@@ -38,6 +38,6 @@ export const sessionRepository = {
   },
 
   async countBookings(sessionId: string): Promise<number> {
-    return prisma.booking.count({ where: { sessionId, status: 'BOOKED' } })
+    return prisma.booking.count({ where: { sessionId, status: 'CONFIRMED' } })
   },
 }
