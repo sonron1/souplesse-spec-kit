@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
-const { PrismaClient, DayOfWeek } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
+const { PrismaClient } = require('@prisma/client')
 
 async function main() {
   const prisma = new PrismaClient()
@@ -130,6 +131,22 @@ async function main() {
       email: settingsData.email,
     },
   })
+
+  // Seed demo accounts (dev / staging use)
+  const DEMO_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
+  const demoUsers = [
+    { email: 'admin@demo.com',  name: 'Admin Demo',  role: 'ADMIN'  },
+    { email: 'coach@demo.com',  name: 'Coach Demo',  role: 'COACH'  },
+    { email: 'client@demo.com', name: 'Client Demo', role: 'CLIENT' },
+  ]
+  for (const u of demoUsers) {
+    await prisma.user.upsert({
+      where:  { email: u.email },
+      update: { name: u.name, role: u.role, passwordHash: DEMO_PASSWORD_HASH },
+      create: { name: u.name, email: u.email, role: u.role, passwordHash: DEMO_PASSWORD_HASH },
+    })
+  }
+  console.log('Demo accounts seeded: admin@demo.com | coach@demo.com | client@demo.com (password: Demo1234!)')
 
   console.log('Seeding complete.')
   await prisma.$disconnect()
