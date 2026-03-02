@@ -335,7 +335,7 @@
           <div class="reveal bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden h-80 shadow-sm flex flex-col">
             <!-- Real embedded map: OpenStreetMap (no API key needed) -->
             <iframe
-              src="https://www.openstreetmap.org/export/embed.html?bbox=2.4054%2C6.3466%2C2.4254%2C6.3666&amp;layer=mapnik&amp;marker=6.3566%2C2.4154"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=2.3295%2C6.4124%2C2.3345%2C6.4154&amp;layer=mapnik&amp;marker=6.4139069%2C2.3319994"
               title="Localisation Souplesse Fitness – Cotonou, Bénin"
               class="w-full flex-1 border-0"
               loading="lazy"
@@ -347,12 +347,12 @@
                 <p class="text-gray-400 text-xs">Cotonou, Bénin</p>
               </div>
               <a
-                href="https://www.openstreetmap.org/?mlat=6.3566&amp;mlon=2.4154#map=16/6.3566/2.4154"
+                href="https://maps.app.goo.gl/Py8YokJMMmGNKuVQ6"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-500 border border-primary-200 hover:border-primary-400 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
               >
-                Agrandir la carte ↗
+                Ouvrir dans Google Maps ↗
               </a>
             </div>
           </div>
