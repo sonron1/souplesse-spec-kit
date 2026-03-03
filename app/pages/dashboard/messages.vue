@@ -128,7 +128,6 @@
   definePageMeta({ middleware: ['auth', 'client-only'] })
 
   const { user: me, accessToken, ensureFresh } = useAuth()
-  const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
   interface ConversationRow {
     coach?: { id: string; name: string; email: string }
@@ -136,26 +135,9 @@
     lastMessage: { body: string; createdAt: string; senderId: string } | null
     unreadCount: number
   }
-
-  // Conversations list (to find assigned coach)
-  const { data: convoData, pending } = await useLazyFetch<{ conversations: ConversationRow[] }>(
-    '/api/messages',
-    { headers, default: () => ({ conversations: [] }) }
-  )
-
-  // Assignment status (to show appropriate empty state)
   interface AssignmentData {
     assignment: { status: string; coach?: { id: string; name: string } } | null
   }
-  const { data: assignmentData } = await useLazyFetch<AssignmentData>(
-    '/api/me/assignment',
-    { headers, default: () => ({ assignment: null }) }
-  )
-  const assignmentStatus = computed(() => assignmentData.value?.assignment?.status ?? null)
-
-  const coach = computed(() => convoData.value?.conversations?.[0]?.coach ?? null)
-  const coachId = computed(() => convoData.value?.conversations?.[0]?.coachId ?? null)
-
   interface Message {
     id: string
     body: string
@@ -164,29 +146,61 @@
     sender: { id: string; name: string; role: string }
   }
 
+  const pending = ref(true)
+  const coach = ref<{ id: string; name: string; email: string } | null>(null)
+  const coachId = ref<string | null>(null)
+  const assignmentStatus = ref<string | null>(null)
   const messages = ref<Message[]>([])
   const scrollEl = ref<HTMLElement | null>(null)
 
-  async function loadMessages() {
-    if (!coachId.value) return
-    const data = await $fetch<{ messages: Message[] }>(
-      `/api/messages/${coachId.value}`,
-      { headers: { Authorization: `Bearer ${accessToken.value}` } }
-    ).catch(() => null)
-    if (data) {
-      messages.value = data.messages
-      nextTick(() => {
-        if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
-      })
+  function authHeader() {
+    return { Authorization: `Bearer ${accessToken.value}` }
+  }
+
+  async function loadInitial() {
+    if (!accessToken.value) return
+    try {
+      const [convoData, assignData] = await Promise.all([
+        $fetch<{ conversations: ConversationRow[] }>('/api/messages', { headers: authHeader() }),
+        $fetch<AssignmentData>('/api/me/assignment', { headers: authHeader() }),
+      ])
+      const first = convoData.conversations?.[0]
+      coach.value = first?.coach ?? null
+      coachId.value = first?.coachId ?? null
+      assignmentStatus.value = assignData.assignment?.status ?? null
+    } catch {
+      // 401 handled silently — auth middleware will redirect if needed
+    } finally {
+      pending.value = false
     }
   }
 
-  // Load messages when coach resolves
-  watch(coachId, (id) => { if (id) loadMessages() }, { immediate: true })
+  async function loadMessages(scrollToBottom = false) {
+    if (!coachId.value || !accessToken.value) return
+    const data = await $fetch<{ messages: Message[] }>(
+      `/api/messages/${coachId.value}`,
+      { headers: authHeader() }
+    ).catch(() => null)
+    if (data) {
+      const hadNew = data.messages.length > messages.value.length
+      messages.value = data.messages
+      if (scrollToBottom || hadNew) {
+        nextTick(() => {
+          if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
+        })
+      }
+    }
+  }
 
-  // Poll every 5s
+  // Load once coach is known
+  watch(coachId, (id) => { if (id) loadMessages(true) })
+
+  // Poll every 5s — only scroll when new messages arrive
   let pollTimer: ReturnType<typeof setInterval> | null = null
-  onMounted(() => {
+  onMounted(async () => {
+    await ensureFresh()
+    await loadInitial()
+    if (coachId.value) loadMessages(true)
     pollTimer = setInterval(async () => {
       await ensureFresh()
       loadMessages()
@@ -195,7 +209,6 @@
   onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
   const canReply = computed(() => !!coachId.value)
-
   const draft = ref('')
   const sending = ref(false)
 
@@ -205,7 +218,7 @@
     try {
       const res = await $fetch<{ message: Message }>('/api/messages', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken.value}` },
+        headers: authHeader(),
         body: { toUserId: coachId.value, body: draft.value.trim() },
       })
       messages.value.push(res.message)
@@ -214,7 +227,7 @@
         if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
       })
     } catch {
-      // silent — could show toast
+      // silent
     } finally {
       sending.value = false
     }
