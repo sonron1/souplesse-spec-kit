@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
+    "build": "prisma generate && nuxt build",
     "start": "nuxt start",
     "lint": "eslint . --ext .ts,.vue,.js --max-warnings 0",
     "lint:fix": "eslint . --ext .ts,.vue,.js --fix",

@@ -1,0 +1,8 @@
+{
+  "framework": "nuxtjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "env": {
+    "NITRO_PRESET": "vercel"
+  }
+}
