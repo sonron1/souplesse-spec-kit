@@ -234,6 +234,17 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 - [x] T0323 [D] `/coach/messages` — coach messaging page: left sidebar with client list + unread badges, right thread panel, send first message (`app/pages/coach/messages.vue`)
 - [x] T0324 [D] "Messages" nav links added with red unread badge — desktop nav (client + coach dropdown), mobile drawer (client + coach sections); 30s background polling in `default.vue` (`app/layouts/default.vue`)
 
+## Epic E — Admin System Logs (commit `48b7c1e`)
+
+> Admin can view a filterable, paginated audit trail of all key system events.
+
+- [x] T0325 [E] `SystemLog` model added to Prisma schema — `level`, `action`, `userId?`, `target?`, `message`, `meta?`, `ip?`; migration `20260303070613_add_system_logs` applied (`prisma/schema.prisma`)
+- [x] T0326 [E] `server/utils/systemLog.ts` — fire-and-forget `systemLog()` helper; writes to `SystemLog` table async, never throws (`server/utils/systemLog.ts`)
+- [x] T0327 [E] Services instrumented — `USER_REGISTERED` + `USER_LOGIN` in `auth.service.ts`, `BOOKING_CREATED` in `booking.service.ts`, `COACH_ASSIGNED` in `assignments.post.ts`
+- [x] T0328 [E] `GET /api/admin/logs` — paginated, filterable by `level`, `action` (partial), `from`/`to` date range, page/limit (`server/api/admin/logs.get.ts`)
+- [x] T0329 [E] `/admin/logs` page — filter bar, color-coded level badges, table with pagination, Actualiser button; "Journaux" link added to admin nav dropdown + mobile drawer (`app/pages/admin/logs.vue`, `app/layouts/default.vue`)
+- [x] T0330 [E] Test mocks updated — `vi.mock('../../server/utils/systemLog', ...)` added to `booking.service.spec.ts`, `booking.spec.ts`, `payment-and-activation.spec.ts` to keep 67/67 green
+
 ## Open Security Tasks (v2)
 
 - [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
