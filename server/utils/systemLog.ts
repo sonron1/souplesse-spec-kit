@@ -35,7 +35,7 @@ export function systemLog(input: SystemLogInput): void {
         ip: ip ?? null,
       },
     })
-    .catch((err) => {
+    .catch((err: unknown) => {
       logger.error({ err }, '[systemLog] Failed to write system log to DB')
     })
 }

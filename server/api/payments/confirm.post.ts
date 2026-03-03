@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const result = await confirmPayment({
-      userId: user.id,
+      userId: user.sub,
       transactionId: parse.data.transactionId,
       subscriptionPlanId: parse.data.subscriptionPlanId,
     })

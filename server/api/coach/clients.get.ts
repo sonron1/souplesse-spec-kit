@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     orderBy: { assignedAt: 'desc' },
   })
 
-  const clients = assignments.map((a) => a.client)
+  const clients = assignments.map((a: typeof assignments[number]) => a.client)
 
   return { success: true, clients }
 })

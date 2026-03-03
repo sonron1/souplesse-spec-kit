@@ -97,7 +97,12 @@ export const messageService = {
         select: { clientId: true },
       })
 
-      const conversations = await Promise.all(
+      type ConvRow = {
+        client: { id: string; name: string; email: string } | null
+        lastMessage: { body: string; createdAt: Date; senderId: string } | null
+        unreadCount: number
+      }
+      const conversations: ConvRow[] = await Promise.all(
         rows.map(async ({ clientId }: { clientId: string }) => {
           const [last, unread, client] = await Promise.all([
             prisma.message.findFirst({
@@ -117,7 +122,7 @@ export const messageService = {
         })
       )
 
-      return conversations.filter((c) => c.client !== null)
+      return conversations.filter((c): c is ConvRow & { client: NonNullable<ConvRow['client']> } => c.client !== null)
     }
 
     // CLIENT: find their assigned coach
