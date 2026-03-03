@@ -20,18 +20,18 @@ export default defineEventHandler(async (event) => {
   requireAdmin(user)
 
   const id = event.context.params?.id
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Identifiant d\'abonnement manquant' })
+  if (!id) throw createError({ statusCode: 400, message: 'Identifiant d\'abonnement manquant' })
 
   const body = await readBody(event)
   const parsed = PatchSubscriptionSchema.safeParse(body)
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Le statut doit être ACTIVE ou CANCELLED' })
+    throw createError({ statusCode: 400, message: 'Le statut doit être ACTIVE ou CANCELLED' })
   }
 
   const { status } = parsed.data
 
   const existing = await prisma.subscription.findUnique({ where: { id } })
-  if (!existing) throw createError({ statusCode: 404, statusMessage: 'Abonnement introuvable' })
+  if (!existing) throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
 
   const now = new Date()
   const updateData: Record<string, unknown> = { status, isActive: status === 'ACTIVE' }

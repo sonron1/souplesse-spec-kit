@@ -18,21 +18,21 @@ export default defineEventHandler(async (event) => {
   requireAdmin(requestingUser)
 
   const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Identifiant utilisateur manquant' })
+  if (!id) throw createError({ statusCode: 400, message: 'Identifiant utilisateur manquant' })
 
   // Prevent self-demotion
   if (id === requestingUser.sub) {
-    throw createError({ statusCode: 400, statusMessage: 'Vous ne pouvez pas modifier votre propre rôle' })
+    throw createError({ statusCode: 400, message: 'Vous ne pouvez pas modifier votre propre rôle' })
   }
 
   const body = await readBody(event)
   const parsed = PatchUserSchema.safeParse(body)
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Le rôle doit être CLIENT, COACH ou ADMIN' })
+    throw createError({ statusCode: 400, message: 'Le rôle doit être CLIENT, COACH ou ADMIN' })
   }
 
   const target = await prisma.user.findUnique({ where: { id } })
-  if (!target) throw createError({ statusCode: 404, statusMessage: 'Utilisateur introuvable' })
+  if (!target) throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
 
   const updated = await prisma.user.update({
     where: { id },

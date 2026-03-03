@@ -17,7 +17,7 @@ export const programService = {
     if (!assignment) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Vous n\'êtes pas affecté à ce client',
+        message: 'Vous n\'êtes pas affecté à ce client',
       })
     }
 
@@ -43,12 +43,12 @@ export const programService = {
   ): Promise<Program> {
     const program = await prisma.program.findUnique({ where: { id: programId } })
     if (!program) {
-      throw createError({ statusCode: 404, statusMessage: 'Programme introuvable' })
+      throw createError({ statusCode: 404, message: 'Programme introuvable' })
     }
     if (program.coachId !== coachId) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Seul le coach assigné peut modifier ce programme',
+        message: 'Seul le coach assigné peut modifier ce programme',
       })
     }
 
@@ -59,7 +59,7 @@ export const programService = {
     if (!assignment) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Votre affectation à ce client a été révoquée',
+        message: 'Votre affectation à ce client a été révoquée',
       })
     }
 
@@ -95,13 +95,13 @@ export const programService = {
   ): Promise<Program> {
     const program = await prisma.program.findUnique({ where: { id: programId } })
     if (!program) {
-      throw createError({ statusCode: 404, statusMessage: 'Programme introuvable' })
+      throw createError({ statusCode: 404, message: 'Programme introuvable' })
     }
 
     const isOwner = program.clientId === requesterId || program.coachId === requesterId
     const isAdmin = requesterRole === 'ADMIN'
     if (!isOwner && !isAdmin) {
-      throw createError({ statusCode: 403, statusMessage: 'Accès refusé' })
+      throw createError({ statusCode: 403, message: 'Accès refusé' })
     }
 
     return program

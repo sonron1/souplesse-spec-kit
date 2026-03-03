@@ -12,27 +12,27 @@ export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
   const id = getRouterParam(event, 'id')
 
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Booking ID required' })
+  if (!id) throw createError({ statusCode: 400, message: 'Identifiant de réservation manquant' })
 
   const booking = await prisma.booking.findUnique({
     where: { id },
     include: { session: true },
   })
 
-  if (!booking) throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
+  if (!booking) throw createError({ statusCode: 404, message: 'Réservation introuvable' })
 
   // Only owner or admin can cancel
   if (booking.userId !== user.sub && user.role !== 'ADMIN') {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
+    throw createError({ statusCode: 403, message: 'Accès refusé' })
   }
 
   if (booking.status === 'CANCELLED') {
-    throw createError({ statusCode: 409, statusMessage: 'Booking is already cancelled' })
+    throw createError({ statusCode: 409, message: 'Cette réservation est déjà annulée' })
   }
 
   // Cannot cancel a session that has already started
   if (booking.session && new Date(booking.session.dateTime) < new Date()) {
-    throw createError({ statusCode: 409, statusMessage: 'Cannot cancel a session that has already started' })
+    throw createError({ statusCode: 409, message: 'Impossible d\'annuler une séance déjà commencée' })
   }
 
   const updated = await prisma.booking.update({

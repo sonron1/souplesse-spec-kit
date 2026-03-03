@@ -32,6 +32,6 @@ export default defineEventHandler(async (event) => {
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Payment order creation failed'
-    throw createError({ statusCode: 500, statusMessage: message })
+    throw createError({ statusCode: 500, message })
   }
 })

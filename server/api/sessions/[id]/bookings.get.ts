@@ -10,18 +10,18 @@ export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
 
   if (user.role !== 'COACH' && user.role !== 'ADMIN') {
-    throw createError({ statusCode: 403, statusMessage: 'Coaches and admins only' })
+    throw createError({ statusCode: 403, message: 'Réservé aux coachs et administrateurs' })
   }
 
   const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Session ID required' })
+  if (!id) throw createError({ statusCode: 400, message: 'Identifiant de séance manquant' })
 
   const session = await prisma.session.findUnique({ where: { id } })
-  if (!session) throw createError({ statusCode: 404, statusMessage: 'Session not found' })
+  if (!session) throw createError({ statusCode: 404, message: 'Séance introuvable' })
 
   // Only the coach who owns this session (or admin) can view bookings
   if (user.role === 'COACH' && session.coachId !== user.sub) {
-    throw createError({ statusCode: 403, statusMessage: 'You can only view bookings for your own sessions' })
+    throw createError({ statusCode: 403, message: 'Vous ne pouvez consulter que les réservations de vos propres séances' })
   }
 
   const bookings = await prisma.booking.findMany({

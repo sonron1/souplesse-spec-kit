@@ -17,10 +17,10 @@ export default defineEventHandler(async (event) => {
     return { ok: true, count }
   }
 
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing notification id' })
+  if (!id) throw createError({ statusCode: 400, message: 'Identifiant de notification manquant' })
 
   const updated = await notificationService.markRead(id, user.sub)
-  if (!updated) throw createError({ statusCode: 404, statusMessage: 'Notification not found' })
+  if (!updated) throw createError({ statusCode: 404, message: 'Notification introuvable' })
 
   return { ok: true, notification: updated }
 })

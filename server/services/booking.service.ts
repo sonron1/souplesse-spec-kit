@@ -35,7 +35,7 @@ export const bookingService = {
     if (!hasActive) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'Un abonnement actif est requis pour réserver une séance',
+        message: 'Un abonnement actif est requis pour réserver une séance',
       })
     }
 
@@ -44,7 +44,7 @@ export const bookingService = {
     if (existing && existing.status === 'CONFIRMED') {
       throw createError({
         statusCode: 409,
-        statusMessage: 'Vous avez déjà une réservation pour cette séance',
+        message: 'Vous avez déjà une réservation pour cette séance',
       })
     }
 
@@ -52,12 +52,12 @@ export const bookingService = {
     const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const session = await tx.session.findUnique({ where: { id: sessionId } })
       if (!session) {
-        throw createError({ statusCode: 404, statusMessage: 'Séance introuvable' })
+        throw createError({ statusCode: 404, message: 'Séance introuvable' })
       }
 
       const booked = await tx.booking.count({ where: { sessionId, status: 'CONFIRMED' } })
       if (booked >= session.capacity) {
-        throw createError({ statusCode: 409, statusMessage: 'Cette séance est complète' })
+        throw createError({ statusCode: 409, message: 'Cette séance est complète' })
       }
 
       // 4. BusinessHours validation (FR-013)
@@ -70,7 +70,7 @@ export const bookingService = {
         if (sessionTime < hours.openTime || sessionTime >= hours.closeTime) {
           throw createError({
             statusCode: 422,
-            statusMessage: `Cette séance est en dehors des horaires d'ouverture (${hours.openTime}–${hours.closeTime})`,
+            message: `Cette séance est en dehors des horaires d'ouverture (${hours.openTime}–${hours.closeTime})`,
           })
         }
       }

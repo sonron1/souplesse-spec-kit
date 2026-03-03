@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid payload: coachId and clientId (UUID) required',
+      message: 'Données invalides : coachId et clientId (UUID) requis',
     })
   }
 
@@ -39,13 +39,13 @@ export default defineEventHandler(async (event) => {
   if (!coach || coach.role !== 'COACH') {
     throw createError({
       statusCode: 422,
-      statusMessage: 'coachId must reference a user with role COACH',
+      message: 'Le coachId doit référencer un utilisateur avec le rôle COACH',
     })
   }
   if (!client || client.role !== 'CLIENT') {
     throw createError({
       statusCode: 422,
-      statusMessage: 'clientId must reference a user with role CLIENT',
+      message: 'Le clientId doit référencer un utilisateur avec le rôle CLIENT',
     })
   }
 

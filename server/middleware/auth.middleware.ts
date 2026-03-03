@@ -30,10 +30,10 @@ export default defineEventHandler(async (event) => {
     // "jwt malformed" = stale/corrupted cookie from a previous session — not an attack.
     // Log at debug to avoid noise. Other JWT errors (expired, invalid sig) remain warn.
     const msg = err instanceof Error ? err.message : ''
-    if (msg === 'jwt malformed') {
-      logger.debug({ msg }, 'Malformed JWT ignored in auth middleware (stale cookie)')
+    if (msg === 'jwt malformed' || msg === 'jwt expired') {
+      logger.debug({ msg }, 'JWT ignoré dans auth middleware (cookie périmé ou expiré)')
     } else {
-      logger.warn({ err }, 'Invalid JWT in auth middleware')
+      logger.warn({ err }, 'JWT invalide dans auth middleware')
     }
     // Don't throw here — let route handlers decide if auth is required
   }
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
  */
 export function requireAuth(event: { context: { user?: JwtPayload } }): JwtPayload {
   if (!event.context.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Non authentifié' })
+    throw createError({ statusCode: 401, message: 'Non authentifié' })
   }
   return event.context.user
 }

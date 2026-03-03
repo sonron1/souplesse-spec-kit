@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const parsed = PayloadSchema.safeParse(body)
   if (!parsed.success) {
-    throw createError({ statusCode: 400, statusMessage: 'Invalid payload' })
+    throw createError({ statusCode: 400, message: 'Données invalides' })
   }
 
   const { gym, openingHours } = parsed.data

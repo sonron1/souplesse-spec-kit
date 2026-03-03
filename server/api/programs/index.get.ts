@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (user.role === 'CLIENT' && targetClientId !== user.sub) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Clients may only view their own programs',
+      message: 'Vous ne pouvez consulter que vos propres programmes',
     })
   }
 
