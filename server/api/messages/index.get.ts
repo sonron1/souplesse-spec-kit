@@ -9,8 +9,8 @@ import { messageService } from '../../services/message.service'
  * CLIENT → their assigned coach conversation (if any)
  */
 export default defineEventHandler(async (event) => {
-  const user = await requireAuth(event)
-  const conversations = await messageService.getConversations(user.id, user.role)
-  const unreadTotal = await messageService.countUnread(user.id)
+  const user = requireAuth(event)
+  const conversations = await messageService.getConversations(user.sub, user.role)
+  const unreadTotal = await messageService.countUnread(user.sub)
   return { conversations, unreadTotal }
 })

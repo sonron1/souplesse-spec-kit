@@ -11,11 +11,11 @@ import { prisma } from '../../utils/prisma'
  * The route resolves coachId/clientId automatically via the assignment table.
  */
 export default defineEventHandler(async (event) => {
-  const me = await requireAuth(event)
+  const me = requireAuth(event)
   const withUserId = getRouterParam(event, 'withUserId')!
 
-  const { coachId, clientId } = await resolveConversation(me.id, me.role, withUserId)
-  const messages = await messageService.getConversation(coachId, clientId, me.id)
+  const { coachId, clientId } = await resolveConversation(me.sub, me.role, withUserId)
+  const messages = await messageService.getConversation(coachId, clientId, me.sub)
 
   return { messages, coachId, clientId }
 })

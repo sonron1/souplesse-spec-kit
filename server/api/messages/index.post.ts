@@ -15,7 +15,7 @@ const bodySchema = z.object({
  * CLIENT cannot initiate — throws 403 if the coach has not messaged first.
  */
 export default defineEventHandler(async (event) => {
-  const me = await requireAuth(event)
+  const me = requireAuth(event)
 
   // Only clients and coaches can message
   if (me.role === 'ADMIN') {
@@ -29,10 +29,10 @@ export default defineEventHandler(async (event) => {
   }
   const { toUserId, body } = parsed.data
 
-  const { coachId, clientId } = await resolveConversation(me.id, me.role, toUserId)
+  const { coachId, clientId } = await resolveConversation(me.sub, me.role, toUserId)
 
   const message = await messageService.sendMessage({
-    senderId: me.id,
+    senderId: me.sub,
     recipientId: toUserId,
     coachId,
     clientId,

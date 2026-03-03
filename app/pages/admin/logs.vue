@@ -6,7 +6,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Journaux système</h1>
         <p class="text-sm text-gray-400 mt-0.5">{{ total }} entrée(s) au total</p>
       </div>
-      <button class="btn-secondary text-sm" @click="refresh">Actualiser</button>
+      <button class="btn-secondary text-sm" @click="() => refresh()">Actualiser</button>
     </div>
 
     <!-- Filters -->
