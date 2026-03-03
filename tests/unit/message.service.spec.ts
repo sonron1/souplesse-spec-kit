@@ -108,22 +108,7 @@ describe('messageService.sendMessage', () => {
     expect(mockPrisma.message.create).not.toHaveBeenCalled()
   })
 
-  it('throws 403 when client tries to initiate (coach has sent 0 messages)', async () => {
-    mockPrisma.message.count.mockResolvedValue(0 as never)
-
-    await expect(
-      messageService.sendMessage({
-        ...BASE_INPUT,
-        senderId: CLIENT_ID,
-        recipientId: COACH_ID,
-        senderRole: 'CLIENT',
-      })
-    ).rejects.toMatchObject({ statusCode: 403 })
-    expect(mockPrisma.message.create).not.toHaveBeenCalled()
-  })
-
-  it('allows client to reply once the coach has initiated', async () => {
-    mockPrisma.message.count.mockResolvedValue(1 as never)
+  it('client can send a message to their assigned coach', async () => {
     const clientReply = { ...MOCK_MESSAGE, senderId: CLIENT_ID, recipientId: COACH_ID }
     mockPrisma.message.create.mockResolvedValue(clientReply as never)
 

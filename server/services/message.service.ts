@@ -63,18 +63,6 @@ export const messageService = {
       throw createError({ statusCode: 400, message: 'Le message ne peut pas être vide.' })
     }
 
-    if (senderRole === 'CLIENT') {
-      const coachMessageCount = await prisma.message.count({
-        where: { coachId, clientId, senderId: coachId },
-      })
-      if (coachMessageCount === 0) {
-        throw createError({
-          statusCode: 403,
-          message: 'Vous ne pouvez pas initier une conversation — attendez que votre coach vous contacte en premier.',
-        })
-      }
-    }
-
     const message = await prisma.message.create({
       data: { senderId, recipientId, coachId, clientId, body },
       include: { sender: { select: { id: true, name: true, role: true } } },

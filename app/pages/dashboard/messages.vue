@@ -102,7 +102,7 @@
           rows="1"
           placeholder="Votre message…"
           class="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-          :class="canReply ? '' : 'opacity-50 cursor-not-allowed'"
+          :class="sending ? 'opacity-50 cursor-not-allowed' : ''"
           :disabled="!canReply || sending"
           @keydown.enter.exact.prevent="send"
         />
@@ -194,10 +194,7 @@
   })
   onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
-  // Whether client can reply (coach has sent at least one message)
-  const canReply = computed(() =>
-    messages.value.some((m) => m.sender.id === coachId.value)
-  )
+  const canReply = computed(() => !!coachId.value)
 
   const draft = ref('')
   const sending = ref(false)

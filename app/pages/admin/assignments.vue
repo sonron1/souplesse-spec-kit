@@ -211,7 +211,7 @@
     acting.value = id
     try {
       await $fetch(`/api/admin/assignments/${id}`, {
-        method: 'patch' as const,
+        method: 'POST',
         headers: { Authorization: `Bearer ${accessToken.value}` },
         body: { action },
       })
