@@ -209,6 +209,18 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 - [x] T0308 [B] `/admin/subscriptions` page — 4 stat cards (active/expired/cancelled/pending), table with status badges, days-left countdown (amber ≤7 days), Désactiver/Réactiver toggle buttons, toast feedback (`app/pages/admin/subscriptions.vue`)
 - [x] T0309 [B] "Abonnements" link added to admin nav dropdown (desktop) and mobile drawer (`app/layouts/default.vue`)
 
+## Epic C — In-App Notifications (commit `d267089`)
+
+> Clients receive a notification when a coach is assigned to them; bell icon in header shows unread count.
+
+- [x] T0310 [C] `Notification` model added to Prisma schema + `notifications` relation on `User`; migration `20260303064656_add_notifications` applied (`prisma/schema.prisma`)
+- [x] T0311 [C] `notification.service.ts` — `create()`, `getForUser()`, `countUnread()`, `markRead()`, `markAllRead()` (`server/services/notification.service.ts`)
+- [x] T0312 [C] `assignments.post.ts` updated — fires `notificationService.create()` with type `ASSIGNMENT` after coach upsert; failure wrapped in `.catch()` so it never crashes the assignment response (`server/api/admin/assignments.post.ts`)
+- [x] T0313 [C] `GET /api/notifications` — returns `{ notifications, unreadCount }`; supports `?limit=N&unread=true` (`server/api/notifications/index.get.ts`)
+- [x] T0314 [C] `PATCH /api/notifications/:id` — mark single notification read; `id=all` marks all read (`server/api/notifications/[id].patch.ts`)
+- [x] T0315 [C] `NotificationBell.vue` — bell icon with unread badge (99+ cap), dropdown panel, optimistic mark-read, "Tout marquer lu", 60s polling, link to full notifications page (`app/components/NotificationBell.vue`)
+- [x] T0316 [C] `/dashboard/notifications` page — full list, unread highlighted, "Tout marquer lu", click-to-read; `NotificationBell` added to desktop header and "Notifications" link to mobile drawer (`app/pages/dashboard/notifications.vue`, `app/layouts/default.vue`)
+
 ## Open Security Tasks (v2)
 
 - [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
