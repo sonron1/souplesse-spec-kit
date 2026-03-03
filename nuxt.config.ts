@@ -66,6 +66,40 @@ export default defineNuxtConfig({
 
   nitro: {
     compressPublicAssets: true,
+    routeRules: {
+      // Security headers applied globally
+      '/**': {
+        headers: {
+          // Prevent clickjacking
+          'X-Frame-Options': 'DENY',
+          // Prevent MIME-type sniffing
+          'X-Content-Type-Options': 'nosniff',
+          // Control referrer information
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+          // Restrict browser features
+          'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+          // Content Security Policy
+          'Content-Security-Policy': [
+            "default-src 'self'",
+            // Inline styles needed for Tailwind + dynamic Vue bindings
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            // Scripts: only same origin + inline eval for Nuxt HMR in dev
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.kkiapay.me",
+            // KKiaPay widget connects to kkiapay API
+            "connect-src 'self' https://api.kkiapay.me wss://api.kkiapay.me https://fonts.googleapis.com",
+            // Images: same origin + data URIs + Pexels (OG/demo images)
+            "img-src 'self' data: https://images.pexels.com",
+            // Frames: KKiaPay checkout widget
+            "frame-src https://cdn.kkiapay.me",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "upgrade-insecure-requests",
+          ].join('; '),
+        },
+      },
+    },
   },
 
   alias: {

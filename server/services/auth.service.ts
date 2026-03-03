@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { userRepository } from '../repositories/user.repository'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt'
 import { createError } from 'h3'
@@ -7,6 +8,10 @@ import { systemLog } from '../utils/systemLog'
 import type { RegisterInput, LoginInput } from '../validators/auth.schemas'
 
 const BCRYPT_ROUNDS = 12
+/** Max consecutive failed login attempts before account lockout. */
+const MAX_LOGIN_ATTEMPTS = 5
+/** Lockout duration: 15 minutes. */
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000
 
 export interface AuthTokens {
   accessToken: string
@@ -36,15 +41,21 @@ export const authService = {
     }
 
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS)
+    // Generate a secure email verification token (T0218)
+    const emailVerificationToken = crypto.randomBytes(32).toString('hex')
+
     const user = await userRepository.create({
       name: input.name,
       email: input.email,
       passwordHash,
       role: 'CLIENT',
+      emailVerificationToken,
     })
 
     const tokens = await _issueTokens(user.id, user.email, user.role)
     logger.info({ userId: user.id }, 'User registered')
+    // Log the verification token — in production this would be emailed to the user
+    logger.info({ userId: user.id, emailVerificationToken }, 'Email verification token generated (send via email provider)')
     systemLog({ action: 'USER_REGISTERED', userId: user.id, message: `New account: ${user.email}` })
 
     return { user: _safeUser(user), tokens }
@@ -52,18 +63,36 @@ export const authService = {
 
   /**
    * Login with email + password.
-   * Throws HTTP 401 for invalid credentials.
+   * - Checks account lockout (T0217): rejects if lockedUntil > now
+   * - Increments loginAttempts on failure; locks after MAX_LOGIN_ATTEMPTS
+   * - Resets loginAttempts on success
+   * Throws HTTP 401 for invalid credentials; HTTP 423 when locked.
    */
   async login(input: LoginInput): Promise<{ user: AuthUser; tokens: AuthTokens }> {
     const user = await userRepository.findByEmail(input.email)
     if (!user) {
+      // Don't reveal whether the email exists
       throw createError({ statusCode: 401, message: 'Identifiants invalides' })
+    }
+
+    // Account lockout check (T0217)
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000)
+      throw createError({
+        statusCode: 423,
+        message: `Compte temporairement bloqué après trop de tentatives. Réessayez dans ${minutesLeft} minute(s).`,
+      })
     }
 
     const valid = await bcrypt.compare(input.password, user.passwordHash)
     if (!valid) {
+      // Increment attempt counter; lock if threshold reached
+      await userRepository.incrementLoginAttempts(user.id, MAX_LOGIN_ATTEMPTS, LOCKOUT_DURATION_MS)
       throw createError({ statusCode: 401, message: 'Identifiants invalides' })
     }
+
+    // Successful login — reset counter
+    await userRepository.resetLoginAttempts(user.id)
 
     const tokens = await _issueTokens(user.id, user.email, user.role)
     logger.info({ userId: user.id }, 'User logged in')
@@ -99,6 +128,24 @@ export const authService = {
   async logout(userId: string): Promise<void> {
     await userRepository.clearRefreshToken(userId)
     logger.info({ userId }, 'User logged out')
+  },
+
+  /**
+   * Verify an email address using the token sent on registration (T0218).
+   * Sets emailVerified = true and clears the token.
+   * Throws 404 if the token is invalid or already consumed.
+   */
+  async verifyEmail(token: string): Promise<{ email: string }> {
+    const user = await userRepository.findByVerificationToken(token)
+    if (!user) {
+      throw createError({ statusCode: 404, message: 'Token de vérification invalide ou déjà utilisé.' })
+    }
+    await userRepository.update(user.id, {
+      emailVerified: true,
+      emailVerificationToken: null,
+    })
+    logger.info({ userId: user.id }, 'Email verified')
+    return { email: user.email }
   },
 }
 

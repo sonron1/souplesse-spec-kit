@@ -62,7 +62,7 @@
     try {
       const [subData, sessionsData, bookingsData] = await Promise.all([
         $fetch<SubInfo>('/api/me/subscription', { headers }),
-        $fetch<{ sessions: SessionItem[] }>('/api/sessions', { headers, query: { limit: 200, from: todayStr } }),
+        $fetch<{ sessions: SessionItem[] }>('/api/sessions', { headers, query: { limit: 100, from: todayStr } }),
         $fetch<Booking[]>('/api/bookings', { headers }),
       ])
       subscription.value = subData

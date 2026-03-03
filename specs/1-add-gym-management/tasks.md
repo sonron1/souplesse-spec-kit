@@ -245,9 +245,24 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 - [x] T0329 [E] `/admin/logs` page — filter bar, color-coded level badges, table with pagination, Actualiser button; "Journaux" link added to admin nav dropdown + mobile drawer (`app/pages/admin/logs.vue`, `app/layouts/default.vue`)
 - [x] T0330 [E] Test mocks updated — `vi.mock('../../server/utils/systemLog', ...)` added to `booking.service.spec.ts`, `booking.spec.ts`, `payment-and-activation.spec.ts` to keep 67/67 green
 
-## Open Security Tasks (v2)
+## Security Tasks (v2) — now complete
 
-- [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
-- [ ] T0216 Content-Security-Policy headers — configure in `nuxt.config.ts` via `nitro.routeRules`
-- [ ] T0217 Account lockout after N consecutive failed login attempts (`server/services/auth.service.ts`)
-- [ ] T0218 Email verification flow for new registrations (new `emailVerified` field + verification endpoint)
+- [x] T0215 CSRF origin-check middleware — `server/middleware/csrf.middleware.ts`; validates `Origin`/`Referer` header on all mutation requests (POST/PUT/PATCH/DELETE); webhook endpoint exempt
+- [x] T0216 Content-Security-Policy headers — added to `nuxt.config.ts` via `nitro.routeRules['/**'].headers`; includes CSP, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- [x] T0217 Account lockout — `loginAttempts Int @default(0)` + `lockedUntil DateTime?` added to `User` model; `auth.service.ts` increments on failure, locks for 15 min after 5 attempts, resets on success; `userRepository` gains `incrementLoginAttempts()` + `resetLoginAttempts()`
+- [x] T0218 Email verification — `emailVerified Boolean @default(false)` + `emailVerificationToken String? @unique` added to `User` model; token generated with `crypto.randomBytes(32)` on registration; `GET /api/auth/verify-email?token=` endpoint clears token and sets verified; email delivery requires provider (token logged server-side for now)
+
+## Phase 12: v2 — FR-016 Couple Subscription Linkage
+
+> Two users can be linked under a single couple plan subscription.
+
+- [x] T0401 [FR-016] DB migration `20260303080000_add_security_and_couple` — adds `partnerUserId` to `PaymentOrder`; adds `loginAttempts`, `lockedUntil`, `emailVerified`, `emailVerificationToken` to `User`
+- [x] T0402 [FR-016] `create-session.post.ts` — accepts optional `partnerEmail`; resolves to `partnerUserId` (404 if not found; 400 if non-CLIENT); passes to `createPaymentOrder`
+- [x] T0403 [FR-016] `confirm.post.ts` — accepts optional `partnerEmail`; resolves to `partnerUserId`; passes to `confirmPayment`
+- [x] T0404 [FR-016] `payments.service.ts` — `createPaymentOrder` stores `partnerUserId`; `handleWebhook` + `confirmPayment` create a second `ACTIVE` subscription for the partner when `partnerUserId` is set; `priceCouple` used when plan is a COUPLE type
+- [x] T0405 [FR-016] `PaymentCheckout.vue` — new `partnerEmail` prop passed to `/api/payments/confirm` body
+- [x] T0406 [FR-016] `subscribe.vue` — partner email `<input>` shown when couple mode selected; `partnerEmails` reactive map per plan; input passed to `PaymentCheckout`
+
+## Bug Fixes (v2)
+
+- [x] BUG-1 `dashboard/calendar.vue` — `limit: 200` exceeded `paginationSchema.max(100)` causing 422; changed to `limit: 100`

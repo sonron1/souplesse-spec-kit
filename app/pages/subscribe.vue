@@ -43,6 +43,19 @@
             >Couple</button>
           </div>
 
+          <!-- Partner email input for couple plans (FR-016) -->
+          <div v-if="coupleMode[plan.id] === 'couple'" class="mt-3">
+            <label class="label text-xs">Email du partenaire</label>
+            <input
+              v-model="partnerEmails[plan.id]"
+              type="email"
+              class="input text-sm"
+              placeholder="partenaire@email.com"
+              autocomplete="email"
+            />
+            <p class="text-xs text-gray-400 mt-1">Le partenaire doit avoir un compte Souplesse.</p>
+          </div>
+
           <p class="text-3xl font-extrabold text-primary-600 mb-1">
             {{ formatPrice(activePrice(plan)) }}
           </p>
@@ -57,6 +70,7 @@
             :subscription-plan-id="plan.id"
             :amount="activePrice(plan)"
             :amount-label="formatPrice(activePrice(plan))"
+            :partner-email="coupleMode[plan.id] === 'couple' ? partnerEmails[plan.id] : undefined"
             @success="onPaymentSuccess(plan.id)"
             @error="(msg: string) => onPaymentError(plan.id, msg)"
           />
@@ -92,6 +106,7 @@
   interface Plan {
     id: string
     name: string
+    planType?: string
     priceSingle: number
     priceCouples?: number | null
     validityDays: number
@@ -101,6 +116,8 @@
 
   // Per-plan solo/couple toggle state
   const coupleMode = reactive<Record<string, 'single' | 'couple'>>({})
+  // Per-plan partner email (FR-016)
+  const partnerEmails = reactive<Record<string, string>>({})
 
   function activePrice(plan: Plan): number {
     return coupleMode[plan.id] === 'couple' && plan.priceCouples

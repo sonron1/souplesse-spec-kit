@@ -6,12 +6,17 @@ export type CreateUserInput = {
   email: string
   passwordHash: string
   role?: UserRole
+  emailVerificationToken?: string
 }
 
 export type UpdateUserInput = Partial<{
   name: string
   passwordHash: string
   refreshToken: string | null
+  loginAttempts: number
+  lockedUntil: Date | null
+  emailVerified: boolean
+  emailVerificationToken: string | null
 }>
 
 /**
@@ -50,6 +55,37 @@ export const userRepository = {
   /** Soft-invalidate the refresh token stored on the user. */
   async clearRefreshToken(id: string): Promise<void> {
     await prisma.user.update({ where: { id }, data: { refreshToken: null } })
+  },
+
+  /** Find a user by their email verification token. */
+  async findByVerificationToken(token: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { emailVerificationToken: token } })
+  },
+
+  /**
+   * Increment failed login counter. Locks the account (lockedUntil = now + durationMs)
+   * once the attempt count reaches maxAttempts.
+   */
+  async incrementLoginAttempts(
+    id: string,
+    maxAttempts = 5,
+    lockDurationMs = 15 * 60 * 1000
+  ): Promise<void> {
+    const user = await prisma.user.findUnique({ where: { id }, select: { loginAttempts: true } })
+    const next = (user?.loginAttempts ?? 0) + 1
+    const lockedUntil = next >= maxAttempts ? new Date(Date.now() + lockDurationMs) : null
+    await prisma.user.update({
+      where: { id },
+      data: { loginAttempts: next, ...(lockedUntil !== null ? { lockedUntil } : {}) },
+    })
+  },
+
+  /** Reset login attempt counter and remove lockout after successful login. */
+  async resetLoginAttempts(id: string): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { loginAttempts: 0, lockedUntil: null },
+    })
   },
 
   /** List all users (admin use; add pagination if needed). */

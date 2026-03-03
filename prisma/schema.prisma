@@ -87,6 +87,12 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Security fields (T0217 account lockout, T0218 email verification)
+  loginAttempts          Int       @default(0)
+  lockedUntil            DateTime?
+  emailVerified          Boolean   @default(false)
+  emailVerificationToken String?   @unique
+
   subscriptions Subscription[]
   payments      Payment[]
   bookings      Booking[]
@@ -195,6 +201,7 @@ model PaymentOrder {
   id                  String   @id @default(uuid())
   userId              String
   subscriptionPlanId  String
+  partnerUserId       String?  // FR-016: second user for couple/duo plans
   amount              Int
   currency            String
   status              String   @default("pending")

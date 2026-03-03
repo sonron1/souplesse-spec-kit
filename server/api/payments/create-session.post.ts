@@ -3,15 +3,20 @@ import { requireAuth } from '../../middleware/auth.middleware'
 import { requireRole } from '../../utils/role'
 import { validateBody } from '../../validators/index'
 import { createPaymentOrder } from '../../services/payments.service'
+import { prisma } from '../../utils/prisma'
 import { z } from 'zod'
 
 const createSessionSchema = z.object({
   subscriptionPlanId: z.string().uuid(),
+  // FR-016: optional partner email for couple/duo plans
+  partnerEmail: z.string().email().optional(),
 })
 
 /**
  * POST /api/payments/create-session
  * Creates a Kkiapay payment order for a subscription plan.
+ * For couple plans, accepts an optional partnerEmail to activate a
+ * subscription for a second user upon payment success.
  * Returns a kkiapayToken to initialise the Kkiapay widget on the client.
  */
 export default defineEventHandler(async (event) => {
@@ -19,10 +24,28 @@ export default defineEventHandler(async (event) => {
   requireRole(user, 'CLIENT') // Only clients can purchase subscriptions
   const body = await validateBody(event, createSessionSchema)
 
+  // Resolve partnerEmail to a userId (FR-016)
+  let partnerUserId: string | undefined
+  if (body.partnerEmail) {
+    const partnerEmail = body.partnerEmail.toLowerCase().trim()
+    if (partnerEmail === user.email?.toLowerCase().trim()) {
+      throw createError({ statusCode: 400, message: 'Vous ne pouvez pas vous désigner comme partenaire.' })
+    }
+    const partnerUser = await prisma.user.findUnique({ where: { email: partnerEmail } })
+    if (!partnerUser) {
+      throw createError({ statusCode: 404, message: 'Aucun compte trouvé pour cette adresse email partenaire.' })
+    }
+    if (partnerUser.role !== 'CLIENT') {
+      throw createError({ statusCode: 400, message: 'Le partenaire doit être un client.' })
+    }
+    partnerUserId = partnerUser.id
+  }
+
   try {
     const result = await createPaymentOrder({
       userId: user.sub,
       subscriptionPlanId: body.subscriptionPlanId,
+      partnerUserId,
     })
 
     return {
