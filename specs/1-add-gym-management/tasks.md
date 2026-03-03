@@ -221,6 +221,19 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 - [x] T0315 [C] `NotificationBell.vue` — bell icon with unread badge (99+ cap), dropdown panel, optimistic mark-read, "Tout marquer lu", 60s polling, link to full notifications page (`app/components/NotificationBell.vue`)
 - [x] T0316 [C] `/dashboard/notifications` page — full list, unread highlighted, "Tout marquer lu", click-to-read; `NotificationBell` added to desktop header and "Notifications" link to mobile drawer (`app/pages/dashboard/notifications.vue`, `app/layouts/default.vue`)
 
+## Epic D — Coach-Client Messaging (commit `5c6ccbd`)
+
+> Coach can initiate a conversation with their assigned client. Client can reply but cannot send the first message.
+
+- [x] T0317 [D] `Message` model added to Prisma schema — `senderId`, `recipientId`, `coachId`, `clientId`, `body`, `readAt`; `sentMessages`/`receivedMessages` relations on `User`; migration `20260303070001_add_messaging` applied (`prisma/schema.prisma`)
+- [x] T0318 [D] `message.service.ts` — `getConversation()` (marks read), `sendMessage()` (blocks client if coach hasn't initiated), `getConversations()` (coach: all clients, client: their coach), `countUnread()` (`server/services/message.service.ts`)
+- [x] T0319 [D] `GET /api/messages` — returns conversations list + `unreadTotal` for the current user (`server/api/messages/index.get.ts`)
+- [x] T0320 [D] `GET /api/messages/:withUserId` — returns conversation thread, marks messages read for caller, resolves `coachId`/`clientId` via assignment table (`server/api/messages/[withUserId].get.ts`)
+- [x] T0321 [D] `POST /api/messages` — sends a message `{ toUserId, body }`; throws 403 if client tries to initiate; ADMIN blocked (`server/api/messages/index.post.ts`)
+- [x] T0322 [D] `/dashboard/messages` — client messaging page: no-coach state, "waiting for coach" state, bubble thread, disabled input until coach sends first message (`app/pages/dashboard/messages.vue`)
+- [x] T0323 [D] `/coach/messages` — coach messaging page: left sidebar with client list + unread badges, right thread panel, send first message (`app/pages/coach/messages.vue`)
+- [x] T0324 [D] "Messages" nav links added with red unread badge — desktop nav (client + coach dropdown), mobile drawer (client + coach sections); 30s background polling in `default.vue` (`app/layouts/default.vue`)
+
 ## Open Security Tasks (v2)
 
 - [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
