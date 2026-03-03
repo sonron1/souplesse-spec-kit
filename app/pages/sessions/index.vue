@@ -19,22 +19,28 @@
     </div>
 
     <!-- Loading -->
-    <SkeletonLoader v-if="pending" :count="4" :height="80" />
+    <SkeletonLoader v-if="isLoading" :count="4" :height="80" />
 
     <!-- Error -->
     <div v-else-if="error" class="card text-red-600">
       Erreur lors du chargement des séances.
     </div>
 
-    <!-- Empty -->
-    <div v-else-if="!sessions?.length" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
-      <svg class="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-      <p class="text-lg font-semibold text-gray-700 mb-1">Aucune séance disponible</p>
-      <p class="text-sm text-gray-400">Revenez bientôt ou modifiez les filtres de date.</p>
-    </div>
+    <!-- Content (gated for clients without active subscription) -->
+    <SubscriptionGate
+      v-else
+      :active="subActive"
+      message="Souscrivez à une formule pour parcourir les séances disponibles et effectuer des réservations."
+    >
+      <!-- Empty -->
+      <div v-if="!sessions?.length" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+        <svg class="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <p class="text-lg font-semibold text-gray-700 mb-1">Aucune séance disponible</p>
+        <p class="text-sm text-gray-400">Revenez bientôt ou modifiez les filtres de date.</p>
+      </div>
 
-    <!-- Session list -->
-    <div v-else class="space-y-3">
+      <!-- Session list -->
+      <div v-else class="space-y-3">
       <div
         v-for="session in sessions"
         :key="session.id"
@@ -85,6 +91,7 @@
         </div>
       </div>
     </div>
+    </SubscriptionGate>
 
     <!-- Booking success toast -->
     <Teleport to="body">
@@ -101,7 +108,15 @@
 <script setup lang="ts">
   definePageMeta({ middleware: 'auth' })
 
-  const { accessToken } = useAuth()
+  const { accessToken, isClient } = useAuth()
+
+  // Subscription gate — blocks unsubscribed clients from browsing/booking sessions
+  const subHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
+  const { data: subData, pending: subPending } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
+    headers: subHeaders,
+    default: () => ({ active: false }),
+  })
+  const subActive = computed(() => !isClient.value || (subData.value?.active ?? false))
 
   interface Session {
     id: string
@@ -141,6 +156,7 @@
   })
 
   const sessions = computed(() => data.value?.sessions ?? [])
+  const isLoading = computed(() => pending.value || subPending.value)
 
   function resetFilters() {
     fromDate.value = ''

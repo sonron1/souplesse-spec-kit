@@ -28,6 +28,57 @@
         </div>
       </div>
 
+      <!-- Subscription status banners -->
+      <div v-if="!subPending" class="mb-4">
+        <!-- No active subscription -->
+        <div
+          v-if="noActiveSub"
+          class="rounded-2xl bg-red-50 border border-red-200 px-5 py-4 flex items-center justify-between gap-4"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-red-800">Aucun abonnement actif</p>
+              <p class="text-xs text-red-600 mt-0.5">Souscrivez pour accéder aux séances et réservations du club.</p>
+            </div>
+          </div>
+          <NuxtLink
+            to="/subscribe"
+            class="shrink-0 text-xs font-bold text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Souscrire →
+          </NuxtLink>
+        </div>
+
+        <!-- Expiring soon (≤7 days) -->
+        <div
+          v-else-if="expiringSoon"
+          class="rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4 flex items-center justify-between gap-4"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-amber-800">Votre abonnement expire bientôt</p>
+              <p class="text-xs text-amber-600 mt-0.5">Plus que {{ daysLeftSub }} jour(s) — renouvelez pour ne pas perdre l’accès.</p>
+            </div>
+          </div>
+          <NuxtLink
+            to="/subscribe"
+            class="shrink-0 text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 hover:border-amber-500 px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Renouveler →
+          </NuxtLink>
+        </div>
+      </div>
+
       <!-- KPI cards -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <!-- Subscription status -->
@@ -155,6 +206,14 @@
   const activeSubscription = computed(() =>
     subscriptions.value?.find((s) => s.status === 'ACTIVE') ?? null
   )
+
+  const daysLeftSub = computed(() => {
+    if (!activeSubscription.value?.expiresAt) return null
+    const diff = new Date(activeSubscription.value.expiresAt).getTime() - Date.now()
+    return Math.max(0, Math.ceil(diff / 86_400_000))
+  })
+  const expiringSoon = computed(() => daysLeftSub.value !== null && daysLeftSub.value <= 7)
+  const noActiveSub = computed(() => !subPending.value && !activeSubscription.value)
 
   const nextBooking = computed(() => {
     const now = new Date()

@@ -5,12 +5,14 @@
         <h1 class="text-2xl font-bold text-gray-900">Mes réservations</h1>
         <p class="text-sm text-gray-500 mt-0.5">{{ bookings?.length ?? 0 }} réservation(s)</p>
       </div>
-      <NuxtLink to="/sessions" class="btn-primary text-sm">+ Réserver une séance</NuxtLink>
+      <NuxtLink v-if="!subLoading && subActive" to="/sessions" class="btn-primary text-sm">+ Réserver une séance</NuxtLink>
+      <NuxtLink v-else-if="!subLoading && !subActive" to="/subscribe" class="btn-primary text-sm bg-amber-400 hover:bg-amber-500 border-amber-400">S'abonner →</NuxtLink>
     </div>
 
-    <SkeletonLoader v-if="pending" :count="4" :height="72" />
+    <SkeletonLoader v-if="pending || subLoading" :count="4" :height="72" />
 
-    <div v-else-if="!bookings?.length" class="card text-center py-12">
+    <SubscriptionGate v-else :active="subActive" message="Souscrivez à une formule pour pouvoir réserver des séances du club.">
+    <div v-if="!bookings?.length" class="card text-center py-12">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -68,6 +70,7 @@
         </div>
       </div>
     </div>
+    </SubscriptionGate>
 
     <!-- Calendar view -->
     <Calendar v-if="bookings?.length" :bookings="bookings" class="mt-8" />
@@ -88,6 +91,15 @@
   definePageMeta({ middleware: ['auth', 'client-only'] })
 
   const { accessToken } = useAuth()
+
+  // Subscription gate
+  const subHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
+  const { data: subData, pending: subLoading } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
+    headers: subHeaders,
+    default: () => ({ active: false }),
+  })
+  const subActive = computed(() => subData.value?.active ?? false)
+
   const cancelError = ref('')
 
   interface Booking {
