@@ -200,6 +200,15 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 - [x] T0304 [A] Bookings page gated — gate wraps booking content; header CTA switches to "S'abonner →" when no active subscription (`app/pages/dashboard/bookings.vue`)
 - [x] T0305 [A] Dashboard expiry banners — red banner (no subscription) and amber banner (expiring ≤7 days) with renew CTA between welcome hero and KPI cards (`app/pages/dashboard/index.vue`)
 
+## Phase 12: v2 — Admin Subscription Control (Epic B)
+
+> Admin can manually enable or disable any client subscription from a dedicated page.
+
+- [x] T0306 [B] `PATCH /api/admin/subscriptions/:id` — force status to `ACTIVE` or `CANCELLED`; auto-computes `startsAt`/`expiresAt` from plan when re-activating a never-started sub (`server/api/admin/subscriptions/[id].patch.ts`)
+- [x] T0307 [B] `GET /api/admin/subscriptions` — paginated list with embedded user + plan info (`server/api/admin/subscriptions/index.get.ts`)
+- [x] T0308 [B] `/admin/subscriptions` page — 4 stat cards (active/expired/cancelled/pending), table with status badges, days-left countdown (amber ≤7 days), Désactiver/Réactiver toggle buttons, toast feedback (`app/pages/admin/subscriptions.vue`)
+- [x] T0309 [B] "Abonnements" link added to admin nav dropdown (desktop) and mobile drawer (`app/layouts/default.vue`)
+
 ## Open Security Tasks (v2)
 
 - [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
