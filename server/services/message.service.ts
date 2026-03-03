@@ -2,13 +2,25 @@ import { prisma } from '../utils/prisma'
 import { logger } from '../utils/logger'
 import { createError } from 'h3'
 
+type MessageWithSender = {
+  id: string
+  senderId: string
+  recipientId: string
+  coachId: string
+  clientId: string
+  body: string
+  readAt: Date | null
+  createdAt: Date
+  sender: { id: string; name: string; role: string }
+}
+
 export const messageService = {
   /**
    * Returns all messages in a coach↔client conversation,
    * and marks all unread messages for `readerId` as read.
    */
   async getConversation(coachId: string, clientId: string, readerId: string) {
-    const messages = await prisma.message.findMany({
+    const messages: MessageWithSender[] = await prisma.message.findMany({
       where: { coachId, clientId },
       orderBy: { createdAt: 'asc' },
       include: { sender: { select: { id: true, name: true, role: true } } },
@@ -86,7 +98,7 @@ export const messageService = {
       })
 
       const conversations = await Promise.all(
-        rows.map(async ({ clientId }) => {
+        rows.map(async ({ clientId }: { clientId: string }) => {
           const [last, unread, client] = await Promise.all([
             prisma.message.findFirst({
               where: { coachId: userId, clientId },
