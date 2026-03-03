@@ -14,7 +14,7 @@
         </svg>
       </div>
       <p class="font-semibold text-gray-700 mb-1">Aucune conversation</p>
-      <p class="text-sm text-gray-400">Vos clients assignés apparaîtront ici.</p>
+      <p class="text-sm text-gray-400">{{ me?.role === 'ADMIN' ? 'Vos échanges avec les coachs apparaîtront ici.' : 'Vos clients assignés apparaîtront ici.' }}</p>
     </div>
 
     <!-- Split panel -->
@@ -140,6 +140,7 @@
 
   interface ConversationRow {
     client: { id: string; name: string; email: string }
+    coach?: { id: string; name: string; email: string } // admin mode — API returns 'coach' instead of 'client'
     lastMessage: { body: string; createdAt: string; senderId: string } | null
     unreadCount: number
   }
@@ -148,7 +149,13 @@
     conversations: ConversationRow[]
   }>('/api/messages', { headers, default: () => ({ conversations: [] }) })
 
-  const conversations = computed(() => convoData.value?.conversations ?? [])
+  // Normalize: COACH role returns { client }, ADMIN role returns { coach } — unify to { client }
+  const conversations = computed<ConversationRow[]>(() =>
+    (convoData.value?.conversations ?? []).map((c) => ({
+      ...c,
+      client: c.client ?? c.coach ?? { id: '', name: '—', email: '' },
+    }))
+  )
 
   interface Message {
     id: string

@@ -4,13 +4,14 @@
       <h1 class="text-2xl font-bold text-gray-900">Mes programmes</h1>
     </div>
 
-    <SkeletonLoader v-if="pending" :count="2" :height="120" />
+    <SkeletonLoader v-if="pending || subPending" :count="2" :height="120" />
 
     <div v-else-if="error" class="card text-red-600">
       Erreur lors du chargement des programmes.
     </div>
 
-    <div v-else-if="!programs.length" class="card text-center py-12 text-gray-500">
+    <SubscriptionGate v-else :active="subActive" message="Souscrivez à une formule pour accéder à vos programmes personnalisés créés par votre coach.">
+    <div v-if="!programs.length" class="card text-center py-12 text-gray-500">
       <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
       </svg>
@@ -18,7 +19,7 @@
       <p class="text-sm">Votre coach n'a pas encore créé de programme pour vous.</p>
     </div>
 
-    <div v-else class="space-y-6">
+    <div v-else class="space-y-6 mt-4">
       <div
         v-for="program in programs"
         :key="program.id"
@@ -87,13 +88,20 @@
         </div>
       </div>
     </div>
+    </SubscriptionGate>
   </div>
 </template>
 
 <script setup lang="ts">
   definePageMeta({ middleware: ['auth', 'client-only'] })
 
-  const { accessToken } = useAuth()
+  const { accessToken, isClient } = useAuth()
+
+  const { data: subData, pending: subPending } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
+    headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
+    default: () => ({ active: false }),
+  })
+  const subActive = computed(() => !isClient.value || (subData.value?.active ?? false))
 
   interface Exercise {
     day: string

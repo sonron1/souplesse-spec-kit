@@ -7,8 +7,9 @@
       <SkeletonLoader :count="4" :height="56" />
     </div>
 
+    <SubscriptionGate v-else :active="subActive" class="flex-1 flex flex-col min-h-0" message="Souscrivez à une formule et choisissez un coach pour accéder à la messagerie.">
     <!-- Assignment: PENDING -->
-    <div v-else-if="assignmentStatus === 'PENDING'" class="card flex-1 flex flex-col items-center justify-center text-center py-16">
+    <div v-if="assignmentStatus === 'PENDING'" class="card flex-1 flex flex-col items-center justify-center text-center py-16">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
         <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -45,7 +46,7 @@
     </div>
 
     <!-- Conversation -->
-    <div v-else class="card flex flex-col flex-1 overflow-hidden p-0">
+    <div v-else class="card flex flex-col flex-1 overflow-hidden p-0" style="min-height: 400px;">
       <!-- Coach header -->
       <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">
         <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-700">
@@ -121,6 +122,7 @@
         </button>
       </div>
     </div>
+    </SubscriptionGate>
   </div>
 </template>
 
@@ -147,6 +149,7 @@
   }
 
   const pending = ref(true)
+  const subActive = ref(false)
   const coach = ref<{ id: string; name: string; email: string } | null>(null)
   const coachId = ref<string | null>(null)
   const assignmentStatus = ref<string | null>(null)
@@ -160,10 +163,12 @@
   async function loadInitial() {
     if (!accessToken.value) return
     try {
-      const [convoData, assignData] = await Promise.all([
+      const [convoData, assignData, subData] = await Promise.all([
         $fetch<{ conversations: ConversationRow[] }>('/api/messages', { headers: authHeader() }),
         $fetch<AssignmentData>('/api/me/assignment', { headers: authHeader() }),
+        $fetch<{ active: boolean }>('/api/me/subscription', { headers: authHeader() }).catch(() => ({ active: false })),
       ])
+      subActive.value = subData.active
       const first = convoData.conversations?.[0]
       coach.value = first?.coach ?? null
       coachId.value = first?.coachId ?? null
