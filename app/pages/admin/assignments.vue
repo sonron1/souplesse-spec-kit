@@ -151,13 +151,19 @@
     client: { id: string; name: string; email: string }
   }
 
-  // Load users (coaches + clients)
+  // Load coaches (no pagination limit)
+  const { data: coachesData } = await useLazyFetch<{ coaches: { id: string; name: string; email: string }[] }>(
+    '/api/coaches',
+    { headers: authHeaders, default: () => ({ coaches: [] }) }
+  )
+  const coaches = computed(() => coachesData.value?.coaches ?? [])
+
+  // Load clients (within the allowed limit of 100)
   const { data: usersData } = await useLazyFetch<{ success: boolean; users: SimpleUser[] }>('/api/admin/users', {
     headers: authHeaders,
-    query: { page: 1, limit: 200 },
+    query: { page: 1, limit: 100 },
     default: () => ({ success: true, users: [] }),
   })
-  const coaches = computed(() => (usersData.value?.users ?? []).filter((u) => u.role === 'COACH'))
   const clients = computed(() => (usersData.value?.users ?? []).filter((u) => u.role === 'CLIENT'))
 
   // Load assignments
