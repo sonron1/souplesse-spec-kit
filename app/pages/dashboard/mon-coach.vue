@@ -29,7 +29,7 @@
         <div class="mt-4 flex gap-3">
           <button
             class="btn-primary flex-1 justify-center"
-            :disabled="responding"
+            :disabled="!!responding"
             @click="respond('ACCEPT')"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
