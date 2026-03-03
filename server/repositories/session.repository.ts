@@ -44,6 +44,18 @@ export const sessionRepository = {
     return prisma.session.create({ data })
   },
 
+  async countAll(opts: { from?: Date; to?: Date } = {}): Promise<number> {
+    const { from, to } = opts
+    return prisma.session.count({
+      where: {
+        dateTime: {
+          ...(from ? { gte: from } : {}),
+          ...(to ? { lte: to } : {}),
+        },
+      },
+    })
+  },
+
   async countBookings(sessionId: string): Promise<number> {
     return prisma.booking.count({ where: { sessionId, status: 'CONFIRMED' } })
   },
