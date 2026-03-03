@@ -13,7 +13,7 @@ export function requireRole(user: JwtPayload, ...roles: UserRole[]): void {
   if (!roles.includes(user.role as UserRole)) {
     throw createError({
       statusCode: 403,
-      statusMessage: `Forbidden. Required role: ${roles.join(' or ')}`,
+      message: `Accès refusé. Rôle requis : ${roles.join(' ou ')}`,  
     })
   }
 }

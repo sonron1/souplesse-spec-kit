@@ -22,22 +22,22 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid payload: coachId and clientId (UUID) required',
+      message: 'Données invalides : coachId et clientId (UUID) requis',
     })
   }
 
   const { coachId, clientId } = parsed.data
 
-  const existing = await prisma.coachClientAssignment.findUnique({
-    where: { coachId_clientId: { coachId, clientId } },
+  const existing = await prisma.coachClientAssignment.findFirst({
+    where: { clientId },
   })
 
   if (!existing) {
-    throw createError({ statusCode: 404, statusMessage: 'Assignment not found' })
+    throw createError({ statusCode: 404, message: 'Affectation introuvable' })
   }
 
   await prisma.coachClientAssignment.delete({
-    where: { coachId_clientId: { coachId, clientId } },
+    where: { id: existing.id },
   })
 
   logger.info({ coachId, clientId }, 'Coach-client assignment removed')

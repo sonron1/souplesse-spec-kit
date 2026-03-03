@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   requireCoach(user)
 
   const id = getRouterParam(event, 'id')
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Program ID required' })
+  if (!id) throw createError({ statusCode: 400, message: 'Identifiant de programme manquant' })
 
   const body = await validateBody(event, updateProgramSchema)
   const program = await programService.updateProgram(id, user.sub, body)

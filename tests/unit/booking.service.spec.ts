@@ -22,6 +22,7 @@ vi.mock('../../server/services/subscription.service')
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
+vi.mock('../../server/utils/systemLog', () => ({ systemLog: vi.fn() }))
 
 import { prisma } from '../../server/utils/prisma'
 import { subscriptionService } from '../../server/services/subscription.service'

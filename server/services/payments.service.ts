@@ -5,19 +5,22 @@ import crypto from 'crypto'
 const KKIAPAY_API_BASE = process.env.KKIAPAY_API_BASE || 'https://api.kkiapay.me'
 const KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY
 
-export async function createPaymentOrder(opts: { userId: string; subscriptionPlanId: string }) {
-  const { userId, subscriptionPlanId } = opts
+export async function createPaymentOrder(opts: { userId: string; subscriptionPlanId: string; partnerUserId?: string }) {
+  const { userId, subscriptionPlanId, partnerUserId } = opts
 
   const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } })
   if (!plan) throw new Error('SubscriptionPlan not found')
 
-  const amount = plan.priceSingle
+  // For couple plans, use priceCouple if set; otherwise fall back to priceSingle
+  const isCouplePlan = plan.planType?.includes('COUPLE') ?? false
+  const amount = (isCouplePlan && plan.priceCouple != null) ? plan.priceCouple : plan.priceSingle
   const currency = 'XOF'
 
   const order = await prisma.paymentOrder.create({
     data: {
       userId,
       subscriptionPlanId,
+      partnerUserId: partnerUserId ?? null,
       amount,
       currency,
       status: 'pending',
@@ -152,6 +155,26 @@ export async function handleWebhook(
           expiresAt,
         },
       })
+
+      // FR-016: If couple plan has a partner, activate a subscription for them too
+      if (paymentOrder.partnerUserId) {
+        try {
+          await prisma.subscription.create({
+            data: {
+              userId: paymentOrder.partnerUserId,
+              subscriptionPlanId: paymentOrder.subscriptionPlanId,
+              partnerUserId: paymentOrder.userId, // back-reference
+              status: 'ACTIVE',
+              isActive: true,
+              activationDate: now,
+              startsAt: now,
+              expiresAt,
+            },
+          })
+        } catch (e) {
+          console.error('Failed to create partner subscription', e)
+        }
+      }
     } catch (e) {
       // log and continue; subscription creation failure shouldn't crash webhook processing
       console.error('Failed to create subscription after payment', e)
@@ -169,8 +192,9 @@ export async function confirmPayment(opts: {
   userId: string
   transactionId: string
   subscriptionPlanId: string
+  partnerUserId?: string
 }) {
-  const { userId, transactionId, subscriptionPlanId } = opts
+  const { userId, transactionId, subscriptionPlanId, partnerUserId } = opts
 
   // Idempotency: if Payment with this transactionId already exists, return existing subscription
   const existing = await prisma.payment.findUnique({
@@ -246,6 +270,27 @@ export async function confirmPayment(opts: {
       payments: { connect: { id: payment.id } },
     },
   })
+
+  // FR-016: activate partner subscription for couple plans
+  if (partnerUserId) {
+    try {
+      await prisma.subscription.create({
+        data: {
+          userId: partnerUserId,
+          subscriptionPlanId,
+          partnerUserId: userId, // back-reference to primary subscriber
+          type: 'MONTHLY',
+          status: 'ACTIVE',
+          isActive: true,
+          activationDate: now,
+          startsAt: now,
+          expiresAt,
+        },
+      })
+    } catch (e) {
+      console.error('Failed to create partner subscription (confirmPayment)', e)
+    }
+  }
 
   return { subscriptionId: subscription.id }
 }

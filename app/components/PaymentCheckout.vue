@@ -28,6 +28,7 @@
     subscriptionPlanId: string
     amount: number          // raw XOF integer
     amountLabel?: string
+    partnerEmail?: string   // FR-016: optional partner for couple plans
   }>()
 
   const emit = defineEmits<{
@@ -50,7 +51,11 @@
 
       await $fetch<ConfirmResponse>('/api/payments/confirm', {
         method: 'POST',
-        body: { transactionId, subscriptionPlanId: props.subscriptionPlanId },
+        body: {
+          transactionId,
+          subscriptionPlanId: props.subscriptionPlanId,
+          ...(props.partnerEmail ? { partnerEmail: props.partnerEmail } : {}),
+        },
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
       emit('success')

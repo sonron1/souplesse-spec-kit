@@ -27,7 +27,14 @@ export default defineEventHandler(async (event) => {
     const payload = verifyJwt(token)
     event.context.user = payload
   } catch (err) {
-    logger.warn({ err }, 'Invalid JWT in auth middleware')
+    // "jwt malformed" = stale/corrupted cookie from a previous session — not an attack.
+    // Log at debug to avoid noise. Other JWT errors (expired, invalid sig) remain warn.
+    const msg = err instanceof Error ? err.message : ''
+    if (msg === 'jwt malformed' || msg === 'jwt expired') {
+      logger.debug({ msg }, 'JWT ignoré dans auth middleware (cookie périmé ou expiré)')
+    } else {
+      logger.warn({ err }, 'JWT invalide dans auth middleware')
+    }
     // Don't throw here — let route handlers decide if auth is required
   }
 })
@@ -38,7 +45,7 @@ export default defineEventHandler(async (event) => {
  */
 export function requireAuth(event: { context: { user?: JwtPayload } }): JwtPayload {
   if (!event.context.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ statusCode: 401, message: 'Non authentifié' })
   }
   return event.context.user
 }

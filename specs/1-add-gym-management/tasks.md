@@ -174,3 +174,108 @@ description: 'Task list for Souplesse Fitness - Gym Management'
 ---
 
 Implementation notes: adjust task IDs if tasks are shuffled; each task above includes a concrete file path to implement.
+
+---
+
+## Phase 10: v2 — UX Redesign & Security Hardening
+
+> Tasks completed after the initial 48. Documents work done in the v2 branch (`feat/v2-homepage-users`).
+
+- [x] T0207 [P] UX redesign — admin, coach, and client dashboards rebuilt with dark-card layout, gradient accents, skeleton loaders (`app/pages/admin/index.vue`, `coach/index.vue`, `dashboard/index.vue`)
+- [x] T0208 [P] Auth persistence via `user_info` cookie — `useAuth.ts` now hydrates `user` ref from cookie on every call, fixing page-refresh logout (`app/composables/useAuth.ts`)
+- [x] T0209 [P] Role-based Nuxt middleware chain — new `admin.ts`, `coach.ts`, `client-only.ts` middlewares; all pages updated to use `definePageMeta({ middleware: [...] })` (`app/middleware/`)
+- [x] T0210 [P] Role-aware post-login redirect — `_redirectByRole()` helper sends ADMIN → /admin, COACH → /coach, CLIENT → /dashboard after successful login (`app/composables/useAuth.ts`)
+- [x] T0211 [P] Server-side `requireRole(CLIENT)` enforced on booking creation and payment session endpoints — blocks coaches and admins from purchasing subscriptions (`server/api/bookings/index.post.ts`, `server/api/payments/create-session.post.ts`)
+- [x] T0212 [P] Admin dashboard enhanced with 8 KPI cards — added `totalCoaches`, `totalClients`, `totalSessions`, `upcomingSessions` to `stats.service.ts` and displayed in second KPI row (`app/pages/admin/index.vue`, `server/services/stats.service.ts`)
+- [x] T0213 [P] Default nav adapted per role — `default.vue` shows client-only nav links only to CLIENT role; "Tableau de bord" link resolves to the correct role dashboard (`app/layouts/default.vue`)
+- [x] T0214 [P] Landing page images updated to Black athletes; 5 extra demo clients seeded (`prisma/seed.js`)
+
+## Phase 11: v2 — Subscription Gating (Epic A)
+
+> Blocks unsubscribed or expired clients from accessing sessions/bookings; warns before expiry.
+
+- [x] T0301 [A] `SubscriptionGate.vue` — reusable component; blurs slot content + shows lock overlay with icon, message, "Voir les formules" CTA (`app/components/SubscriptionGate.vue`)
+- [x] T0302 [A] `GET /api/me/subscription` — returns `{ active, planName, expiresAt, daysLeft }`; staff roles always receive `active: true` (`server/api/me/subscription.get.ts`)
+- [x] T0303 [A] Sessions page gated — `SubscriptionGate` wraps session list; merged `isLoading` combines sessions + sub fetch; coaches/admins bypass gate via `isClient` (`app/pages/sessions/index.vue`)
+- [x] T0304 [A] Bookings page gated — gate wraps booking content; header CTA switches to "S'abonner →" when no active subscription (`app/pages/dashboard/bookings.vue`)
+- [x] T0305 [A] Dashboard expiry banners — red banner (no subscription) and amber banner (expiring ≤7 days) with renew CTA between welcome hero and KPI cards (`app/pages/dashboard/index.vue`)
+
+## Phase 12: v2 — Admin Subscription Control (Epic B)
+
+> Admin can manually enable or disable any client subscription from a dedicated page.
+
+- [x] T0306 [B] `PATCH /api/admin/subscriptions/:id` — force status to `ACTIVE` or `CANCELLED`; auto-computes `startsAt`/`expiresAt` from plan when re-activating a never-started sub (`server/api/admin/subscriptions/[id].patch.ts`)
+- [x] T0307 [B] `GET /api/admin/subscriptions` — paginated list with embedded user + plan info (`server/api/admin/subscriptions/index.get.ts`)
+- [x] T0308 [B] `/admin/subscriptions` page — 4 stat cards (active/expired/cancelled/pending), table with status badges, days-left countdown (amber ≤7 days), Désactiver/Réactiver toggle buttons, toast feedback (`app/pages/admin/subscriptions.vue`)
+- [x] T0309 [B] "Abonnements" link added to admin nav dropdown (desktop) and mobile drawer (`app/layouts/default.vue`)
+
+## Epic C — In-App Notifications (commit `d267089`)
+
+> Clients receive a notification when a coach is assigned to them; bell icon in header shows unread count.
+
+- [x] T0310 [C] `Notification` model added to Prisma schema + `notifications` relation on `User`; migration `20260303064656_add_notifications` applied (`prisma/schema.prisma`)
+- [x] T0311 [C] `notification.service.ts` — `create()`, `getForUser()`, `countUnread()`, `markRead()`, `markAllRead()` (`server/services/notification.service.ts`)
+- [x] T0312 [C] `assignments.post.ts` updated — fires `notificationService.create()` with type `ASSIGNMENT` after coach upsert; failure wrapped in `.catch()` so it never crashes the assignment response (`server/api/admin/assignments.post.ts`)
+- [x] T0313 [C] `GET /api/notifications` — returns `{ notifications, unreadCount }`; supports `?limit=N&unread=true` (`server/api/notifications/index.get.ts`)
+- [x] T0314 [C] `PATCH /api/notifications/:id` — mark single notification read; `id=all` marks all read (`server/api/notifications/[id].patch.ts`)
+- [x] T0315 [C] `NotificationBell.vue` — bell icon with unread badge (99+ cap), dropdown panel, optimistic mark-read, "Tout marquer lu", 60s polling, link to full notifications page (`app/components/NotificationBell.vue`)
+- [x] T0316 [C] `/dashboard/notifications` page — full list, unread highlighted, "Tout marquer lu", click-to-read; `NotificationBell` added to desktop header and "Notifications" link to mobile drawer (`app/pages/dashboard/notifications.vue`, `app/layouts/default.vue`)
+
+## Epic D — Coach-Client Messaging (commit `5c6ccbd`)
+
+> Coach can initiate a conversation with their assigned client. Client can reply but cannot send the first message.
+
+- [x] T0317 [D] `Message` model added to Prisma schema — `senderId`, `recipientId`, `coachId`, `clientId`, `body`, `readAt`; `sentMessages`/`receivedMessages` relations on `User`; migration `20260303070001_add_messaging` applied (`prisma/schema.prisma`)
+- [x] T0318 [D] `message.service.ts` — `getConversation()` (marks read), `sendMessage()` (blocks client if coach hasn't initiated), `getConversations()` (coach: all clients, client: their coach), `countUnread()` (`server/services/message.service.ts`)
+- [x] T0319 [D] `GET /api/messages` — returns conversations list + `unreadTotal` for the current user (`server/api/messages/index.get.ts`)
+- [x] T0320 [D] `GET /api/messages/:withUserId` — returns conversation thread, marks messages read for caller, resolves `coachId`/`clientId` via assignment table (`server/api/messages/[withUserId].get.ts`)
+- [x] T0321 [D] `POST /api/messages` — sends a message `{ toUserId, body }`; throws 403 if client tries to initiate; ADMIN blocked (`server/api/messages/index.post.ts`)
+- [x] T0322 [D] `/dashboard/messages` — client messaging page: no-coach state, "waiting for coach" state, bubble thread, disabled input until coach sends first message (`app/pages/dashboard/messages.vue`)
+- [x] T0323 [D] `/coach/messages` — coach messaging page: left sidebar with client list + unread badges, right thread panel, send first message (`app/pages/coach/messages.vue`)
+- [x] T0324 [D] "Messages" nav links added with red unread badge — desktop nav (client + coach dropdown), mobile drawer (client + coach sections); 30s background polling in `default.vue` (`app/layouts/default.vue`)
+
+## Epic E — Admin System Logs (commit `48b7c1e`)
+
+> Admin can view a filterable, paginated audit trail of all key system events.
+
+- [x] T0325 [E] `SystemLog` model added to Prisma schema — `level`, `action`, `userId?`, `target?`, `message`, `meta?`, `ip?`; migration `20260303070613_add_system_logs` applied (`prisma/schema.prisma`)
+- [x] T0326 [E] `server/utils/systemLog.ts` — fire-and-forget `systemLog()` helper; writes to `SystemLog` table async, never throws (`server/utils/systemLog.ts`)
+- [x] T0327 [E] Services instrumented — `USER_REGISTERED` + `USER_LOGIN` in `auth.service.ts`, `BOOKING_CREATED` in `booking.service.ts`, `COACH_ASSIGNED` in `assignments.post.ts`
+- [x] T0328 [E] `GET /api/admin/logs` — paginated, filterable by `level`, `action` (partial), `from`/`to` date range, page/limit (`server/api/admin/logs.get.ts`)
+- [x] T0329 [E] `/admin/logs` page — filter bar, color-coded level badges, table with pagination, Actualiser button; "Journaux" link added to admin nav dropdown + mobile drawer (`app/pages/admin/logs.vue`, `app/layouts/default.vue`)
+- [x] T0330 [E] Test mocks updated — `vi.mock('../../server/utils/systemLog', ...)` added to `booking.service.spec.ts`, `booking.spec.ts`, `payment-and-activation.spec.ts` to keep 67/67 green
+
+## Security Tasks (v2) — now complete
+
+- [x] T0215 CSRF origin-check middleware — `server/middleware/csrf.middleware.ts`; validates `Origin`/`Referer` header on all mutation requests (POST/PUT/PATCH/DELETE); webhook endpoint exempt
+- [x] T0216 Content-Security-Policy headers — added to `nuxt.config.ts` via `nitro.routeRules['/**'].headers`; includes CSP, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+- [x] T0217 Account lockout — `loginAttempts Int @default(0)` + `lockedUntil DateTime?` added to `User` model; `auth.service.ts` increments on failure, locks for 15 min after 5 attempts, resets on success; `userRepository` gains `incrementLoginAttempts()` + `resetLoginAttempts()`
+- [x] T0218 Email verification — `emailVerified Boolean @default(false)` + `emailVerificationToken String? @unique` added to `User` model; token generated with `crypto.randomBytes(32)` on registration; `GET /api/auth/verify-email?token=` endpoint clears token and sets verified; email delivery requires provider (token logged server-side for now)
+
+## Phase 12: v2 — FR-016 Couple Subscription Linkage
+
+> Two users can be linked under a single couple plan subscription.
+
+- [x] T0401 [FR-016] DB migration `20260303080000_add_security_and_couple` — adds `partnerUserId` to `PaymentOrder`; adds `loginAttempts`, `lockedUntil`, `emailVerified`, `emailVerificationToken` to `User`
+- [x] T0402 [FR-016] `create-session.post.ts` — accepts optional `partnerEmail`; resolves to `partnerUserId` (404 if not found; 400 if non-CLIENT); passes to `createPaymentOrder`
+- [x] T0403 [FR-016] `confirm.post.ts` — accepts optional `partnerEmail`; resolves to `partnerUserId`; passes to `confirmPayment`
+- [x] T0404 [FR-016] `payments.service.ts` — `createPaymentOrder` stores `partnerUserId`; `handleWebhook` + `confirmPayment` create a second `ACTIVE` subscription for the partner when `partnerUserId` is set; `priceCouple` used when plan is a COUPLE type
+- [x] T0405 [FR-016] `PaymentCheckout.vue` — new `partnerEmail` prop passed to `/api/payments/confirm` body
+- [x] T0406 [FR-016] `subscribe.vue` — partner email `<input>` shown when couple mode selected; `partnerEmails` reactive map per plan; input passed to `PaymentCheckout`
+
+## Bug Fixes (v2)
+
+- [x] BUG-1 `dashboard/calendar.vue` — `limit: 200` exceeded `paginationSchema.max(100)` causing 422; changed to `limit: 100`
+- [x] BUG-2 `nuxt.config.ts` CSP `frame-src` — missing `https://www.openstreetmap.org`; map embed on home page was blocked ("This content is blocked"); added to `frame-src` allowlist
+
+## Phase 13: v2 — Resend Email Provider
+
+> Transactional emails wired via Resend SDK; email verification now enforced at login.
+
+- [x] T0501 Install `resend` npm package
+- [x] T0502 `server/utils/email.ts` — `sendVerificationEmail(to, token)` helper; builds branded HTML email with verification link (`${APP_URL}/verify-email?token=...`); errors are caught and logged (non-blocking)
+- [x] T0503 `auth.service.ts` — `register()` now calls `sendVerificationEmail` (void/non-blocking); `login()` enforces `emailVerified === true` (throws HTTP 403 with French message if unverified)
+- [x] T0504 `prisma/seed.js` — demo + extra-client upserts now set `emailVerified: true` so seeded accounts can log in
+- [x] T0505 `app/pages/verify-email.vue` — landing page at `/verify-email?token=` calls `GET /api/auth/verify-email`; shows success (green ✓, email, login CTA) or error (red ✕, message, register CTA); uses `landing` layout
+- [x] T0506 `.env` / `.env.example` / `nuxt.config.ts` — `RESEND_API_KEY`, `RESEND_FROM`, `APP_URL` env vars added and wired to `runtimeConfig`; email module uses `process.env` directly (Vitest-compatible)
+- [x] T0507 Test mocks — `vi.mock('../../server/utils/email', ...)` added to `auth.service.spec.ts`, `auth.routes.spec.ts`, `payment-and-activation.spec.ts`; 94/94 tests green

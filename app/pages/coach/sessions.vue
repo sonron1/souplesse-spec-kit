@@ -31,7 +31,63 @@
             <span v-if="session.location"> · {{ session.location }}</span>
           </p>
         </div>
-        <span class="badge-gold self-start sm:self-auto">Planifiée</span>
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            class="text-xs text-primary-600 hover:text-primary-700 font-medium underline"
+            @click="openAttendeesModal(session.id)"
+          >
+            Voir inscrits
+          </button>
+          <span class="badge-gold">Planifiée</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendees modal -->
+    <div
+      v-if="attendeesModal.open"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+    >
+      <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold">Inscrits à la séance</h2>
+          <button class="text-gray-400 hover:text-gray-600" @click="attendeesModal.open = false">✕</button>
+        </div>
+
+        <div v-if="attendeesModal.loading" class="py-8 text-center text-gray-400">Chargement…</div>
+
+        <div v-else-if="attendeesModal.error" class="text-red-600 text-sm py-4">{{ attendeesModal.error }}</div>
+
+        <div v-else-if="!attendeesModal.bookings.length" class="py-8 text-center text-gray-400">
+          Aucun inscrit pour le moment.
+        </div>
+
+        <div v-else class="overflow-y-auto flex-1">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 py-2 text-left font-medium text-gray-600">Nom</th>
+                <th class="px-3 py-2 text-left font-medium text-gray-600">Email</th>
+                <th class="px-3 py-2 text-left font-medium text-gray-600">Statut</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              <tr v-for="b in attendeesModal.bookings" :key="b.id">
+                <td class="px-3 py-2 font-medium text-gray-900">{{ b.user?.name ?? '—' }}</td>
+                <td class="px-3 py-2 text-gray-500 text-xs">{{ b.user?.email ?? '—' }}</td>
+                <td class="px-3 py-2">
+                  <span :class="b.status === 'CONFIRMED' ? 'badge-gold' : 'badge-neutral'" class="text-xs">
+                    {{ b.status }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button class="btn-secondary" @click="attendeesModal.open = false">Fermer</button>
+        </div>
       </div>
     </div>
 
@@ -45,7 +101,7 @@
         <div class="space-y-4">
           <div>
             <label class="label">Date et heure</label>
-            <input v-model="form.dateTime" type="datetime-local" class="input" />
+            <input v-model="form.dateTime" type="datetime-local" class="input" :min="minDateTime" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -71,9 +127,8 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
-  const { isCoach, accessToken } = useAuth()
-  if (!isCoach.value) await navigateTo('/dashboard')
+  definePageMeta({ middleware: ['auth', 'coach'] })
+  const { accessToken } = useAuth()
 
   interface Session {
     id: string
@@ -96,6 +151,15 @@
 
   // Modal state
   const showModal = ref(false)
+
+  // Minimum selectable datetime = now (rounded up to next minute)
+  const minDateTime = computed(() => {
+    const d = new Date()
+    d.setSeconds(0, 0)
+    d.setMinutes(d.getMinutes() + 1)
+    return d.toISOString().slice(0, 16) // format: "YYYY-MM-DDTHH:mm"
+  })
+
   const form = reactive({ dateTime: '', duration: 60, capacity: 10 })
   const formError = ref('')
   const saving = ref(false)
@@ -109,6 +173,10 @@
     formError.value = ''
     if (!form.dateTime) {
       formError.value = 'Veuillez sélectionner une date et heure.'
+      return
+    }
+    if (new Date(form.dateTime) <= new Date()) {
+      formError.value = 'La date de la séance doit être dans le futur.'
       return
     }
     saving.value = true
@@ -140,5 +208,37 @@
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  // Attendees modal
+  interface Booking {
+    id: string
+    status: string
+    user?: { id: string; name: string; email: string } | null
+  }
+  const attendeesModal = reactive({
+    open: false,
+    loading: false,
+    error: '',
+    bookings: [] as Booking[],
+  })
+
+  async function openAttendeesModal(sessionId: string) {
+    attendeesModal.open = true
+    attendeesModal.loading = true
+    attendeesModal.error = ''
+    attendeesModal.bookings = []
+    try {
+      const res = await $fetch<{ success: boolean; bookings: Booking[] }>(
+        `/api/sessions/${sessionId}/bookings`,
+        { headers: { Authorization: `Bearer ${accessToken.value}` } }
+      )
+      attendeesModal.bookings = res.bookings ?? []
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      attendeesModal.error = err?.data?.statusMessage ?? 'Erreur lors du chargement.'
+    } finally {
+      attendeesModal.loading = false
+    }
   }
 </script>

@@ -36,7 +36,7 @@ describe('requireAdmin middleware', () => {
   it('throws 401 when authorization header missing', async () => {
     const event: any = { node: { req: { headers: {} } }, context: {} }
     const { requireAdmin } = await import('../../server/middleware/admin.middleware')
-    await expect(requireAdmin(event)).rejects.toThrow('Authorization required')
+    await expect(requireAdmin(event)).rejects.toThrow('Autorisation requise')
   })
 
   it('throws 401 when token invalid', async () => {
@@ -45,6 +45,6 @@ describe('requireAdmin middleware', () => {
       context: {},
     }
     const { requireAdmin } = await import('../../server/middleware/admin.middleware')
-    await expect(requireAdmin(event)).rejects.toThrow('Invalid token')
+    await expect(requireAdmin(event)).rejects.toThrow('Token invalide')
   })
 })

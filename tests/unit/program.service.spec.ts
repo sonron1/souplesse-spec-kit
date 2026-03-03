@@ -10,7 +10,7 @@ vi.mock('../../server/utils/prisma', () => ({
       findMany: vi.fn(),
     },
     coachClientAssignment: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }))
@@ -37,7 +37,7 @@ beforeEach(() => {
 
 describe('programService.createProgram', () => {
   it('creates a program assigned to coach and client', async () => {
-    mockPrisma.coachClientAssignment.findUnique.mockResolvedValue({
+    mockPrisma.coachClientAssignment.findFirst.mockResolvedValue({
       coachId: 'coach-1',
       clientId: 'client-1',
     } as never)
@@ -56,7 +56,7 @@ describe('programService.createProgram', () => {
 describe('programService.updateProgram', () => {
   it('allows the assigned coach to update their program', async () => {
     mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM)
-    mockPrisma.coachClientAssignment.findUnique.mockResolvedValue({
+    mockPrisma.coachClientAssignment.findFirst.mockResolvedValue({
       coachId: 'coach-1',
       clientId: 'client-1',
     } as never)

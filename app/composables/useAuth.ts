@@ -14,20 +14,53 @@ interface AuthTokens {
   refreshToken: string
 }
 
+// Module-level user ref — shared across all useAuth() calls
 const user = ref<AuthUser | null>(null)
 
 export function useAuth() {
-  const accessToken = useCookie<string | null>('access_token', { secure: true, sameSite: 'strict' })
+  // Use raw encode/decode to prevent Nuxt's JSON-serialization from wrapping
+  // JWT strings in quotes, which would produce "jwt malformed" on verification.
+  const rawCookieOpts = {
+    encode: (v: string | null) => v ?? '',
+    decode: (v: string) => v || null,
+  }
+  const accessToken = useCookie<string | null>('access_token', {
+    secure: true,
+    sameSite: 'strict' as const,
+    ...rawCookieOpts,
+  })
   const refreshTokenCookie = useCookie<string | null>('refresh_token', {
     httpOnly: false,
+    secure: true,
+    sameSite: 'strict' as const,
+    maxAge: 7 * 24 * 60 * 60,
+    ...rawCookieOpts,
+  })
+  // Persist user info in cookie so it survives page refresh
+  const userInfoCookie = useCookie<AuthUser | null>('user_info', {
     secure: true,
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60,
   })
 
+  // Hydrate module-level user ref from cookie on each call (idempotent)
+  if (!user.value && userInfoCookie.value) {
+    user.value = userInfoCookie.value
+  }
+
+  // Guard: if accessToken looks malformed (not 3-part JWT), clear the session
+  // to prevent "jwt malformed" WARN spam on every request.
+  if (accessToken.value && !_looksLikeJwt(accessToken.value)) {
+    accessToken.value = null
+    refreshTokenCookie.value = null
+    userInfoCookie.value = null
+    user.value = null
+  }
+
   const isLoggedIn = computed(() => !!accessToken.value)
   const isAdmin = computed(() => user.value?.role === 'ADMIN')
   const isCoach = computed(() => user.value?.role === 'COACH' || user.value?.role === 'ADMIN')
+  const isClient = computed(() => user.value?.role === 'CLIENT')
 
   async function register(name: string, email: string, password: string) {
     const data = await $fetch<{ user: AuthUser; tokens: AuthTokens }>('/api/auth/register', {
@@ -35,7 +68,7 @@ export function useAuth() {
       body: { name, email, password },
     })
     _setSession(data.user, data.tokens)
-    await navigateTo('/dashboard')
+    await _redirectByRole(data.user.role)
   }
 
   async function login(email: string, password: string) {
@@ -44,7 +77,13 @@ export function useAuth() {
       body: { email, password },
     })
     _setSession(data.user, data.tokens)
-    await navigateTo('/dashboard')
+    await _redirectByRole(data.user.role)
+  }
+
+  async function _redirectByRole(role: string) {
+    if (role === 'ADMIN') await navigateTo('/admin')
+    else if (role === 'COACH') await navigateTo('/coach')
+    else await navigateTo('/dashboard')
   }
 
   async function logout() {
@@ -76,17 +115,50 @@ export function useAuth() {
     }
   }
 
+  /**
+   * Silently refresh the access token if it is expired or within 60s of expiry.
+   * Safe to call before any authenticated API request or poll.
+   * Returns false only when the user has no session at all.
+   */
+  async function ensureFresh(): Promise<boolean> {
+    if (!accessToken.value) return false
+    try {
+      // Decode the JWT payload (base64url) without a library
+      const b64 = accessToken.value.split('.')[1]
+        .replace(/-/g, '+').replace(/_/g, '/')
+      const payload = JSON.parse(atob(b64)) as { exp?: number }
+      const expiresAt = (payload.exp ?? 0) * 1000
+      if (Date.now() >= expiresAt - 60_000) {
+        // Token expired or expires within 60 s — refresh silently
+        return await refresh()
+      }
+    } catch {
+      // Undecodable token — clear stale session
+      _clearSession()
+      return false
+    }
+    return true
+  }
+
   function _setSession(u: AuthUser, tokens: AuthTokens) {
     user.value = u
+    userInfoCookie.value = u // persist user to cookie
     accessToken.value = tokens.accessToken
     refreshTokenCookie.value = tokens.refreshToken
   }
 
   function _clearSession() {
     user.value = null
+    userInfoCookie.value = null
     accessToken.value = null
     refreshTokenCookie.value = null
   }
 
-  return { user, isLoggedIn, isAdmin, isCoach, accessToken, register, login, logout, refresh }
+  return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh, ensureFresh }
+}
+
+/** A valid JWT has exactly 3 base64url segments separated by dots. */
+function _looksLikeJwt(token: string): boolean {
+  const parts = token.split('.')
+  return parts.length === 3 && parts.every((p) => p.length > 0)
 }

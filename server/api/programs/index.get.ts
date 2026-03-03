@@ -2,6 +2,7 @@ import { defineEventHandler, getQuery } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { programService } from '../../services/program.service'
 import { createError } from 'h3'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
@@ -13,8 +14,20 @@ export default defineEventHandler(async (event) => {
   if (user.role === 'CLIENT' && targetClientId !== user.sub) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Clients may only view their own programs',
+      message: 'Vous ne pouvez consulter que vos propres programmes',
     })
+  }
+
+  // For coaches with no clientId filter, return ALL their programs with client info
+  if ((user.role === 'COACH' || user.role === 'ADMIN') && !clientId) {
+    const programs = await prisma.program.findMany({
+      where: { coachId: user.sub },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return { success: true, programs }
   }
 
   const programs = await programService.getProgramsByClient(targetClientId)

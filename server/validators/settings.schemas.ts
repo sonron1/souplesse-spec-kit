@@ -12,8 +12,8 @@ export const PlanTypeSchema = z.enum([
 export type PlanType = z.infer<typeof PlanTypeSchema>
 
 export const OpeningPeriodSchema = z.object({
-  open: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format HH:mm'),
-  close: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format HH:mm'),
+  open: z.string().regex(/^\d{2}:\d{2}$/, 'Format d\'heure invalide (HH:mm)'),
+  close: z.string().regex(/^\d{2}:\d{2}$/, 'Format d\'heure invalide (HH:mm)'),
 })
 
 export const OpeningHoursSchema = z.object({

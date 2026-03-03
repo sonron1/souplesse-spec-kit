@@ -15,7 +15,7 @@ export const subscriptionService = {
     // Verify plan exists and is active
     const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } })
     if (!plan || !plan.isActive) {
-      throw createError({ statusCode: 404, statusMessage: 'Subscription plan not found' })
+      throw createError({ statusCode: 404, message: 'Formule d\'abonnement introuvable' })
     }
 
     const subscription = await prisma.subscription.create({
@@ -40,7 +40,7 @@ export const subscriptionService = {
   async activateSubscription(subscriptionId: string): Promise<Subscription> {
     const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
     if (!sub) {
-      throw createError({ statusCode: 404, statusMessage: 'Subscription not found' })
+      throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
     }
 
     if (sub.status === 'ACTIVE') {

@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { prisma } from '../../utils/prisma'
 import { requireAdmin } from '../../middleware/admin.middleware'
 import logger from '../../utils/logger'
+import { systemLog } from '../../utils/systemLog'
+import { notificationService } from '../../services/notification.service'
 
 const AssignCoachSchema = z.object({
   coachId: z.string().uuid(),
@@ -22,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid payload: coachId and clientId (UUID) required',
+      message: 'Données invalides : coachId et clientId (UUID) requis',
     })
   }
 
@@ -37,23 +39,43 @@ export default defineEventHandler(async (event) => {
   if (!coach || coach.role !== 'COACH') {
     throw createError({
       statusCode: 422,
-      statusMessage: 'coachId must reference a user with role COACH',
+      message: 'Le coachId doit référencer un utilisateur avec le rôle COACH',
     })
   }
   if (!client || client.role !== 'CLIENT') {
     throw createError({
       statusCode: 422,
-      statusMessage: 'clientId must reference a user with role CLIENT',
+      message: 'Le clientId doit référencer un utilisateur avec le rôle CLIENT',
     })
   }
 
-  // Upsert — idempotent: re-assigning the same pair is safe
-  const assignment = await prisma.coachClientAssignment.upsert({
-    where: { coachId_clientId: { coachId, clientId } },
-    create: { coachId, clientId },
-    update: {}, // no fields to change on a duplicate
+  // Upsert — if previously REJECTED, reactivate as PENDING; otherwise create fresh
+  const existing = await prisma.coachClientAssignment.findFirst({
+    where: { clientId },
   })
 
-  logger.info({ assignmentId: assignment.id, coachId, clientId }, 'Coach-client assignment created')
+  let assignment
+  if (existing) {
+    assignment = await prisma.coachClientAssignment.update({
+      where: { id: existing.id },
+      data: { coachId, status: 'PENDING', requestedBy: 'admin', respondedAt: null },
+    })
+  } else {
+    assignment = await prisma.coachClientAssignment.create({
+      data: { coachId, clientId, status: 'PENDING', requestedBy: 'admin' },
+    })
+  }
+
+  logger.info({ assignmentId: assignment.id, coachId, clientId }, 'Proposition de coach créée par admin (PENDING)')
+  systemLog({ action: 'COACH_ASSIGNED', target: assignment.id, message: `Admin a proposé le coach ${coachId} au client ${clientId}` })
+
+  // Notify the client they have a pending coach proposal
+  notificationService.create({
+    userId: clientId,
+    type: 'ASSIGNMENT',
+    title: 'Proposition de coach',
+    body: `${coach.name} vous a été proposé comme coach. Rendez-vous dans votre espace pour accepter ou refuser.`,
+  }).catch((err: unknown) => logger.error({ err }, 'Erreur notification assignation'))
+
   return { ok: true, assignment }
 })

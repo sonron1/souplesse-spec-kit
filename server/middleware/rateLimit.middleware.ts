@@ -41,7 +41,7 @@ export function rateLimitMiddleware(options: RateLimitOptions = {}) {
     if (entry.count > max) {
       throw createError({
         statusCode: 429,
-        statusMessage: 'Too Many Requests',
+        message: 'Trop de requêtes, veuillez réessayer plus tard',
         data: { retryAfter: Math.ceil((entry.resetAt - now) / 1000) },
       })
     }
@@ -69,7 +69,7 @@ export default defineEventHandler((event) => {
   if (entry.count > max) {
     throw createError({
       statusCode: 429,
-      statusMessage: 'Too Many Requests',
+      message: 'Trop de requêtes, veuillez réessayer plus tard',
     })
   }
 })

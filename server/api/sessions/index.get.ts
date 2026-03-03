@@ -5,11 +5,24 @@ import { sessionRepository } from '../../repositories/session.repository'
 
 export default defineEventHandler(async (event) => {
   const query = validateQuery(event, listSessionsQuerySchema)
-  const sessions = await sessionRepository.findAll({
+  const filterOpts = {
     page: query.page,
     limit: query.limit,
     from: query.from ? new Date(query.from) : undefined,
     to: query.to ? new Date(query.to) : undefined,
-  })
-  return { success: true, sessions }
+  }
+  const [sessions, total] = await Promise.all([
+    sessionRepository.findAll(filterOpts),
+    sessionRepository.countAll({ from: filterOpts.from, to: filterOpts.to }),
+  ])
+  return {
+    success: true,
+    sessions,
+    pagination: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.limit)),
+    },
+  }
 })

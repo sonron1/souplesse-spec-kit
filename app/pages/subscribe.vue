@@ -24,23 +24,63 @@
       >
         <div class="flex-1">
           <h3 class="text-lg font-bold text-gray-900 mb-1">{{ plan.name }}</h3>
-          <p class="text-sm text-gray-500 mb-3">
-            Valide {{ plan.validityDays }} jours
+          <p class="text-sm text-gray-500 mb-2">
+            Valide <strong>{{ plan.validityDays }} jours</strong>
+            <span v-if="plan.maxReports"> · jusqu'à <strong>{{ plan.maxReports }} bilans</strong></span>
           </p>
+
+          <!-- Solo / Couple toggle -->
+          <div v-if="plan.priceCouples" class="flex gap-1 mb-3 p-1 bg-gray-100 rounded-lg w-fit">
+            <button
+              :class="coupleMode[plan.id] !== 'couple' ? 'bg-white shadow text-gray-900 font-semibold' : 'text-gray-500'"
+              class="px-3 py-1 rounded-md text-xs transition-all"
+              @click="coupleMode[plan.id] = 'single'"
+            >Solo</button>
+            <button
+              :class="coupleMode[plan.id] === 'couple' ? 'bg-white shadow text-gray-900 font-semibold' : 'text-gray-500'"
+              class="px-3 py-1 rounded-md text-xs transition-all"
+              @click="coupleMode[plan.id] = 'couple'"
+            >Couple</button>
+          </div>
+
+          <!-- Partner email input for couple plans (FR-016) -->
+          <div v-if="coupleMode[plan.id] === 'couple'" class="mt-3">
+            <label class="label text-xs">Email du partenaire</label>
+            <input
+              v-model="partnerEmails[plan.id]"
+              type="email"
+              class="input text-sm"
+              placeholder="partenaire@email.com"
+              autocomplete="email"
+            />
+            <p class="text-xs text-gray-400 mt-1">Le partenaire doit avoir un compte Souplesse.</p>
+          </div>
+
           <p class="text-3xl font-extrabold text-primary-600 mb-1">
-            {{ formatPrice(plan.priceSingle) }}
+            {{ formatPrice(activePrice(plan)) }}
           </p>
           <p class="text-xs text-gray-400">XOF — paiement unique</p>
         </div>
 
         <div class="mt-6 space-y-2">
+          <p v-if="planErrors[plan.id]" class="text-red-600 text-sm">
+            {{ planErrors[plan.id] }}
+          </p>
           <PaymentCheckout
             :subscription-plan-id="plan.id"
-            :amount="plan.priceSingle"
-            :amount-label="formatPrice(plan.priceSingle)"
+            :amount="activePrice(plan)"
+            :amount-label="formatPrice(activePrice(plan))"
+            :partner-email="coupleMode[plan.id] === 'couple' ? partnerEmails[plan.id] : undefined"
             @success="onPaymentSuccess(plan.id)"
-            @error="onPaymentError"
+            @error="(msg: string) => onPaymentError(plan.id, msg)"
           />
+          <button
+            v-if="planErrors[plan.id]"
+            class="w-full btn-secondary text-sm"
+            @click="clearPlanError(plan.id)"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     </div>
@@ -61,14 +101,28 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: ['auth', 'client-only'] })
 
   interface Plan {
     id: string
     name: string
+    planType?: string
     priceSingle: number
+    priceCouples?: number | null
     validityDays: number
+    maxReports?: number | null
     currency?: string
+  }
+
+  // Per-plan solo/couple toggle state
+  const coupleMode = reactive<Record<string, 'single' | 'couple'>>({})
+  // Per-plan partner email (FR-016)
+  const partnerEmails = reactive<Record<string, string>>({})
+
+  function activePrice(plan: Plan): number {
+    return coupleMode[plan.id] === 'couple' && plan.priceCouples
+      ? plan.priceCouples
+      : plan.priceSingle
   }
 
   interface PlansResponse {
@@ -102,6 +156,13 @@
     }).format(xof)
   }
 
+  // Per-plan error state (for retry UX)
+  const planErrors = reactive<Record<string, string>>({})
+
+  function clearPlanError(planId: string) {
+    delete planErrors[planId]
+  }
+
   // Toast
   const toast = reactive({ message: '', type: 'success' as 'success' | 'error' })
 
@@ -111,11 +172,14 @@
     setTimeout(() => { toast.message = '' }, 4000)
   }
 
-  function onPaymentSuccess(_planId: string) {
-    showToast('Paiement réussi ! Votre abonnement sera activé sous peu.', 'success')
+  async function onPaymentSuccess(_planId: string) {
+    showToast('Paiement réussi ! Redirection vers votre abonnement…', 'success')
+    await new Promise((r) => setTimeout(r, 2000))
+    await navigateTo('/dashboard/subscriptions')
   }
 
-  function onPaymentError(msg: string) {
+  function onPaymentError(planId: string, msg: string) {
+    planErrors[planId] = `Paiement échoué : ${msg}`
     showToast(`Paiement échoué : ${msg}`, 'error')
   }
 </script>

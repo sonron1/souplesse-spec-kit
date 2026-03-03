@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -67,6 +68,12 @@ enum PlanType {
   COUPLE_ANNUAL
 }
 
+enum AssignmentStatus {
+  PENDING    // awaiting client response
+  ACCEPTED   // client accepted the coach
+  REJECTED   // client refused the coach
+}
+
 // ---------------------------------------------------------------------------
 // Core User Model
 // ---------------------------------------------------------------------------
@@ -81,6 +88,12 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Security fields (T0217 account lockout, T0218 email verification)
+  loginAttempts          Int       @default(0)
+  lockedUntil            DateTime?
+  emailVerified          Boolean   @default(false)
+  emailVerificationToken String?   @unique
+
   subscriptions Subscription[]
   payments      Payment[]
   bookings      Booking[]
@@ -89,6 +102,9 @@ model User {
   clientPrograms Program[]   @relation("ClientPrograms")
   coachAssignments  CoachClientAssignment[] @relation("CoachAssignments")
   clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
+  notifications     Notification[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
   @@index([email])
 }
@@ -186,6 +202,7 @@ model PaymentOrder {
   id                  String   @id @default(uuid())
   userId              String
   subscriptionPlanId  String
+  partnerUserId       String?  // FR-016: second user for couple/duo plans
   amount              Int
   currency            String
   status              String   @default("pending")
@@ -272,15 +289,79 @@ model Program {
 // ---------------------------------------------------------------------------
 
 model CoachClientAssignment {
-  id         String   @id @default(uuid())
-  coachId    String
-  clientId   String
-  assignedAt DateTime @default(now())
+  id          String           @id @default(uuid())
+  coachId     String
+  clientId    String           @unique // one active coach per client
+  status      AssignmentStatus @default(PENDING)
+  requestedBy String?          // 'admin' | 'client'
+  assignedAt  DateTime         @default(now())
+  respondedAt DateTime?        // when client accepted or refused
 
   coach  User @relation("CoachAssignments", fields: [coachId], references: [id])
   client User @relation("ClientAssignments", fields: [clientId], references: [id])
 
-  @@unique([coachId, clientId])
   @@index([coachId])
   @@index([clientId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (v2)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    // e.g. ASSIGNMENT, SUBSCRIPTION_EXPIRING
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, readAt])
+}
+
+// ---------------------------------------------------------------------------
+// Messaging (v2)
+// ---------------------------------------------------------------------------
+
+model Message {
+  id          String    @id @default(uuid())
+  senderId    String
+  recipientId String
+  coachId     String    // coach in a coach↔client or admin↔coach thread
+  clientId    String?   // null = admin↔coach direct thread
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  sender    User @relation("SentMessages",     fields: [senderId],    references: [id])
+  recipient User @relation("ReceivedMessages", fields: [recipientId], references: [id])
+
+  @@index([coachId, createdAt])
+  @@index([coachId, clientId, createdAt])
+  @@index([recipientId, readAt])
+}
+
+// ---------------------------------------------------------------------------
+// System Logs (v2)
+// ---------------------------------------------------------------------------
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // info | warn | error
+  action    String   // e.g. USER_LOGIN, BOOKING_CREATED
+  userId    String?  // actor (null = anonymous / system)
+  target    String?  // affected resource id (optional)
+  message   String
+  meta      Json?    // arbitrary extra fields
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([userId])
 }

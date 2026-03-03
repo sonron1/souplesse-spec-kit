@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
-const { PrismaClient, DayOfWeek } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
+const { PrismaClient } = require('@prisma/client')
 
 async function main() {
   const prisma = new PrismaClient()
@@ -130,6 +131,193 @@ async function main() {
       email: settingsData.email,
     },
   })
+
+  // Seed demo accounts (dev / staging use)
+  const DEMO_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
+  const demoUsers = [
+    { email: 'admin@demo.com',  name: 'Admin Demo',  role: 'ADMIN'  },
+    { email: 'coach@demo.com',  name: 'Coach Demo',  role: 'COACH'  },
+    { email: 'client@demo.com', name: 'Client Demo', role: 'CLIENT' },
+  ]
+  for (const u of demoUsers) {
+    await prisma.user.upsert({
+      where:  { email: u.email },
+      update: { name: u.name, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
+      create: { name: u.name, email: u.email, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
+    })
+  }
+  console.log('Demo accounts seeded: admin@demo.com | coach@demo.com | client@demo.com (password: Demo1234!)')
+
+  // ── Demo data: sessions, bookings, program, subscription ─────────────────
+  const coachUser  = await prisma.user.findUnique({ where: { email: 'coach@demo.com'  } })
+  const clientUser = await prisma.user.findUnique({ where: { email: 'client@demo.com' } })
+
+  if (coachUser && clientUser) {
+    // 1. Coach-client assignment
+    await prisma.coachClientAssignment.upsert({
+      where: { clientId: clientUser.id },
+      update: { coachId: coachUser.id, status: 'ACCEPTED' },
+      create: { coachId: coachUser.id, clientId: clientUser.id, status: 'ACCEPTED', requestedBy: 'admin' },
+    })
+
+    // 2. Sessions (6 upcoming)
+    const sessionDates = [
+      new Date('2026-03-04T07:30:00Z'),
+      new Date('2026-03-05T09:00:00Z'),
+      new Date('2026-03-07T07:30:00Z'),
+      new Date('2026-03-10T09:00:00Z'),
+      new Date('2026-03-12T07:30:00Z'),
+      new Date('2026-03-14T09:00:00Z'),
+    ]
+    const createdSessions = []
+    for (const dateTime of sessionDates) {
+      let s = await prisma.session.findFirst({ where: { coachId: coachUser.id, dateTime } })
+      if (!s) {
+        s = await prisma.session.create({
+          data: { coachId: coachUser.id, dateTime, duration: 60, capacity: 10, location: 'Salle principale' },
+        })
+      }
+      createdSessions.push(s)
+    }
+
+    // 3. Bookings: client confirmed in first 2 sessions
+    for (const session of createdSessions.slice(0, 2)) {
+      const existing = await prisma.booking.findFirst({ where: { sessionId: session.id, userId: clientUser.id } })
+      if (!existing) {
+        await prisma.booking.create({ data: { userId: clientUser.id, sessionId: session.id, status: 'CONFIRMED' } })
+      }
+    }
+
+    // 4. Training program
+    const existingProg = await prisma.program.findFirst({ where: { clientId: clientUser.id, coachId: coachUser.id } })
+    if (!existingProg) {
+      await prisma.program.create({
+        data: {
+          coachId: coachUser.id,
+          clientId: clientUser.id,
+          type: 'GAIN',
+          content: {
+            title: 'Programme Prise de Masse – Débutant',
+            weeks: 8,
+            sessionsPerWeek: 3,
+            exercises: [
+              { day: 'Lundi',    name: 'Squat',              sets: 4, reps: '8-10', rest: '90s'  },
+              { day: 'Lundi',    name: 'Développé couché',   sets: 4, reps: '8-10', rest: '90s'  },
+              { day: 'Mercredi', name: 'Soulevé de terre',   sets: 3, reps: '6-8',  rest: '120s' },
+              { day: 'Mercredi', name: 'Rowing barre',       sets: 3, reps: '8-10', rest: '90s'  },
+              { day: 'Vendredi', name: 'Tractions',          sets: 3, reps: '8-10', rest: '90s'  },
+              { day: 'Vendredi', name: 'Presse à cuisses',   sets: 4, reps: '10-12', rest: '90s' },
+            ],
+            notes: "Focus sur la forme avant d'augmenter les charges. Progression de 2,5 kg par semaine si possible. Boire 2 L d'eau par jour.",
+          },
+        },
+      })
+    }
+
+    // 5. Active subscription for client
+    const plan = await prisma.subscriptionPlan.findFirst({ where: { name: 'Abonnement 1 mois' } })
+    if (plan) {
+      const existingSub = await prisma.subscription.findFirst({ where: { userId: clientUser.id, status: 'ACTIVE' } })
+      if (!existingSub) {
+        const now     = new Date()
+        const expires = new Date(now)
+        expires.setDate(expires.getDate() + 25)
+        await prisma.subscription.create({
+          data: {
+            userId:             clientUser.id,
+            subscriptionPlanId: plan.id,
+            type:               'MONTHLY',
+            status:             'ACTIVE',
+            isActive:           true,
+            activationDate:     now,
+            startsAt:           now,
+            expiresAt:          expires,
+            maxReports:         plan.maxReports,
+          },
+        })
+      }
+    }
+
+    console.log('Demo data seeded: sessions, bookings, program, subscription for coach@demo.com / client@demo.com')
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Extra fake clients (5 more for realistic demo) ────────────────────────
+  const extraClients = [
+    { email: 'aminata.kone@test.com',       name: 'Aminata Koné',       subPlan: 'Abonnement 1 mois',   bookSessions: 2, assignToCoach: true  },
+    { email: 'koffi.mensah@test.com',        name: 'Koffi Mensah',        subPlan: 'Carnet 10 séances',  bookSessions: 1, assignToCoach: false },
+    { email: 'fatoumata.diallo@test.com',    name: 'Fatoumata Diallo',    subPlan: null,                  bookSessions: 0, assignToCoach: true  },
+    { email: 'oumar.traore@test.com',        name: 'Oumar Traoré',        subPlan: 'Abonnement 3 mois',  bookSessions: 1, assignToCoach: false },
+    { email: 'blessing.okonkwo@test.com',    name: 'Blessing Okonkwo',    subPlan: 'Carnet 15 séances',  bookSessions: 2, assignToCoach: false },
+  ]
+
+  const EXTRA_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
+  const coachForExtras = await prisma.user.findUnique({ where: { email: 'coach@demo.com' } })
+
+  for (const ec of extraClients) {
+    // Upsert client user
+    const clientRec = await prisma.user.upsert({
+      where:  { email: ec.email },
+      update: { name: ec.name, emailVerified: true },
+      create: { name: ec.name, email: ec.email, role: 'CLIENT', passwordHash: EXTRA_PASSWORD_HASH, emailVerified: true },
+    })
+
+    // Assign to coach
+    if (ec.assignToCoach && coachForExtras) {
+      await prisma.coachClientAssignment.upsert({
+        where: { clientId: clientRec.id },
+        update: { coachId: coachForExtras.id, status: 'ACCEPTED' },
+        create: { coachId: coachForExtras.id, clientId: clientRec.id, status: 'ACCEPTED', requestedBy: 'admin' },
+      })
+    }
+
+    // Create subscription
+    if (ec.subPlan) {
+      const subPlanRec = await prisma.subscriptionPlan.findFirst({ where: { name: ec.subPlan } })
+      if (subPlanRec) {
+        const existingSub = await prisma.subscription.findFirst({ where: { userId: clientRec.id, status: 'ACTIVE' } })
+        if (!existingSub) {
+          const start = new Date()
+          const end   = new Date(start)
+          end.setDate(end.getDate() + subPlanRec.validityDays)
+          await prisma.subscription.create({
+            data: {
+              userId:             clientRec.id,
+              subscriptionPlanId: subPlanRec.id,
+              type:               'MONTHLY',
+              status:             'ACTIVE',
+              isActive:           true,
+              activationDate:     start,
+              startsAt:           start,
+              expiresAt:          end,
+              maxReports:         subPlanRec.maxReports,
+            },
+          })
+        }
+      }
+    }
+
+    // Book sessions (reuse coach sessions already created)
+    if (ec.bookSessions > 0 && coachForExtras) {
+      const coachSessions = await prisma.session.findMany({
+        where: { coachId: coachForExtras.id },
+        orderBy: { dateTime: 'asc' },
+        take: ec.bookSessions + 2,
+      })
+      let booked = 0
+      for (const sess of coachSessions) {
+        if (booked >= ec.bookSessions) break
+        const already = await prisma.booking.findFirst({ where: { sessionId: sess.id, userId: clientRec.id } })
+        if (!already) {
+          await prisma.booking.create({ data: { userId: clientRec.id, sessionId: sess.id, status: 'CONFIRMED' } })
+          booked++
+        }
+      }
+    }
+  }
+
+  console.log('Extra fake clients seeded: Aminata, Koffi, Fatoumata, Oumar, Blessing (password: Demo1234!)')
+  // ─────────────────────────────────────────────────────────────────────────
 
   console.log('Seeding complete.')
   await prisma.$disconnect()

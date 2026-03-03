@@ -53,7 +53,9 @@
             <ul class="space-y-2 text-sm text-gray-400">
               <li class="flex items-start gap-2">
                 <span class="text-primary-400 mt-0.5">📍</span>
-                <span>Face clôture Lita au bord des pavés,<br />Carrefour Lita → Carrefour Tankpé</span>
+                <a href="https://maps.app.goo.gl/Py8YokJMMmGNKuVQ6" target="_blank" rel="noopener noreferrer" class="hover:text-primary-400 transition-colors">
+                  Face clôture Lita au bord des pavés,<br />Carrefour Lita → Carrefour Tankpé
+                </a>
               </li>
               <li class="flex items-center gap-2">
                 <span class="text-primary-400">📞</span>

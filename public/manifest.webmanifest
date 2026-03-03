@@ -1,0 +1,20 @@
+{
+  "name": "Souplesse Fitness",
+  "short_name": "Souplesse",
+  "description": "Salle de sport à Cotonou, Bénin — musculation, cardio, coaching personnalisé.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#EAB308",
+  "orientation": "any",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "health", "fitness"]
+}

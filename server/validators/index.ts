@@ -80,7 +80,7 @@ export const emailSchema = z.string().email().toLowerCase().trim()
 
 export const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(128, 'Password too long')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one digit')
+  .min(8, 'Le mot de passe doit comporter au moins 8 caractères')
+  .max(128, 'Mot de passe trop long')
+  .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
+  .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')

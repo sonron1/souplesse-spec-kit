@@ -4,6 +4,7 @@ import { bookingRepository } from '../repositories/booking.repository'
 import { subscriptionService } from './subscription.service'
 import { createError } from 'h3'
 import logger from '../utils/logger'
+import { systemLog } from '../utils/systemLog'
 import type { Booking } from '.prisma/client'
 
 /** Maps JavaScript Date.getDay() (0=Sun) to Prisma DayOfWeek enum values */
@@ -34,7 +35,7 @@ export const bookingService = {
     if (!hasActive) {
       throw createError({
         statusCode: 403,
-        statusMessage: 'An active subscription is required to book a session',
+        message: 'Un abonnement actif est requis pour réserver une séance',
       })
     }
 
@@ -43,7 +44,7 @@ export const bookingService = {
     if (existing && existing.status === 'CONFIRMED') {
       throw createError({
         statusCode: 409,
-        statusMessage: 'You already have a booking for this session',
+        message: 'Vous avez déjà une réservation pour cette séance',
       })
     }
 
@@ -51,12 +52,16 @@ export const bookingService = {
     const booking = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const session = await tx.session.findUnique({ where: { id: sessionId } })
       if (!session) {
-        throw createError({ statusCode: 404, statusMessage: 'Session not found' })
+        throw createError({ statusCode: 404, message: 'Séance introuvable' })
+      }
+
+      if (session.dateTime <= new Date()) {
+        throw createError({ statusCode: 422, message: 'Cette séance est déjà passée et ne peut plus être réservée.' })
       }
 
       const booked = await tx.booking.count({ where: { sessionId, status: 'CONFIRMED' } })
       if (booked >= session.capacity) {
-        throw createError({ statusCode: 409, statusMessage: 'Session is fully booked' })
+        throw createError({ statusCode: 409, message: 'Cette séance est complète' })
       }
 
       // 4. BusinessHours validation (FR-013)
@@ -69,7 +74,7 @@ export const bookingService = {
         if (sessionTime < hours.openTime || sessionTime >= hours.closeTime) {
           throw createError({
             statusCode: 422,
-            statusMessage: `Session is outside business hours (${hours.openTime}â€“${hours.closeTime})`,
+            message: `Cette séance est en dehors des horaires d'ouverture (${hours.openTime}–${hours.closeTime})`,
           })
         }
       }
@@ -78,6 +83,7 @@ export const bookingService = {
     })
 
     logger.info({ bookingId: booking.id, userId, sessionId }, 'Session booked')
+    systemLog({ action: 'BOOKING_CREATED', userId, target: booking.id, message: `Session ${sessionId} booked` })
     return booking
   },
 }
