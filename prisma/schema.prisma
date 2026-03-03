@@ -90,6 +90,8 @@ model User {
   coachAssignments  CoachClientAssignment[] @relation("CoachAssignments")
   clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
   notifications     Notification[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
   @@index([email])
 }
@@ -303,4 +305,25 @@ model Notification {
 
   @@index([userId])
   @@index([userId, readAt])
+}
+
+// ---------------------------------------------------------------------------
+// Messaging (v2)
+// ---------------------------------------------------------------------------
+
+model Message {
+  id          String    @id @default(uuid())
+  senderId    String
+  recipientId String
+  coachId     String    // always the coach in this conversation
+  clientId    String    // always the client in this conversation
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  sender    User @relation("SentMessages",     fields: [senderId],    references: [id])
+  recipient User @relation("ReceivedMessages", fields: [recipientId], references: [id])
+
+  @@index([coachId, clientId, createdAt])
+  @@index([recipientId, readAt])
 }
