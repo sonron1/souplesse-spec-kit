@@ -32,7 +32,7 @@ export const authService = {
   async register(input: RegisterInput): Promise<{ user: AuthUser; tokens: AuthTokens }> {
     const existing = await userRepository.findByEmail(input.email)
     if (existing) {
-      throw createError({ statusCode: 409, statusMessage: 'Email already registered' })
+      throw createError({ statusCode: 409, statusMessage: 'Cette adresse email est déjà utilisée' })
     }
 
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS)
@@ -57,12 +57,12 @@ export const authService = {
   async login(input: LoginInput): Promise<{ user: AuthUser; tokens: AuthTokens }> {
     const user = await userRepository.findByEmail(input.email)
     if (!user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
+      throw createError({ statusCode: 401, statusMessage: 'Identifiants invalides' })
     }
 
     const valid = await bcrypt.compare(input.password, user.passwordHash)
     if (!valid) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid credentials' })
+      throw createError({ statusCode: 401, statusMessage: 'Identifiants invalides' })
     }
 
     const tokens = await _issueTokens(user.id, user.email, user.role)
@@ -81,12 +81,12 @@ export const authService = {
     try {
       payload = verifyRefreshToken(token)
     } catch {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid or expired refresh token' })
+      throw createError({ statusCode: 401, statusMessage: 'Token de rafraîchissement invalide ou expiré' })
     }
 
     const user = await userRepository.findById(payload.sub)
     if (!user || user.refreshToken !== token) {
-      throw createError({ statusCode: 401, statusMessage: 'Refresh token revoked' })
+      throw createError({ statusCode: 401, statusMessage: 'Token de rafraîchissement révoqué' })
     }
 
     const tokens = await _issueTokens(user.id, user.email, user.role)

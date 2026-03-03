@@ -8,7 +8,7 @@ export const createBookingSchema = z.object({
 // Accept either a full ISO datetime or a plain date (YYYY-MM-DD)
 const dateOrDatetime = z.string().refine(
   (v) => /^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]+)?$/.test(v),
-  { message: 'Expected a date (YYYY-MM-DD) or ISO datetime string' }
+  { message: 'Format de date invalide (YYYY-MM-DD ou ISO)' }
 )
 
 export const listSessionsQuerySchema = paginationSchema.extend({

@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
  */
 export function requireAuth(event: { context: { user?: JwtPayload } }): JwtPayload {
   if (!event.context.user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ statusCode: 401, statusMessage: 'Non authentifié' })
   }
   return event.context.user
 }
