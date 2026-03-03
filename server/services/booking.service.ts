@@ -55,6 +55,10 @@ export const bookingService = {
         throw createError({ statusCode: 404, message: 'Séance introuvable' })
       }
 
+      if (session.dateTime <= new Date()) {
+        throw createError({ statusCode: 422, message: 'Cette séance est déjà passée et ne peut plus être réservée.' })
+      }
+
       const booked = await tx.booking.count({ where: { sessionId, status: 'CONFIRMED' } })
       if (booked >= session.capacity) {
         throw createError({ statusCode: 409, message: 'Cette séance est complète' })

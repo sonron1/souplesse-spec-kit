@@ -17,7 +17,10 @@ export const listSessionsQuerySchema = paginationSchema.extend({
 })
 
 export const createSessionSchema = z.object({
-  dateTime: z.string().datetime(),
+  dateTime: z.string().datetime().refine(
+    (v) => new Date(v) > new Date(),
+    { message: 'La date de la séance doit être dans le futur.' }
+  ),
   duration: z.number().int().min(15).max(240),
   capacity: z.number().int().min(1).max(200),
 })

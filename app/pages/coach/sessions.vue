@@ -101,7 +101,7 @@
         <div class="space-y-4">
           <div>
             <label class="label">Date et heure</label>
-            <input v-model="form.dateTime" type="datetime-local" class="input" />
+            <input v-model="form.dateTime" type="datetime-local" class="input" :min="minDateTime" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -151,6 +151,15 @@
 
   // Modal state
   const showModal = ref(false)
+
+  // Minimum selectable datetime = now (rounded up to next minute)
+  const minDateTime = computed(() => {
+    const d = new Date()
+    d.setSeconds(0, 0)
+    d.setMinutes(d.getMinutes() + 1)
+    return d.toISOString().slice(0, 16) // format: "YYYY-MM-DDTHH:mm"
+  })
+
   const form = reactive({ dateTime: '', duration: 60, capacity: 10 })
   const formError = ref('')
   const saving = ref(false)
@@ -164,6 +173,10 @@
     formError.value = ''
     if (!form.dateTime) {
       formError.value = 'Veuillez sélectionner une date et heure.'
+      return
+    }
+    if (new Date(form.dateTime) <= new Date()) {
+      formError.value = 'La date de la séance doit être dans le futur.'
       return
     }
     saving.value = true
