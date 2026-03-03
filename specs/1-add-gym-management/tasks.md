@@ -174,3 +174,25 @@ description: 'Task list for Souplesse Fitness - Gym Management'
 ---
 
 Implementation notes: adjust task IDs if tasks are shuffled; each task above includes a concrete file path to implement.
+
+---
+
+## Phase 10: v2 — UX Redesign & Security Hardening
+
+> Tasks completed after the initial 48. Documents work done in the v2 branch (`feat/v2-homepage-users`).
+
+- [x] T0207 [P] UX redesign — admin, coach, and client dashboards rebuilt with dark-card layout, gradient accents, skeleton loaders (`app/pages/admin/index.vue`, `coach/index.vue`, `dashboard/index.vue`)
+- [x] T0208 [P] Auth persistence via `user_info` cookie — `useAuth.ts` now hydrates `user` ref from cookie on every call, fixing page-refresh logout (`app/composables/useAuth.ts`)
+- [x] T0209 [P] Role-based Nuxt middleware chain — new `admin.ts`, `coach.ts`, `client-only.ts` middlewares; all pages updated to use `definePageMeta({ middleware: [...] })` (`app/middleware/`)
+- [x] T0210 [P] Role-aware post-login redirect — `_redirectByRole()` helper sends ADMIN → /admin, COACH → /coach, CLIENT → /dashboard after successful login (`app/composables/useAuth.ts`)
+- [x] T0211 [P] Server-side `requireRole(CLIENT)` enforced on booking creation and payment session endpoints — blocks coaches and admins from purchasing subscriptions (`server/api/bookings/index.post.ts`, `server/api/payments/create-session.post.ts`)
+- [x] T0212 [P] Admin dashboard enhanced with 8 KPI cards — added `totalCoaches`, `totalClients`, `totalSessions`, `upcomingSessions` to `stats.service.ts` and displayed in second KPI row (`app/pages/admin/index.vue`, `server/services/stats.service.ts`)
+- [x] T0213 [P] Default nav adapted per role — `default.vue` shows client-only nav links only to CLIENT role; "Tableau de bord" link resolves to the correct role dashboard (`app/layouts/default.vue`)
+- [x] T0214 [P] Landing page images updated to Black athletes; 5 extra demo clients seeded (`prisma/seed.js`)
+
+## Open Security Tasks (v2)
+
+- [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
+- [ ] T0216 Content-Security-Policy headers — configure in `nuxt.config.ts` via `nitro.routeRules`
+- [ ] T0217 Account lockout after N consecutive failed login attempts (`server/services/auth.service.ts`)
+- [ ] T0218 Email verification flow for new registrations (new `emailVerified` field + verification endpoint)
