@@ -10,6 +10,8 @@ vi.mock('../../server/utils/jwt')
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }))
+vi.mock('../../server/utils/systemLog', () => ({ systemLog: vi.fn() }))
+vi.mock('../../server/utils/email', () => ({ sendVerificationEmail: vi.fn().mockResolvedValue(undefined) }))
 
 const mockUserRepo = vi.mocked(userRepository)
 const mockJwt = vi.mocked(jwtUtils)

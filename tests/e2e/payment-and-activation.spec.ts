@@ -22,6 +22,7 @@ vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('../../server/utils/systemLog', () => ({ systemLog: vi.fn() }))
+vi.mock('../../server/utils/email', () => ({ sendVerificationEmail: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../../server/utils/jwt', () => ({
   signAccessToken: vi.fn().mockReturnValue('e2e-access-token'),
   signRefreshToken: vi.fn().mockReturnValue('e2e-refresh-token'),

@@ -48,6 +48,7 @@
     "libsodium-wrappers": "^0.8.2",
     "nuxt": "latest",
     "pino": "^8.21.0",
-    "pino-pretty": "^11.0.0"
+    "pino-pretty": "^11.0.0",
+    "resend": "^6.9.3"
   }
 }

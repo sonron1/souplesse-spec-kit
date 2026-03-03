@@ -142,8 +142,8 @@ async function main() {
   for (const u of demoUsers) {
     await prisma.user.upsert({
       where:  { email: u.email },
-      update: { name: u.name, role: u.role, passwordHash: DEMO_PASSWORD_HASH },
-      create: { name: u.name, email: u.email, role: u.role, passwordHash: DEMO_PASSWORD_HASH },
+      update: { name: u.name, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
+      create: { name: u.name, email: u.email, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
     })
   }
   console.log('Demo accounts seeded: admin@demo.com | coach@demo.com | client@demo.com (password: Demo1234!)')
@@ -258,8 +258,8 @@ async function main() {
     // Upsert client user
     const clientRec = await prisma.user.upsert({
       where:  { email: ec.email },
-      update: { name: ec.name },
-      create: { name: ec.name, email: ec.email, role: 'CLIENT', passwordHash: EXTRA_PASSWORD_HASH },
+      update: { name: ec.name, emailVerified: true },
+      create: { name: ec.name, email: ec.email, role: 'CLIENT', passwordHash: EXTRA_PASSWORD_HASH, emailVerified: true },
     })
 
     // Assign to coach

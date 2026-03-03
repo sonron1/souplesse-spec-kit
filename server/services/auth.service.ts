@@ -5,6 +5,7 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/
 import { createError } from 'h3'
 import logger from '../utils/logger'
 import { systemLog } from '../utils/systemLog'
+import { sendVerificationEmail } from '../utils/email'
 import type { RegisterInput, LoginInput } from '../validators/auth.schemas'
 
 const BCRYPT_ROUNDS = 12
@@ -54,8 +55,8 @@ export const authService = {
 
     const tokens = await _issueTokens(user.id, user.email, user.role)
     logger.info({ userId: user.id }, 'User registered')
-    // Log the verification token — in production this would be emailed to the user
-    logger.info({ userId: user.id, emailVerificationToken }, 'Email verification token generated (send via email provider)')
+    // Send verification email (non-blocking — never fails registration)
+    void sendVerificationEmail(user.email, emailVerificationToken)
     systemLog({ action: 'USER_REGISTERED', userId: user.id, message: `New account: ${user.email}` })
 
     return { user: _safeUser(user), tokens }
@@ -73,6 +74,15 @@ export const authService = {
     if (!user) {
       // Don't reveal whether the email exists
       throw createError({ statusCode: 401, message: 'Identifiants invalides' })
+    }
+
+    // Email verification check (T0218) — only block if emailVerified field is false
+    // (users created by seed/admin have emailVerified=true and are exempt)
+    if (user.emailVerified === false) {
+      throw createError({
+        statusCode: 403,
+        message: 'Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte mail.',
+      })
     }
 
     // Account lockout check (T0217)

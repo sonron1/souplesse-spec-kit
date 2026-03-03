@@ -266,3 +266,16 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 ## Bug Fixes (v2)
 
 - [x] BUG-1 `dashboard/calendar.vue` — `limit: 200` exceeded `paginationSchema.max(100)` causing 422; changed to `limit: 100`
+- [x] BUG-2 `nuxt.config.ts` CSP `frame-src` — missing `https://www.openstreetmap.org`; map embed on home page was blocked ("This content is blocked"); added to `frame-src` allowlist
+
+## Phase 13: v2 — Resend Email Provider
+
+> Transactional emails wired via Resend SDK; email verification now enforced at login.
+
+- [x] T0501 Install `resend` npm package
+- [x] T0502 `server/utils/email.ts` — `sendVerificationEmail(to, token)` helper; builds branded HTML email with verification link (`${APP_URL}/verify-email?token=...`); errors are caught and logged (non-blocking)
+- [x] T0503 `auth.service.ts` — `register()` now calls `sendVerificationEmail` (void/non-blocking); `login()` enforces `emailVerified === true` (throws HTTP 403 with French message if unverified)
+- [x] T0504 `prisma/seed.js` — demo + extra-client upserts now set `emailVerified: true` so seeded accounts can log in
+- [x] T0505 `app/pages/verify-email.vue` — landing page at `/verify-email?token=` calls `GET /api/auth/verify-email`; shows success (green ✓, email, login CTA) or error (red ✕, message, register CTA); uses `landing` layout
+- [x] T0506 `.env` / `.env.example` / `nuxt.config.ts` — `RESEND_API_KEY`, `RESEND_FROM`, `APP_URL` env vars added and wired to `runtimeConfig`; email module uses `process.env` directly (Vitest-compatible)
+- [x] T0507 Test mocks — `vi.mock('../../server/utils/email', ...)` added to `auth.service.spec.ts`, `auth.routes.spec.ts`, `payment-and-activation.spec.ts`; 94/94 tests green

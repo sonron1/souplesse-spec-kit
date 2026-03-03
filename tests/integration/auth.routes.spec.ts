@@ -9,6 +9,7 @@ vi.mock('../../server/services/auth.service')
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
+vi.mock('../../server/utils/email', () => ({ sendVerificationEmail: vi.fn().mockResolvedValue(undefined) }))
 
 const mockAuth = vi.mocked(authService)
 

@@ -115,6 +115,9 @@ export default defineNuxtConfig({
     kkiapaySecretKey: process.env.KKIAPAY_SECRET_KEY ?? '',
     kkiapayWebhookSecret: process.env.KKIAPAY_WEBHOOK_SECRET ?? '',
     databaseUrl: process.env.DATABASE_URL ?? '',
+    resendApiKey: process.env.RESEND_API_KEY ?? '',
+    resendFrom: process.env.RESEND_FROM ?? 'Souplesse Fitness <onboarding@resend.dev>',
+    appUrl: process.env.APP_URL ?? 'http://localhost:3000',
     // Public (exposed to client)
     public: {
       appName: process.env.NUXT_PUBLIC_APP_NAME ?? 'Souplesse Fitness',
