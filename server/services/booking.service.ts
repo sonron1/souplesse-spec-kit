@@ -4,6 +4,7 @@ import { bookingRepository } from '../repositories/booking.repository'
 import { subscriptionService } from './subscription.service'
 import { createError } from 'h3'
 import logger from '../utils/logger'
+import { systemLog } from '../utils/systemLog'
 import type { Booking } from '.prisma/client'
 
 /** Maps JavaScript Date.getDay() (0=Sun) to Prisma DayOfWeek enum values */
@@ -78,6 +79,7 @@ export const bookingService = {
     })
 
     logger.info({ bookingId: booking.id, userId, sessionId }, 'Session booked')
+    systemLog({ action: 'BOOKING_CREATED', userId, target: booking.id, message: `Session ${sessionId} booked` })
     return booking
   },
 }

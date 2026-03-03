@@ -3,6 +3,7 @@ import { userRepository } from '../repositories/user.repository'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt'
 import { createError } from 'h3'
 import logger from '../utils/logger'
+import { systemLog } from '../utils/systemLog'
 import type { RegisterInput, LoginInput } from '../validators/auth.schemas'
 
 const BCRYPT_ROUNDS = 12
@@ -44,6 +45,7 @@ export const authService = {
 
     const tokens = await _issueTokens(user.id, user.email, user.role)
     logger.info({ userId: user.id }, 'User registered')
+    systemLog({ action: 'USER_REGISTERED', userId: user.id, message: `New account: ${user.email}` })
 
     return { user: _safeUser(user), tokens }
   },
@@ -65,6 +67,7 @@ export const authService = {
 
     const tokens = await _issueTokens(user.id, user.email, user.role)
     logger.info({ userId: user.id }, 'User logged in')
+    systemLog({ action: 'USER_LOGIN', userId: user.id, message: `Login: ${user.email}` })
 
     return { user: _safeUser(user), tokens }
   },

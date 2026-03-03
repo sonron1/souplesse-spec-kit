@@ -327,3 +327,23 @@ model Message {
   @@index([coachId, clientId, createdAt])
   @@index([recipientId, readAt])
 }
+
+// ---------------------------------------------------------------------------
+// System Logs (v2)
+// ---------------------------------------------------------------------------
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // info | warn | error
+  action    String   // e.g. USER_LOGIN, BOOKING_CREATED
+  userId    String?  // actor (null = anonymous / system)
+  target    String?  // affected resource id (optional)
+  message   String
+  meta      Json?    // arbitrary extra fields
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([userId])
+}

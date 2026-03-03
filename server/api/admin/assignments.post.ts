@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../../utils/prisma'
 import { requireAdmin } from '../../middleware/admin.middleware'
 import logger from '../../utils/logger'
+import { systemLog } from '../../utils/systemLog'
 import { notificationService } from '../../services/notification.service'
 
 const AssignCoachSchema = z.object({
@@ -56,6 +57,7 @@ export default defineEventHandler(async (event) => {
   })
 
   logger.info({ assignmentId: assignment.id, coachId, clientId }, 'Coach-client assignment created')
+  systemLog({ action: 'COACH_ASSIGNED', target: assignment.id, message: `Coach ${coachId} assigned to client ${clientId}` })
 
   // Notify the client that a coach has been assigned to them
   notificationService.create({
