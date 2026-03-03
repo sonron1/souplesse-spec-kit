@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
   // Notify all admins
   const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } })
-  await Promise.all(admins.map(admin =>
+  await Promise.all(admins.map((admin: { id: string }) =>
     notificationService.create({
       userId: admin.id,
       type: 'COACH_REQUEST',

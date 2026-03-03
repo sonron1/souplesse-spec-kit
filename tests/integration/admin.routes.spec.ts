@@ -17,9 +17,13 @@ describe('Admin routes integration', () => {
     it('returns dashboard stats for admin', async () => {
       const mockData = {
         totalUsers: 50,
+        totalCoaches: 5,
+        totalClients: 45,
         activeSubscriptions: 30,
         totalRevenue: 250000,
         totalBookings: 120,
+        totalSessions: 80,
+        upcomingSessions: 10,
         revenueByMonth: [],
       }
       mockStats.getDashboardStats.mockResolvedValue(mockData)

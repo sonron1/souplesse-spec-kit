@@ -43,7 +43,7 @@ const MOCK_MESSAGE = {
   sender: { id: COACH_ID, name: 'Coach A', role: 'COACH' },
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 // ─── getConversation() ────────────────────────────────────────────────────────
 describe('messageService.getConversation', () => {
@@ -195,6 +195,6 @@ describe('messageService.getConversations', () => {
 
     const result = await messageService.getConversations(COACH_ID, 'COACH')
     expect(result).toHaveLength(1)
-    expect(result[0].client.id).toBe(CLIENT_ID)
+    expect((result[0] as any).client.id).toBe(CLIENT_ID)
   })
 })

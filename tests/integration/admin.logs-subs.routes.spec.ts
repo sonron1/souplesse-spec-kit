@@ -64,7 +64,7 @@ const MOCK_SUBSCRIPTION = {
   subscriptionPlan: { name: 'Mensuel', planType: 'MONTHLY' },
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 // ─── GET /api/admin/logs ──────────────────────────────────────────────────────
 describe('GET /api/admin/logs (via prisma mock)', () => {

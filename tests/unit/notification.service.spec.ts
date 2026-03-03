@@ -32,7 +32,7 @@ const MOCK_NOTIF = {
   createdAt: new Date('2026-03-01T10:00:00Z'),
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 // ─── create() ────────────────────────────────────────────────────────────────
 describe('notificationService.create', () => {

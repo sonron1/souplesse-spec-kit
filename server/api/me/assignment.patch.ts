@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     }).catch((err: unknown) => logger.error({ err }, 'Erreur notification coach'))
 
     // Notify admins
-    await Promise.all(admins.map(admin =>
+    await Promise.all(admins.map((admin: { id: string }) =>
       notificationService.create({
         userId: admin.id,
         type: 'ASSIGNMENT_ACCEPTED',
@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     systemLog({ action: 'ASSIGNMENT_ACCEPTED', target: assignment.id, message: `Client ${me.sub} a accepté le coach ${assignment.coachId}` })
   } else {
     // REFUSE — notify admins
-    await Promise.all(admins.map(admin =>
+    await Promise.all(admins.map((admin: { id: string }) =>
       notificationService.create({
         userId: admin.id,
         type: 'ASSIGNMENT_REFUSED',

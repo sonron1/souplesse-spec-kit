@@ -1,10 +1,10 @@
 import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
 import { z } from 'zod'
-import { requireAdmin } from '../../middleware/admin.middleware'
-import { prisma } from '../../utils/prisma'
-import { logger } from '../../utils/logger'
-import { notificationService } from '../../services/notification.service'
-import { systemLog } from '../../utils/systemLog'
+import { requireAdmin } from '../../../middleware/admin.middleware'
+import { prisma } from '../../../utils/prisma'
+import { logger } from '../../../utils/logger'
+import { notificationService } from '../../../services/notification.service'
+import { systemLog } from '../../../utils/systemLog'
 
 const bodySchema = z.object({
   action: z.enum(['APPROVE', 'REJECT'], { message: 'action doit être APPROVE ou REJECT' }),
