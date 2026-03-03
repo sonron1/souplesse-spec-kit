@@ -18,12 +18,23 @@ interface AuthTokens {
 const user = ref<AuthUser | null>(null)
 
 export function useAuth() {
-  const accessToken = useCookie<string | null>('access_token', { secure: true, sameSite: 'strict' })
+  // Use raw encode/decode to prevent Nuxt's JSON-serialization from wrapping
+  // JWT strings in quotes, which would produce "jwt malformed" on verification.
+  const rawCookieOpts = {
+    encode: (v: string | null) => v ?? '',
+    decode: (v: string) => v || null,
+  }
+  const accessToken = useCookie<string | null>('access_token', {
+    secure: true,
+    sameSite: 'strict' as const,
+    ...rawCookieOpts,
+  })
   const refreshTokenCookie = useCookie<string | null>('refresh_token', {
     httpOnly: false,
     secure: true,
-    sameSite: 'strict',
+    sameSite: 'strict' as const,
     maxAge: 7 * 24 * 60 * 60,
+    ...rawCookieOpts,
   })
   // Persist user info in cookie so it survives page refresh
   const userInfoCookie = useCookie<AuthUser | null>('user_info', {
@@ -35,6 +46,15 @@ export function useAuth() {
   // Hydrate module-level user ref from cookie on each call (idempotent)
   if (!user.value && userInfoCookie.value) {
     user.value = userInfoCookie.value
+  }
+
+  // Guard: if accessToken looks malformed (not 3-part JWT), clear the session
+  // to prevent "jwt malformed" WARN spam on every request.
+  if (accessToken.value && !_looksLikeJwt(accessToken.value)) {
+    accessToken.value = null
+    refreshTokenCookie.value = null
+    userInfoCookie.value = null
+    user.value = null
   }
 
   const isLoggedIn = computed(() => !!accessToken.value)
@@ -110,4 +130,10 @@ export function useAuth() {
   }
 
   return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh }
+}
+
+/** A valid JWT has exactly 3 base64url segments separated by dots. */
+function _looksLikeJwt(token: string): boolean {
+  const parts = token.split('.')
+  return parts.length === 3 && parts.every((p) => p.length > 0)
 }

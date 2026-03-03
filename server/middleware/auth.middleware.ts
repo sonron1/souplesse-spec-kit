@@ -27,7 +27,14 @@ export default defineEventHandler(async (event) => {
     const payload = verifyJwt(token)
     event.context.user = payload
   } catch (err) {
-    logger.warn({ err }, 'Invalid JWT in auth middleware')
+    // "jwt malformed" = stale/corrupted cookie from a previous session — not an attack.
+    // Log at debug to avoid noise. Other JWT errors (expired, invalid sig) remain warn.
+    const msg = err instanceof Error ? err.message : ''
+    if (msg === 'jwt malformed') {
+      logger.debug({ msg }, 'Malformed JWT ignored in auth middleware (stale cookie)')
+    } else {
+      logger.warn({ err }, 'Invalid JWT in auth middleware')
+    }
     // Don't throw here — let route handlers decide if auth is required
   }
 })
