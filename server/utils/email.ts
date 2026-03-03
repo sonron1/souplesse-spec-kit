@@ -73,13 +73,29 @@ function verificationHtml(verifyUrl: string): string {
 /**
  * Send an email-verification link to a newly registered user.
  * Non-blocking: errors are caught and logged; registration is never blocked.
+ *
+ * ⚠️  Resend restriction: without a verified custom domain, emails can only be
+ * delivered to the Resend account owner's email address. In dev, the verification
+ * URL is always printed to the server console as a fallback.
  */
 export async function sendVerificationEmail(to: string, token: string): Promise<void> {
   const verifyUrl = `${getAppUrl()}/verify-email?token=${token}`
+
+  // Always log the link in dev so you can verify accounts without email delivery
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n[DEV] Email verification link for ${to}:\n  ${verifyUrl}\n`)
+  }
+
+  const apiKey = process.env.RESEND_API_KEY ?? ''
+  if (!apiKey) {
+    logger.warn({ to }, 'RESEND_API_KEY not set — skipping email send')
+    return
+  }
+
   const resend = getResend()
 
   try {
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: getFrom(),
       to,
       subject: 'Vérifiez votre adresse email — Souplesse Fitness',
@@ -89,10 +105,12 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
 
     if (error) {
       logger.error({ to, error }, 'Resend: failed to send verification email')
+      console.error(`[Resend error] ${error.name}: ${error.message}`)
     } else {
-      logger.info({ to }, 'Verification email sent')
+      logger.info({ to, emailId: data?.id }, 'Verification email sent via Resend')
     }
   } catch (err) {
     logger.error({ to, err }, 'Resend: unexpected error sending verification email')
+    console.error('[Resend unexpected error]', err)
   }
 }
