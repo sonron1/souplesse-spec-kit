@@ -11,8 +11,8 @@ export const programService = {
    */
   async createProgram(coachId: string, input: CreateProgramInput): Promise<Program> {
     // Assignment check (FR-008): only assigned coaches may create programs
-    const assignment = await prisma.coachClientAssignment.findUnique({
-      where: { coachId_clientId: { coachId, clientId: input.clientId } },
+    const assignment = await prisma.coachClientAssignment.findFirst({
+      where: { coachId, clientId: input.clientId, status: 'ACCEPTED' },
     })
     if (!assignment) {
       throw createError({
@@ -53,8 +53,8 @@ export const programService = {
     }
 
     // Verify assignment still exists (admin may have revoked it)
-    const assignment = await prisma.coachClientAssignment.findUnique({
-      where: { coachId_clientId: { coachId, clientId: program.clientId } },
+    const assignment = await prisma.coachClientAssignment.findFirst({
+      where: { coachId, clientId: program.clientId, status: 'ACCEPTED' },
     })
     if (!assignment) {
       throw createError({

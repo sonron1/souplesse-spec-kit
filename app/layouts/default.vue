@@ -53,6 +53,10 @@
                 {{ unreadMessages > 99 ? '99+' : unreadMessages }}
               </span>
             </NuxtLink>
+            <NuxtLink to="/dashboard/mon-coach" class="nav-pill" active-class="nav-pill-active">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              Mon coach
+            </NuxtLink>
           </template>
 
           <!-- COACH dropdown -->
@@ -130,6 +134,13 @@
                 <NuxtLink to="/admin/logs" class="dropdown-item" @click="adminDrop = false">
                   <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                   Journaux
+                </NuxtLink>
+                <NuxtLink to="/admin/messages" class="dropdown-item" @click="adminDrop = false">
+                  <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                  Messages coachs
+                  <span v-if="isAdmin && unreadMessages > 0" class="ml-auto bg-red-500 text-white text-[9px] font-bold rounded-full px-1 min-w-[16px] text-center leading-4">
+                    {{ unreadMessages > 99 ? '99+' : unreadMessages }}
+                  </span>
                 </NuxtLink>
                 <div class="border-t border-gray-800 my-1" />
                 <NuxtLink to="/admin/settings" class="dropdown-item" @click="adminDrop = false">
@@ -266,6 +277,10 @@
                       {{ unreadMessages > 99 ? '99+' : unreadMessages }}
                     </span>
                   </NuxtLink>
+                  <NuxtLink to="/dashboard/mon-coach" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Mon coach
+                  </NuxtLink>
                 </div>
 
                 <!-- Section: Espace Coach -->
@@ -318,6 +333,13 @@
                   <NuxtLink to="/admin/logs" class="drawer-link drawer-link-admin" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     Journaux
+                  </NuxtLink>
+                  <NuxtLink to="/admin/messages" class="drawer-link drawer-link-admin" active-class="drawer-link-active" @click="drawerOpen = false">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                    Messages coachs
+                    <span v-if="unreadMessages > 0" class="ml-auto bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 min-w-[18px] text-center leading-4">
+                      {{ unreadMessages > 99 ? '99+' : unreadMessages }}
+                    </span>
                   </NuxtLink>
                   <NuxtLink to="/admin/settings" class="drawer-link drawer-link-admin" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>

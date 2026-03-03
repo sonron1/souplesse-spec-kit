@@ -5,39 +5,52 @@ import { prisma } from '../../utils/prisma'
 
 /**
  * GET /api/messages/:withUserId
- * Returns all messages in the conversation between the current user
- * and the given user. Also marks them as read for the caller.
+ * Returns all messages in the conversation thread between the current user
+ * and the given user. Marks them as read for the caller.
  *
- * The route resolves coachId/clientId automatically via the assignment table.
+ * - ADMIN ↔ COACH : direct thread (clientId = null)
+ * - COACH ↔ CLIENT: standard assignment-based thread
+ * - COACH ↔ ADMIN : direct thread (clientId = null)
  */
 export default defineEventHandler(async (event) => {
   const me = requireAuth(event)
   const withUserId = getRouterParam(event, 'withUserId')!
 
-  const { coachId, clientId } = await resolveConversation(me.sub, me.role, withUserId)
-  const messages = await messageService.getConversation(coachId, clientId, me.sub)
+  const other = await prisma.user.findUnique({ where: { id: withUserId } })
+  if (!other) throw createError({ statusCode: 404, message: 'Utilisateur introuvable.' })
 
-  return { messages, coachId, clientId }
-})
+  // Admin ↔ Coach direct thread
+  if (me.role === 'ADMIN' && other.role === 'COACH') {
+    const messages = await messageService.getDirectThread(withUserId, me.sub)
+    return { messages, coachId: withUserId, clientId: null }
+  }
 
-async function resolveConversation(meId: string, meRole: string, otherId: string) {
-  if (meRole === 'COACH') {
-    // Verify assignment exists
+  // Coach ↔ Admin direct thread
+  if (me.role === 'COACH' && other.role === 'ADMIN') {
+    const messages = await messageService.getDirectThread(me.sub, me.sub)
+    return { messages, coachId: me.sub, clientId: null }
+  }
+
+  // Coach ↔ Client standard thread
+  if (me.role === 'COACH') {
     const assignment = await prisma.coachClientAssignment.findFirst({
-      where: { coachId: meId, clientId: otherId },
+      where: { coachId: me.sub, clientId: withUserId, status: 'ACCEPTED' },
     })
     if (!assignment) {
-      throw createError({ statusCode: 404, message: 'Assignation introuvable.' })
+      throw createError({ statusCode: 404, message: 'Ce client ne vous est pas assigné.' })
     }
-    return { coachId: meId, clientId: otherId }
+    const messages = await messageService.getConversation(me.sub, withUserId, me.sub)
+    return { messages, coachId: me.sub, clientId: withUserId }
   }
 
-  // CLIENT — otherId must be their assigned coach
+  // Client ↔ Coach thread
   const assignment = await prisma.coachClientAssignment.findFirst({
-    where: { coachId: otherId, clientId: meId },
+    where: { coachId: withUserId, clientId: me.sub, status: 'ACCEPTED' },
   })
   if (!assignment) {
-    throw createError({ statusCode: 404, message: 'Vous n\'avez pas de coach assigné.' })
+    throw createError({ statusCode: 404, message: 'Vous n\'avez pas de coach assigné accepté.' })
   }
-  return { coachId: otherId, clientId: meId }
-}
+  const messages = await messageService.getConversation(withUserId, me.sub, me.sub)
+  return { messages, coachId: withUserId, clientId: me.sub }
+})
+

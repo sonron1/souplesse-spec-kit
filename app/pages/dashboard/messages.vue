@@ -7,16 +7,41 @@
       <SkeletonLoader :count="4" :height="56" />
     </div>
 
+    <!-- Assignment: PENDING -->
+    <div v-else-if="assignmentStatus === 'PENDING'" class="card flex-1 flex flex-col items-center justify-center text-center py-16">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+        <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <p class="font-semibold text-gray-700 mb-1">En attente de validation</p>
+      <p class="text-sm text-gray-400 mb-4">Votre demande de coach est en cours de traitement.</p>
+      <NuxtLink to="/dashboard/mon-coach" class="btn-primary text-sm px-5 py-2">Gérer mon coach</NuxtLink>
+    </div>
+
+    <!-- Assignment: REJECTED -->
+    <div v-else-if="assignmentStatus === 'REJECTED'" class="card flex-1 flex flex-col items-center justify-center text-center py-16">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+        <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+        </svg>
+      </div>
+      <p class="font-semibold text-gray-700 mb-1">Assignation refusée</p>
+      <p class="text-sm text-gray-400 mb-4">La proposition de coach a été refusée. Vous pouvez en choisir un autre.</p>
+      <NuxtLink to="/dashboard/mon-coach" class="btn-primary text-sm px-5 py-2">Choisir un coach</NuxtLink>
+    </div>
+
     <!-- No coach assigned -->
     <div v-else-if="!coach" class="card flex-1 flex flex-col items-center justify-center text-center py-16">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
         <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
       </div>
       <p class="font-semibold text-gray-700 mb-1">Aucun coach assigné</p>
-      <p class="text-sm text-gray-400">Un coach vous sera attribué prochainement.</p>
+      <p class="text-sm text-gray-400 mb-4">Choisissez un coach pour commencer à échanger.</p>
+      <NuxtLink to="/dashboard/mon-coach" class="btn-primary text-sm px-5 py-2">Choisir un coach</NuxtLink>
     </div>
 
     <!-- Conversation -->
@@ -117,6 +142,16 @@
     '/api/messages',
     { headers, default: () => ({ conversations: [] }) }
   )
+
+  // Assignment status (to show appropriate empty state)
+  interface AssignmentData {
+    assignment: { status: string; coach?: { id: string; name: string } } | null
+  }
+  const { data: assignmentData } = await useLazyFetch<AssignmentData>(
+    '/api/me/assignment',
+    { headers, default: () => ({ assignment: null }) }
+  )
+  const assignmentStatus = computed(() => assignmentData.value?.assignment?.status ?? null)
 
   const coach = computed(() => convoData.value?.conversations?.[0]?.coach ?? null)
   const coachId = computed(() => convoData.value?.conversations?.[0]?.coachId ?? null)

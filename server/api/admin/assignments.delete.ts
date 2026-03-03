@@ -28,8 +28,8 @@ export default defineEventHandler(async (event) => {
 
   const { coachId, clientId } = parsed.data
 
-  const existing = await prisma.coachClientAssignment.findUnique({
-    where: { coachId_clientId: { coachId, clientId } },
+  const existing = await prisma.coachClientAssignment.findFirst({
+    where: { clientId },
   })
 
   if (!existing) {
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await prisma.coachClientAssignment.delete({
-    where: { coachId_clientId: { coachId, clientId } },
+    where: { id: existing.id },
   })
 
   logger.info({ coachId, clientId }, 'Coach-client assignment removed')

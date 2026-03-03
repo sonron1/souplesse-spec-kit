@@ -49,23 +49,33 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Upsert — idempotent: re-assigning the same pair is safe
-  const assignment = await prisma.coachClientAssignment.upsert({
-    where: { coachId_clientId: { coachId, clientId } },
-    create: { coachId, clientId },
-    update: {}, // no fields to change on a duplicate
+  // Upsert — if previously REJECTED, reactivate as PENDING; otherwise create fresh
+  const existing = await prisma.coachClientAssignment.findFirst({
+    where: { clientId },
   })
 
-  logger.info({ assignmentId: assignment.id, coachId, clientId }, 'Coach-client assignment created')
-  systemLog({ action: 'COACH_ASSIGNED', target: assignment.id, message: `Coach ${coachId} assigned to client ${clientId}` })
+  let assignment
+  if (existing) {
+    assignment = await prisma.coachClientAssignment.update({
+      where: { id: existing.id },
+      data: { coachId, status: 'PENDING', requestedBy: 'admin', respondedAt: null },
+    })
+  } else {
+    assignment = await prisma.coachClientAssignment.create({
+      data: { coachId, clientId, status: 'PENDING', requestedBy: 'admin' },
+    })
+  }
 
-  // Notify the client that a coach has been assigned to them
+  logger.info({ assignmentId: assignment.id, coachId, clientId }, 'Proposition de coach créée par admin (PENDING)')
+  systemLog({ action: 'COACH_ASSIGNED', target: assignment.id, message: `Admin a proposé le coach ${coachId} au client ${clientId}` })
+
+  // Notify the client they have a pending coach proposal
   notificationService.create({
     userId: clientId,
     type: 'ASSIGNMENT',
-    title: 'Un coach vous a été assigné',
-    body: `${coach.name} est maintenant votre coach personnel. Retrouvez-le dans votre espace programmes.`,
-  }).catch((err) => logger.error({ err }, 'Failed to create assignment notification'))
+    title: 'Proposition de coach',
+    body: `${coach.name} vous a été proposé comme coach. Rendez-vous dans votre espace pour accepter ou refuser.`,
+  }).catch((err: unknown) => logger.error({ err }, 'Erreur notification assignation'))
 
   return { ok: true, assignment }
 })

@@ -67,6 +67,12 @@ enum PlanType {
   COUPLE_ANNUAL
 }
 
+enum AssignmentStatus {
+  PENDING    // awaiting client response
+  ACCEPTED   // client accepted the coach
+  REJECTED   // client refused the coach
+}
+
 // ---------------------------------------------------------------------------
 // Core User Model
 // ---------------------------------------------------------------------------
@@ -275,17 +281,20 @@ model Program {
 // ---------------------------------------------------------------------------
 
 model CoachClientAssignment {
-  id         String   @id @default(uuid())
-  coachId    String
-  clientId   String
-  assignedAt DateTime @default(now())
+  id          String           @id @default(uuid())
+  coachId     String
+  clientId    String           @unique // one active coach per client
+  status      AssignmentStatus @default(PENDING)
+  requestedBy String?          // 'admin' | 'client'
+  assignedAt  DateTime         @default(now())
+  respondedAt DateTime?        // when client accepted or refused
 
   coach  User @relation("CoachAssignments", fields: [coachId], references: [id])
   client User @relation("ClientAssignments", fields: [clientId], references: [id])
 
-  @@unique([coachId, clientId])
   @@index([coachId])
   @@index([clientId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------
@@ -315,8 +324,8 @@ model Message {
   id          String    @id @default(uuid())
   senderId    String
   recipientId String
-  coachId     String    // always the coach in this conversation
-  clientId    String    // always the client in this conversation
+  coachId     String    // coach in a coach↔client or admin↔coach thread
+  clientId    String?   // null = admin↔coach direct thread
   body        String
   readAt      DateTime?
   createdAt   DateTime  @default(now())
@@ -324,6 +333,7 @@ model Message {
   sender    User @relation("SentMessages",     fields: [senderId],    references: [id])
   recipient User @relation("ReceivedMessages", fields: [recipientId], references: [id])
 
+  @@index([coachId, createdAt])
   @@index([coachId, clientId, createdAt])
   @@index([recipientId, readAt])
 }

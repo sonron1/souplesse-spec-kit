@@ -5,11 +5,19 @@ import { messageService } from '../../services/message.service'
 /**
  * GET /api/messages
  * Returns the list of conversations for the current user.
- * COACH → all clients they have exchanged with (unread counts)
+ * ADMIN  → all admin↔coach direct threads
+ * COACH  → all coach↔client threads + their admin direct thread
  * CLIENT → their assigned coach conversation (if any)
  */
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
+
+  if (user.role === 'ADMIN') {
+    const conversations = await messageService.getAdminCoachConversations(user.sub)
+    const unreadTotal = await messageService.countUnread(user.sub)
+    return { conversations, unreadTotal }
+  }
+
   const conversations = await messageService.getConversations(user.sub, user.role)
   const unreadTotal = await messageService.countUnread(user.sub)
   return { conversations, unreadTotal }

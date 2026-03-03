@@ -155,9 +155,9 @@ async function main() {
   if (coachUser && clientUser) {
     // 1. Coach-client assignment
     await prisma.coachClientAssignment.upsert({
-      where: { coachId_clientId: { coachId: coachUser.id, clientId: clientUser.id } },
-      update: {},
-      create: { coachId: coachUser.id, clientId: clientUser.id },
+      where: { clientId: clientUser.id },
+      update: { coachId: coachUser.id, status: 'ACCEPTED' },
+      create: { coachId: coachUser.id, clientId: clientUser.id, status: 'ACCEPTED', requestedBy: 'admin' },
     })
 
     // 2. Sessions (6 upcoming)
@@ -265,9 +265,9 @@ async function main() {
     // Assign to coach
     if (ec.assignToCoach && coachForExtras) {
       await prisma.coachClientAssignment.upsert({
-        where: { coachId_clientId: { coachId: coachForExtras.id, clientId: clientRec.id } },
-        update: {},
-        create: { coachId: coachForExtras.id, clientId: clientRec.id },
+        where: { clientId: clientRec.id },
+        update: { coachId: coachForExtras.id, status: 'ACCEPTED' },
+        create: { coachId: coachForExtras.id, clientId: clientRec.id, status: 'ACCEPTED', requestedBy: 'admin' },
       })
     }
 
