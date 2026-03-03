@@ -126,6 +126,9 @@
         <!-- ── Right side: user chip + logout + mobile toggle ─── -->
         <div class="flex items-center gap-2 shrink-0">
 
+          <!-- Notification bell (clients + coaches, desktop) -->
+          <NotificationBell v-if="isClient || isCoach" class="hidden lg:flex" />
+
           <!-- User chip (tablet lg+) -->
           <div class="hidden lg:flex items-center gap-2.5 bg-gray-900 hover:bg-gray-800 transition-colors rounded-xl px-3 py-1.5 cursor-default">
             <div
@@ -229,6 +232,10 @@
                   <NuxtLink to="/dashboard/subscriptions" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                     Mon abonnement
+                  </NuxtLink>
+                  <NuxtLink to="/dashboard/notifications" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    Notifications
                   </NuxtLink>
                   <NuxtLink v-if="!isCoach" to="/dashboard/programs" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>

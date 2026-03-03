@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../../utils/prisma'
 import { requireAdmin } from '../../middleware/admin.middleware'
 import logger from '../../utils/logger'
+import { notificationService } from '../../services/notification.service'
 
 const AssignCoachSchema = z.object({
   coachId: z.string().uuid(),
@@ -55,5 +56,14 @@ export default defineEventHandler(async (event) => {
   })
 
   logger.info({ assignmentId: assignment.id, coachId, clientId }, 'Coach-client assignment created')
+
+  // Notify the client that a coach has been assigned to them
+  notificationService.create({
+    userId: clientId,
+    type: 'ASSIGNMENT',
+    title: 'Un coach vous a été assigné',
+    body: `${coach.name} est maintenant votre coach personnel. Retrouvez-le dans votre espace programmes.`,
+  }).catch((err) => logger.error({ err }, 'Failed to create assignment notification'))
+
   return { ok: true, assignment }
 })

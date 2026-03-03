@@ -89,6 +89,7 @@ model User {
   clientPrograms Program[]   @relation("ClientPrograms")
   coachAssignments  CoachClientAssignment[] @relation("CoachAssignments")
   clientAssignments CoachClientAssignment[] @relation("ClientAssignments")
+  notifications     Notification[]
 
   @@index([email])
 }
@@ -283,4 +284,23 @@ model CoachClientAssignment {
   @@unique([coachId, clientId])
   @@index([coachId])
   @@index([clientId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (v2)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    // e.g. ASSIGNMENT, SUBSCRIPTION_EXPIRING
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, readAt])
 }
