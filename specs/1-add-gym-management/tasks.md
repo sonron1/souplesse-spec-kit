@@ -190,6 +190,16 @@ Implementation notes: adjust task IDs if tasks are shuffled; each task above inc
 - [x] T0213 [P] Default nav adapted per role — `default.vue` shows client-only nav links only to CLIENT role; "Tableau de bord" link resolves to the correct role dashboard (`app/layouts/default.vue`)
 - [x] T0214 [P] Landing page images updated to Black athletes; 5 extra demo clients seeded (`prisma/seed.js`)
 
+## Phase 11: v2 — Subscription Gating (Epic A)
+
+> Blocks unsubscribed or expired clients from accessing sessions/bookings; warns before expiry.
+
+- [x] T0301 [A] `SubscriptionGate.vue` — reusable component; blurs slot content + shows lock overlay with icon, message, "Voir les formules" CTA (`app/components/SubscriptionGate.vue`)
+- [x] T0302 [A] `GET /api/me/subscription` — returns `{ active, planName, expiresAt, daysLeft }`; staff roles always receive `active: true` (`server/api/me/subscription.get.ts`)
+- [x] T0303 [A] Sessions page gated — `SubscriptionGate` wraps session list; merged `isLoading` combines sessions + sub fetch; coaches/admins bypass gate via `isClient` (`app/pages/sessions/index.vue`)
+- [x] T0304 [A] Bookings page gated — gate wraps booking content; header CTA switches to "S'abonner →" when no active subscription (`app/pages/dashboard/bookings.vue`)
+- [x] T0305 [A] Dashboard expiry banners — red banner (no subscription) and amber banner (expiring ≤7 days) with renew CTA between welcome hero and KPI cards (`app/pages/dashboard/index.vue`)
+
 ## Open Security Tasks (v2)
 
 - [ ] T0215 CSRF token implementation — add h3 csrf plugin to protect state-changing requests
