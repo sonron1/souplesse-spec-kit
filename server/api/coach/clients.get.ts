@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
 
   const assignments = await prisma.coachClientAssignment.findMany({
-    where: { coachId: user.sub },
+    where: { coachId: user.sub, status: 'ACCEPTED' },
     include: {
       client: { select: { id: true, name: true, email: true } },
     },
