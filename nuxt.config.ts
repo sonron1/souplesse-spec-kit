@@ -87,11 +87,11 @@ export default defineNuxtConfig({
             // Scripts: only same origin + inline eval for Nuxt HMR in dev
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.kkiapay.me",
             // KKiaPay widget connects to kkiapay API
-            "connect-src 'self' https://api.kkiapay.me wss://api.kkiapay.me https://sandbox.kkiapay.me wss://sandbox.kkiapay.me https://fonts.googleapis.com",
+            "connect-src 'self' https://api.kkiapay.me wss://api.kkiapay.me https://sandbox.kkiapay.me wss://sandbox.kkiapay.me https://widget-v3.kkiapay.me https://fonts.googleapis.com",
             // Images: same origin + data URIs + Pexels (OG/demo images)
             "img-src 'self' data: https://images.pexels.com",
             // Frames: KKiaPay checkout widget (cdn + popup frame) + OpenStreetMap
-            "frame-src https://cdn.kkiapay.me https://api.kkiapay.me https://sandbox.kkiapay.me https://www.openstreetmap.org",
+            "frame-src https://cdn.kkiapay.me https://api.kkiapay.me https://sandbox.kkiapay.me https://widget-v3.kkiapay.me https://www.openstreetmap.org",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
