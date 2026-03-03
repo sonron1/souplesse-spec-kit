@@ -1,6 +1,6 @@
 import { defineEventHandler, readBody, createError } from 'h3'
-import { requireAuth } from '../../../middleware/auth.middleware'
-import { notificationService } from '../../../services/notification.service'
+import { requireAuth } from '../../middleware/auth.middleware'
+import { notificationService } from '../../services/notification.service'
 
 /**
  * PATCH /api/notifications/:id/read
