@@ -357,13 +357,15 @@
 </template>
 
 <script setup lang="ts">
-  const { user, isAdmin, isCoach, isClient, logout, accessToken } = useAuth()
+  const { user, isAdmin, isCoach, isClient, logout, accessToken, ensureFresh } = useAuth()
   const route = useRoute()
 
   // Unread messages badge (poll every 30s, only for coach/client)
   const unreadMessages = ref(0)
   async function refreshUnread() {
     if (!accessToken.value || isAdmin.value) return
+    const ok = await ensureFresh()
+    if (!ok || !accessToken.value) return
     const data = await $fetch<{ unreadTotal: number }>('/api/messages', {
       headers: { Authorization: `Bearer ${accessToken.value}` },
     }).catch(() => null)

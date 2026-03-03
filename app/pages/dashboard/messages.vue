@@ -102,7 +102,7 @@
 <script setup lang="ts">
   definePageMeta({ middleware: ['auth', 'client-only'] })
 
-  const { user: me, accessToken } = useAuth()
+  const { user: me, accessToken, ensureFresh } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
   interface ConversationRow {
@@ -151,7 +151,12 @@
 
   // Poll every 5s
   let pollTimer: ReturnType<typeof setInterval> | null = null
-  onMounted(() => { pollTimer = setInterval(loadMessages, 5000) })
+  onMounted(() => {
+    pollTimer = setInterval(async () => {
+      await ensureFresh()
+      loadMessages()
+    }, 5000)
+  })
   onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
   // Whether client can reply (coach has sent at least one message)

@@ -115,6 +115,31 @@ export function useAuth() {
     }
   }
 
+  /**
+   * Silently refresh the access token if it is expired or within 60s of expiry.
+   * Safe to call before any authenticated API request or poll.
+   * Returns false only when the user has no session at all.
+   */
+  async function ensureFresh(): Promise<boolean> {
+    if (!accessToken.value) return false
+    try {
+      // Decode the JWT payload (base64url) without a library
+      const b64 = accessToken.value.split('.')[1]
+        .replace(/-/g, '+').replace(/_/g, '/')
+      const payload = JSON.parse(atob(b64)) as { exp?: number }
+      const expiresAt = (payload.exp ?? 0) * 1000
+      if (Date.now() >= expiresAt - 60_000) {
+        // Token expired or expires within 60 s — refresh silently
+        return await refresh()
+      }
+    } catch {
+      // Undecodable token — clear stale session
+      _clearSession()
+      return false
+    }
+    return true
+  }
+
   function _setSession(u: AuthUser, tokens: AuthTokens) {
     user.value = u
     userInfoCookie.value = u // persist user to cookie
@@ -129,7 +154,7 @@ export function useAuth() {
     refreshTokenCookie.value = null
   }
 
-  return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh }
+  return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh, ensureFresh }
 }
 
 /** A valid JWT has exactly 3 base64url segments separated by dots. */

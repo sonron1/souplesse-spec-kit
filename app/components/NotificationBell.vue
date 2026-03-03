@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-  const { accessToken } = useAuth()
+  const { accessToken, ensureFresh } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
   interface Notification {
@@ -118,9 +118,14 @@
   const notifications = computed(() => data.value?.notifications ?? [])
   const unreadCount = computed(() => data.value?.unreadCount ?? 0)
 
-  // Poll every 60 s for new notifications
+  // Poll every 60 s for new notifications (refresh token silently first)
   let pollTimer: ReturnType<typeof setInterval> | null = null
-  onMounted(() => { pollTimer = setInterval(refresh, 60_000) })
+  onMounted(() => {
+    pollTimer = setInterval(async () => {
+      await ensureFresh()
+      refresh()
+    }, 60_000)
+  })
   onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
   function handleMouseLeave() {

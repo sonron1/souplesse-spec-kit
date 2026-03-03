@@ -135,7 +135,7 @@
 <script setup lang="ts">
   definePageMeta({ middleware: ['auth', 'coach'] })
 
-  const { user: me, accessToken } = useAuth()
+  const { user: me, accessToken, ensureFresh } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
   interface ConversationRow {
@@ -212,6 +212,7 @@
   let pollTimer: ReturnType<typeof setInterval> | null = null
   onMounted(() => {
     pollTimer = setInterval(async () => {
+      await ensureFresh()
       await refreshConvos()
       if (selected.value) await loadMessages()
     }, 5000)
