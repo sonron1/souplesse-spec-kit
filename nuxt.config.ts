@@ -91,7 +91,7 @@ export default defineNuxtConfig({
             // Images: same origin + data URIs + Pexels (OG/demo images)
             "img-src 'self' data: https://images.pexels.com",
             // Frames: KKiaPay checkout widget
-            "frame-src https://cdn.kkiapay.me",
+            "frame-src https://cdn.kkiapay.me https://www.openstreetmap.org",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
