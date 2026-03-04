@@ -1,78 +1,134 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Mon abonnement</h1>
-        <p class="text-sm text-gray-500 mt-0.5">Historique de vos formules</p>
+
+    <!-- ── Page header ───────────────────────────────────────── -->
+    <div class="flex items-center justify-between mb-8">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-black flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold text-gray-900 leading-none">Mon abonnement</h1>
+          <p class="text-sm text-gray-500 mt-0.5">Gérez et suivez votre formule active</p>
+        </div>
       </div>
-      <NuxtLink to="/subscribe" class="btn-primary text-sm flex items-center gap-2">
+      <NuxtLink to="/subscribe" class="btn-primary flex items-center gap-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
         </svg>
-        Souscrire
+        <span class="hidden sm:inline">Nouvelle formule</span>
+        <span class="sm:hidden">Souscrire</span>
       </NuxtLink>
     </div>
 
-    <SkeletonLoader v-if="pending" :count="2" :height="88" />
+    <SkeletonLoader v-if="pending" :count="2" :height="120" />
 
-    <div v-else-if="!subscriptions?.length" class="card text-center py-14">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-50 flex items-center justify-center">
-        <svg class="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Empty state -->
+    <div v-else-if="!subscriptions?.length" class="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-16 px-6">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
+        <svg class="w-8 h-8 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
         </svg>
       </div>
-      <p class="font-semibold text-gray-700 mb-1">Aucun abonnement</p>
-      <p class="text-sm text-gray-400 mb-5">Choisissez une formule pour accéder aux séances du club.</p>
-      <NuxtLink to="/subscribe" class="btn-primary">Voir les formules</NuxtLink>
+      <p class="text-base font-semibold text-gray-800 mb-1">Aucun abonnement actif</p>
+      <p class="text-sm text-gray-400 mb-6">Choisissez une formule pour accéder à toutes les séances du club.</p>
+      <NuxtLink to="/subscribe" class="btn-primary inline-flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Voir les formules
+      </NuxtLink>
     </div>
 
-    <div v-else class="space-y-4">
-      <!-- Active subscription highlight -->
-      <div
-        v-if="activeSub"
-        class="rounded-2xl border-2 border-primary-400 bg-gradient-to-br from-primary-50 to-white p-6 relative overflow-hidden shadow-sm"
-      >
-        <!-- Decorative circle -->
-        <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-primary-100 opacity-40 pointer-events-none"></div>
+    <div v-else class="space-y-6">
 
-        <div class="flex items-start justify-between mb-4">
+      <!-- ── Active subscription card ────────────────────────── -->
+      <div v-if="activeSub" class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <!-- Top accent bar -->
+        <div class="h-1.5 w-full bg-primary-400" />
+
+        <div class="p-6">
+          <div class="flex items-start justify-between gap-4 mb-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-black flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-primary-600 uppercase tracking-widest mb-0.5">Formule active</p>
+                <h3 class="text-xl font-extrabold text-gray-900">{{ activeSub.subscriptionPlan?.name ?? activeSub.type }}</h3>
+              </div>
+            </div>
+            <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-xl shrink-0">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+              Actif
+            </span>
+          </div>
+
+          <!-- Dates row -->
+          <div class="flex flex-wrap gap-3 mb-5">
+            <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <div>
+                <p class="text-[10px] text-gray-400 uppercase tracking-wide leading-none">Début</p>
+                <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ formatDate(activeSub.startsAt) }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+              <svg class="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <div>
+                <p class="text-[10px] text-gray-400 uppercase tracking-wide leading-none">Expire le</p>
+                <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ formatDate(activeSub.expiresAt) }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 bg-primary-400/10 rounded-xl px-4 py-2.5 border border-primary-400/20">
+              <svg class="w-4 h-4 text-primary-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <div>
+                <p class="text-[10px] text-primary-600 uppercase tracking-wide leading-none font-bold">Restant</p>
+                <p class="text-sm font-extrabold text-primary-700 mt-0.5">{{ daysLeft(activeSub.expiresAt) }} jour(s)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
           <div>
-            <p class="text-xs text-primary-600 font-bold uppercase tracking-widest mb-1">Abonnement actuel</p>
-            <h3 class="text-2xl font-extrabold text-gray-900">{{ activeSub.subscriptionPlan?.name ?? activeSub.type }}</h3>
+            <div class="flex justify-between text-xs mb-2">
+              <span class="text-gray-500 font-medium">Progression de la formule</span>
+              <span class="font-bold text-primary-600">{{ progressPct(activeSub) }}% écoulé</span>
+            </div>
+            <div class="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div
+                class="h-full bg-primary-400 rounded-full transition-all duration-500"
+                :style="`width: ${progressPct(activeSub)}%`"
+              />
+            </div>
           </div>
-          <span class="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shrink-0">
-            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            Actif
-          </span>
-        </div>
-
-        <p class="text-sm text-gray-600 mb-4">
-          Du <strong>{{ formatDate(activeSub.startsAt) }}</strong> au <strong>{{ formatDate(activeSub.expiresAt) }}</strong>
-        </p>
-
-        <div class="space-y-1.5">
-          <div class="flex justify-between text-xs text-gray-500">
-            <span>Progression</span>
-            <span class="font-semibold text-primary-600">{{ progressPct(activeSub) }}% écoulé</span>
-          </div>
-          <div class="h-2.5 w-full bg-white rounded-full overflow-hidden border border-primary-200">
-            <div
-              class="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all duration-500"
-              :style="`width: ${progressPct(activeSub)}%`"
-            />
-          </div>
-          <p class="text-xs text-gray-500 text-right">{{ daysLeft(activeSub.expiresAt) }} jour(s) restant(s)</p>
         </div>
       </div>
 
-      <!-- Past subscriptions -->
+      <!-- ── History ──────────────────────────────────────────── -->
       <div v-if="pastSubs.length">
-        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 mt-6">Historique</p>
+        <div class="flex items-center gap-2 mb-3">
+          <div class="h-px flex-1 bg-gray-100" />
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Historique</p>
+          <div class="h-px flex-1 bg-gray-100" />
+        </div>
         <div class="space-y-2">
           <div
             v-for="sub in pastSubs"
             :key="sub.id"
-            class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center justify-between gap-4 hover:border-gray-200 transition-colors"
+            class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-4 hover:border-gray-200 transition-colors"
           >
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
@@ -81,21 +137,20 @@
                 </svg>
               </div>
               <div>
-                <p class="font-semibold text-gray-800">{{ sub.subscriptionPlan?.name ?? sub.type }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">
-                  {{ formatDate(sub.startsAt) }} — {{ formatDate(sub.expiresAt) }}
-                </p>
+                <p class="font-semibold text-gray-800 text-sm">{{ sub.subscriptionPlan?.name ?? sub.type }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(sub.startsAt) }} — {{ formatDate(sub.expiresAt) }}</p>
               </div>
             </div>
             <span
               :class="sub.status === 'ACTIVE' ? 'text-green-700 bg-green-100' : 'text-gray-500 bg-gray-100'"
-              class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+              class="px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap"
             >
               {{ sub.status === 'ACTIVE' ? 'Actif' : 'Expiré' }}
             </span>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </template>
