@@ -37,7 +37,7 @@ const grantMode = ref<'new' | 'extend'>('new')
 const grantForm = reactive({ userId: '', planId: '', note: '' })
 
 const { data: usersData } = await useFetch<{ users: Client[]; total: number }>(
-  '/api/admin/users', { headers: authHeaders, query: { limit: 200 } }
+  '/api/admin/users', { headers: authHeaders, query: { limit: 100 } }
 )
 const clients = computed(() =>
   (usersData.value?.users ?? []).filter((u: Client) => u.role === 'CLIENT')

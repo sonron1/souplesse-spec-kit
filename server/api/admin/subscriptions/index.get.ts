@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, email: true } },
-        subscriptionPlan: { select: { name: true, planType: true } },
+        subscriptionPlan: { select: { id: true, name: true, planType: true } },
       },
     }),
     prisma.subscription.count(),

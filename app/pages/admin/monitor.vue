@@ -1,5 +1,8 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'] })
+
+const { accessToken } = useAuth()
+const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
 interface UserRef { id: string; name: string; email: string }
 interface LastMessage {
@@ -18,7 +21,9 @@ interface Message {
   sender: { id: string; name: string; role: string }
 }
 
-const { data, pending: loadingThreads, error: threadsError } = await useFetch<{ byCoach: CoachGroup[]; totalThreads: number }>('/api/admin/monitor')
+const { data, pending: loadingThreads, error: threadsError } = await useFetch<{ byCoach: CoachGroup[]; totalThreads: number }>('/api/admin/monitor', {
+  headers: authHeaders,
+})
 
 const selectedCoach = ref<CoachGroup | null>(null)
 const selectedThread = ref<Thread | null>(null)
@@ -62,7 +67,8 @@ async function selectThread(thread: Thread) {
   messages.value = []
   try {
     const res = await $fetch<{ messages: Message[] }>(
-      `/api/admin/monitor/thread?coachId=${thread.coachId}&clientId=${thread.clientId}`
+      `/api/admin/monitor/thread?coachId=${thread.coachId}&clientId=${thread.clientId}`,
+      { headers: { Authorization: `Bearer ${accessToken.value}` } }
     )
     messages.value = res.messages
   } catch {
@@ -90,7 +96,6 @@ function coachUnread(group: CoachGroup) {
   return group.threads.reduce((s, t) => s + t.unreadCount, 0)
 }
 </script>
-
 <template>
   <div class="min-h-screen bg-gray-950 text-white flex flex-col">
     <!-- Header -->
@@ -104,7 +109,7 @@ function coachUnread(group: CoachGroup) {
             </svg>
             Surveillance des messages
           </h1>
-          <p class="text-sm text-gray-400 mt-0.5">Moderation coach cliento client — lecture seule</p>
+          <p class="text-sm text-gray-400 mt-0.5">Moderation coach cliento client â€” lecture seule</p>
         </div>
         <div class="flex items-center gap-3 text-sm text-gray-400">
           <span>{{ totalThreads }} conversation{{ totalThreads !== 1 ? 's' : '' }}</span>
@@ -163,7 +168,7 @@ function coachUnread(group: CoachGroup) {
                   {{ group.coach?.name?.charAt(0).toUpperCase() ?? '?' }}
                 </div>
                 <div class="min-w-0">
-                  <p class="text-xs font-semibold text-white truncate">{{ group.coach?.name ?? '—' }}</p>
+                  <p class="text-xs font-semibold text-white truncate">{{ group.coach?.name ?? 'â€”' }}</p>
                   <p class="text-[10px] text-gray-500">{{ group.threads.length }} client{{ group.threads.length !== 1 ? 's' : '' }}</p>
                 </div>
               </div>
@@ -209,7 +214,7 @@ function coachUnread(group: CoachGroup) {
                     {{ thread.client?.name?.charAt(0).toUpperCase() ?? '?' }}
                   </div>
                   <div class="min-w-0">
-                    <p class="text-xs font-semibold text-white truncate">{{ thread.client?.name ?? '—' }}</p>
+                    <p class="text-xs font-semibold text-white truncate">{{ thread.client?.name ?? 'â€”' }}</p>
                     <p class="text-[10px] text-gray-500 truncate">{{ thread.client?.email }}</p>
                   </div>
                 </div>
@@ -251,7 +256,7 @@ function coachUnread(group: CoachGroup) {
                   </div>
                   <div>
                     <p class="text-[10px] text-blue-400 font-semibold leading-tight">Coach</p>
-                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.coach?.name ?? '—' }}</p>
+                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.coach?.name ?? 'â€”' }}</p>
                   </div>
                 </div>
                 <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +268,7 @@ function coachUnread(group: CoachGroup) {
                   </div>
                   <div>
                     <p class="text-[10px] text-green-400 font-semibold leading-tight">Client</p>
-                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.client?.name ?? '—' }}</p>
+                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.client?.name ?? 'â€”' }}</p>
                   </div>
                 </div>
               </div>
@@ -320,7 +325,7 @@ function coachUnread(group: CoachGroup) {
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
               </svg>
-              Mode consultation — pour contacter un coach utilisez
+              Mode consultation â€” pour contacter un coach utilisez
               <NuxtLink to="/admin/messages" class="text-yellow-400 hover:underline">Messages coachs</NuxtLink>.
             </div>
           </div>
