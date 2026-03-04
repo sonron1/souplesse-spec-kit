@@ -53,18 +53,22 @@ export default defineEventHandler(async (event) => {
     : null
 
   // Stats
-  const bookingsByStatus = user.bookings.reduce<Record<string, number>>((acc, b) => {
-    acc[b.status] = (acc[b.status] ?? 0) + 1
-    return acc
-  }, {})
+  const bookingsByStatus = user.bookings.reduce<Record<string, number>>(
+    (acc: Record<string, number>, b: { id: string; status: string }) => {
+      acc[b.status] = (acc[b.status] ?? 0) + 1
+      return acc
+    },
+    {}
+  )
 
   const activeSubscription = user.subscriptions.find(
-    s => s.status === 'ACTIVE' && (!s.expiresAt || s.expiresAt > new Date())
+    (s: { status: string; expiresAt: Date | null }) =>
+      s.status === 'ACTIVE' && (!s.expiresAt || s.expiresAt > new Date())
   ) ?? null
 
   const totalPaid = user.payments
-    .filter(p => p.status === 'COMPLETED')
-    .reduce((sum, p) => sum + p.amount, 0)
+    .filter((p: { status: string; amount: number }) => p.status === 'COMPLETED')
+    .reduce((sum: number, p: { status: string; amount: number }) => sum + p.amount, 0)
 
   return {
     user: {

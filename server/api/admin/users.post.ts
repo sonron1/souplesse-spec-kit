@@ -66,7 +66,15 @@ export default defineEventHandler(async (event) => {
 
   logger.info({ adminId: admin.sub, userId: user.id, role }, 'Admin created user')
 
-  const { passwordHash: _ph, refreshToken: _rt, emailVerificationToken: _evt, ...safe } = { ...user, emailVerified: true }
+  const safe = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    emailVerified: true,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  }
   return { ok: true, user: safe, generatedPassword: password ? undefined : rawPassword }
 })
 
