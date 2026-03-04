@@ -5,30 +5,41 @@ import { prisma } from '../../utils/prisma'
 
 /**
  * GET /api/admin/monitor
- * Returns all unique coach↔client conversation threads for admin moderation.
- * Includes last message, message count and unread count per thread.
+ * Returns all coach↔client threads grouped by coach, for admin moderation.
  */
 export default defineEventHandler(async (event) => {
   const user = requireAuth(event)
   requireRole(user, 'ADMIN')
 
-  // Get all unique (coachId, clientId) pairs where clientId is not null
-  const pairs = await prisma.message.findMany({
+  // Fetch all messages that belong to a coach↔client thread
+  const allMessages = await prisma.message.findMany({
     where: { clientId: { not: null } },
-    distinct: ['coachId', 'clientId'],
-    select: { coachId: true, clientId: true },
+    select: { coachId: true, clientId: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
   })
 
+  // Build unique (coachId, clientId) pairs preserving the latest-first order
+  const seen = new Set<string>()
+  const pairs: { coachId: string; clientId: string }[] = []
+  for (const msg of allMessages) {
+    if (!msg.clientId) continue
+    const key = `${msg.coachId}::${msg.clientId}`
+    if (!seen.has(key)) {
+      seen.add(key)
+      pairs.push({ coachId: msg.coachId, clientId: msg.clientId })
+    }
+  }
+
+  // Fetch details for every pair
   const threads = await Promise.all(
-    pairs.map(async ({ coachId, clientId }: { coachId: string; clientId: string | null }) => {
+    pairs.map(async ({ coachId, clientId }) => {
       const [coach, client, lastMessage, messageCount, unreadCount] = await Promise.all([
         prisma.user.findUnique({
           where: { id: coachId },
           select: { id: true, name: true, email: true },
         }),
         prisma.user.findUnique({
-          where: { id: clientId! },
+          where: { id: clientId },
           select: { id: true, name: true, email: true },
         }),
         prisma.message.findFirst({
@@ -46,17 +57,27 @@ export default defineEventHandler(async (event) => {
         prisma.message.count({ where: { coachId, clientId } }),
         prisma.message.count({ where: { coachId, clientId, readAt: null } }),
       ])
-
       return { coachId, clientId, coach, client, lastMessage, messageCount, unreadCount }
     })
   )
 
-  // Sort by most recent last message
-  threads.sort((a: { lastMessage: { createdAt: Date } | null }, b: { lastMessage: { createdAt: Date } | null }) => {
-    const aTime = a.lastMessage?.createdAt?.getTime() ?? 0
-    const bTime = b.lastMessage?.createdAt?.getTime() ?? 0
-    return bTime - aTime
-  })
+  // Group by coach
+  const coachMap = new Map<string, {
+    coach: { id: string; name: string; email: string } | null
+    threads: typeof threads
+  }>()
 
-  return { threads, total: threads.length }
+  for (const thread of threads) {
+    if (!coachMap.has(thread.coachId)) {
+      coachMap.set(thread.coachId, { coach: thread.coach, threads: [] })
+    }
+    coachMap.get(thread.coachId)!.threads.push(thread)
+  }
+
+  const byCoach = Array.from(coachMap.values()).sort((a, b) =>
+    (a.coach?.name ?? '').localeCompare(b.coach?.name ?? '', 'fr')
+  )
+
+  return { byCoach, totalThreads: threads.length }
 })
+
