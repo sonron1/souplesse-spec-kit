@@ -3,7 +3,7 @@
     <!-- Header with avatar -->
     <div class="flex items-center justify-between mb-8">
       <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-primary-500 flex items-center justify-center text-black font-extrabold text-lg shrink-0">
+        <div class="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-primary-400 font-extrabold text-lg shrink-0">
           {{ initials }}
         </div>
         <div>
@@ -101,8 +101,8 @@
         to="/coach/sessions"
         class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4 hover:border-primary-200 hover:bg-primary-50 transition-all"
       >
-        <div class="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center shrink-0">
-          <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <div class="w-12 h-12 rounded-xl bg-black flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         </div>
         <div>
           <p class="font-bold text-gray-900 text-sm">Mes séances</p>
