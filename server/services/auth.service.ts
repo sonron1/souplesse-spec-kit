@@ -33,9 +33,10 @@ export interface AuthUser {
 export const authService = {
   /**
    * Register a new CLIENT user.
+   * Does NOT issue tokens — the user must verify their email before logging in.
    * Throws HTTP 409 if email already exists.
    */
-  async register(input: RegisterInput): Promise<{ user: AuthUser; tokens: AuthTokens }> {
+  async register(input: RegisterInput): Promise<{ user: AuthUser }> {
     const existing = await userRepository.findByEmail(input.email)
     if (existing) {
       throw createError({ statusCode: 409, message: 'Cette adresse email est déjà utilisée' })
@@ -53,13 +54,28 @@ export const authService = {
       emailVerificationToken,
     })
 
-    const tokens = await _issueTokens(user.id, user.email, user.role)
-    logger.info({ userId: user.id }, 'User registered')
-    // Send verification email (non-blocking — never fails registration)
+    logger.info({ userId: user.id }, 'User registered — awaiting email verification')
+    // Send verification email (non-blocking — never blocks registration)
     void sendVerificationEmail(user.email, emailVerificationToken)
-    systemLog({ action: 'USER_REGISTERED', userId: user.id, message: `New account: ${user.email}` })
+    systemLog({ action: 'USER_REGISTERED', userId: user.id, message: `New account (pending verification): ${user.email}` })
 
-    return { user: _safeUser(user), tokens }
+    return { user: _safeUser(user) }
+  },
+
+  /**
+   * Resend the verification email for an unverified account.
+   * Silently succeeds even for unknown emails (prevents user enumeration).
+   */
+  async resendVerification(email: string): Promise<void> {
+    const user = await userRepository.findByEmail(email)
+    // Silently ignore if email unknown or already verified
+    if (!user || user.emailVerified) return
+
+    // Generate a fresh token
+    const emailVerificationToken = crypto.randomBytes(32).toString('hex')
+    await userRepository.update(user.id, { emailVerificationToken })
+    void sendVerificationEmail(user.email, emailVerificationToken)
+    logger.info({ userId: user.id }, 'Verification email resent')
   },
 
   /**

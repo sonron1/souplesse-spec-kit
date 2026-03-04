@@ -89,6 +89,9 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 - **Role-aware redirect**: Post-login redirect by role (ADMIN → /admin, COACH → /coach, CLIENT → /dashboard)
 - **Staff access blocked**: `requireRole(user, 'CLIENT')` enforced on `/api/bookings` and `/api/payments/create-session`
 - **Admin dashboard**: 8 KPI cards including totalCoaches, totalClients, totalSessions, upcomingSessions
+- **Email verification enforced**: `register()` no longer issues tokens — user must verify email before first login. `register.vue` shows a "check your inbox" screen. `POST /api/auth/resend-verification` allows retrying. Login blocked with HTTP 403 if `emailVerified === false`.
+- **Admin create user**: `POST /api/admin/users` — creates CLIENT/COACH, auto-generates password, sets `emailVerified = true` (admin bypass, no email). Full user detail via `GET /api/admin/users/:id`.
+- **Admin users page**: Full redesign — stats header, role filters, clickable row → sticky detail drawer (sub history, coach assignment, booking stats).
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

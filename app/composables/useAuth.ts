@@ -62,13 +62,17 @@ export function useAuth() {
   const isCoach = computed(() => user.value?.role === 'COACH' || user.value?.role === 'ADMIN')
   const isClient = computed(() => user.value?.role === 'CLIENT')
 
-  async function register(name: string, email: string, password: string) {
-    const data = await $fetch<{ user: AuthUser; tokens: AuthTokens }>('/api/auth/register', {
+  /**
+   * Register a new account.
+   * Does NOT auto-login — the user must verify their email first.
+   * Returns the email so the caller can display a "check your inbox" screen.
+   */
+  async function register(name: string, email: string, password: string): Promise<{ email: string }> {
+    const data = await $fetch<{ user: AuthUser }>('/api/auth/register', {
       method: 'POST',
       body: { name, email, password },
     })
-    _setSession(data.user, data.tokens)
-    await _redirectByRole(data.user.role)
+    return { email: data.user.email }
   }
 
   async function login(email: string, password: string) {
