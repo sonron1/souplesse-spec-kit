@@ -3,7 +3,7 @@
   // definePageMeta, navigateTo, $fetch, useAuth, …) in every Vue SFC.
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    // Required when inheriting non-relative path mappings from .nuxt/tsconfig.json
+    // Required: .nuxt/tsconfig.json has non-relative path keys (vue, h3, #app…) that need baseUrl
     "baseUrl": ".",
     // Re-add node + vitest globals (.nuxt/tsconfig.json resets types to [])
     "types": ["node", "vitest"],

@@ -1,0 +1,5 @@
+
+Card	Email	Password	Role
+Admin Demo	admin@demo.com	Demo1234!	Full admin access
+Coach Demo	coach@demo.com	Demo1234!	Coach dashboard + sessions
+Client Demo	client@demo.com	Demo1234!	Bookings + subscriptions
