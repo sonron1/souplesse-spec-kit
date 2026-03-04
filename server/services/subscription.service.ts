@@ -1,4 +1,4 @@
-﻿import { prisma } from '../utils/prisma'
+import { prisma } from '../utils/prisma'
 import { createError } from 'h3'
 import logger from '../utils/logger'
 import type { Subscription } from '.prisma/client'
@@ -34,26 +34,10 @@ export const subscriptionService = {
 
   /**
    * Activate a subscription after payment webhook confirms success.
-   * Idempotent â€” safe to call multiple times with the same subscriptionId.
+   * Idempotent -- safe to call multiple times with the same subscriptionId.
    * Copies maxReports from the plan at activation time.
+   * Cumulative: if user already has an active sub for this plan, extends from its expiresAt.
    */
-  async activateSubscription(subscriptionId: string): Promise<Subscription> {
-    const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
-    if (!sub) {
-      throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
-    }
-
-    if (sub.status === 'ACTIVE') {
-      return sub // already active â€” idempotent
-    }
-
-    const now = new Date()
-    const plan = sub.subscriptionPlanId
-      ? await prisma.subscriptionPlan.findUnique({ where: { id: sub.subscriptionPlanId } })
-      : null
-    const planDays = plan?.validityDays ?? 30
-    const planMaxReports = plan?.maxReports ?? 0
-
   async activateSubscription(subscriptionId: string): Promise<Subscription> {
     const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
     if (!sub) {

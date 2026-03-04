@@ -1,7 +1,7 @@
 import { defineEventHandler, getQuery, createError } from 'h3'
-import { requireAuth } from '../../middleware/auth.middleware'
-import { requireRole } from '../../utils/role'
-import { prisma } from '../../utils/prisma'
+import { requireAuth } from '../../../middleware/auth.middleware'
+import { requireRole } from '../../../utils/role'
+import { prisma } from '../../../utils/prisma'
 
 /**
  * GET /api/admin/monitor/thread?coachId=...&clientId=...

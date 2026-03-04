@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   })
 
   const threads = await Promise.all(
-    pairs.map(async ({ coachId, clientId }) => {
+    pairs.map(async ({ coachId, clientId }: { coachId: string; clientId: string | null }) => {
       const [coach, client, lastMessage, messageCount, unreadCount] = await Promise.all([
         prisma.user.findUnique({
           where: { id: coachId },
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
   )
 
   // Sort by most recent last message
-  threads.sort((a, b) => {
+  threads.sort((a: { lastMessage: { createdAt: Date } | null }, b: { lastMessage: { createdAt: Date } | null }) => {
     const aTime = a.lastMessage?.createdAt?.getTime() ?? 0
     const bTime = b.lastMessage?.createdAt?.getTime() ?? 0
     return bTime - aTime
