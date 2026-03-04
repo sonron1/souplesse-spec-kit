@@ -191,10 +191,12 @@
   const queryParams = computed(() => {
     const p: Record<string, string | number> = { page: page.value, limit: LIMIT }
     if (tab.value === 'upcoming') {
+      // upcoming: from today midnight to optional end date
       p.from = fromDate.value || todayStr.value
       if (toDate.value) p.to = toDate.value
     } else {
-      p.to = todayStr.value
+      // past: everything strictly before today (use beginning of today as upper bound)
+      p.to = todayStr.value + 'T00:00:00.000Z'
     }
     return p
   })

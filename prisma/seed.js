@@ -135,9 +135,10 @@ async function main() {
   // Seed demo accounts (dev / staging use)
   const DEMO_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
   const demoUsers = [
-    { email: 'admin@demo.com',  name: 'Admin Demo',  role: 'ADMIN'  },
-    { email: 'coach@demo.com',  name: 'Coach Demo',  role: 'COACH'  },
-    { email: 'client@demo.com', name: 'Client Demo', role: 'CLIENT' },
+    { email: 'admin@demo.com',   name: 'Admin Demo',       role: 'ADMIN'  },
+    { email: 'coach@demo.com',   name: 'Coach Serge',      role: 'COACH'  },
+    { email: 'coach2@demo.com',  name: 'Coach Adjoua',     role: 'COACH'  },
+    { email: 'client@demo.com',  name: 'Client Demo',      role: 'CLIENT' },
   ]
   for (const u of demoUsers) {
     await prisma.user.upsert({
@@ -146,10 +147,11 @@ async function main() {
       create: { name: u.name, email: u.email, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
     })
   }
-  console.log('Demo accounts seeded: admin@demo.com | coach@demo.com | client@demo.com (password: Demo1234!)')
+  console.log('Demo accounts seeded: admin@demo.com | coach@demo.com | coach2@demo.com | client@demo.com (password: Demo1234!)')
 
   // ── Demo data: sessions, bookings, program, subscription ─────────────────
   const coachUser  = await prisma.user.findUnique({ where: { email: 'coach@demo.com'  } })
+  const coach2User  = await prisma.user.findUnique({ where: { email: 'coach2@demo.com' } })
   const clientUser = await prisma.user.findUnique({ where: { email: 'client@demo.com' } })
 
   if (coachUser && clientUser) {
@@ -160,15 +162,24 @@ async function main() {
       create: { coachId: coachUser.id, clientId: clientUser.id, status: 'ACCEPTED', requestedBy: 'admin' },
     })
 
-    // 2. Sessions (6 upcoming)
-    const sessionDates = [
-      new Date('2026-03-04T07:30:00Z'),
+    // 2. Sessions: 6 PAST + 6 upcoming
+    const pastSessionDates = [
+      new Date('2026-01-06T07:30:00Z'),
+      new Date('2026-01-09T09:00:00Z'),
+      new Date('2026-01-13T07:30:00Z'),
+      new Date('2026-02-03T07:30:00Z'),
+      new Date('2026-02-10T09:00:00Z'),
+      new Date('2026-02-24T07:30:00Z'),
+    ]
+    const upcomingSessionDates = [
       new Date('2026-03-05T09:00:00Z'),
       new Date('2026-03-07T07:30:00Z'),
       new Date('2026-03-10T09:00:00Z'),
       new Date('2026-03-12T07:30:00Z'),
       new Date('2026-03-14T09:00:00Z'),
+      new Date('2026-03-17T07:30:00Z'),
     ]
+    const sessionDates = [...pastSessionDates, ...upcomingSessionDates]
     const createdSessions = []
     for (const dateTime of sessionDates) {
       let s = await prisma.session.findFirst({ where: { coachId: coachUser.id, dateTime } })
@@ -180,8 +191,8 @@ async function main() {
       createdSessions.push(s)
     }
 
-    // 3. Bookings: client confirmed in first 2 sessions
-    for (const session of createdSessions.slice(0, 2)) {
+    // 3. Bookings: client confirmed in past sessions + first 2 upcoming
+    for (const session of [...createdSessions.slice(0, 6), ...createdSessions.slice(6, 8)]) {
       const existing = await prisma.booking.findFirst({ where: { sessionId: session.id, userId: clientUser.id } })
       if (!existing) {
         await prisma.booking.create({ data: { userId: clientUser.id, sessionId: session.id, status: 'CONFIRMED' } })
@@ -239,6 +250,23 @@ async function main() {
     }
 
     console.log('Demo data seeded: sessions, bookings, program, subscription for coach@demo.com / client@demo.com')
+
+    // --- Messages between coach1 and client (for monitor) ---
+    const msgPairs = [
+      { coachId: coachUser.id, clientId: clientUser.id, senderId: clientUser.id, recipientId: coachUser.id,  body: 'Bonjour Coach, je voulais savoir si la seance de mardi est maintenue ?' },
+      { coachId: coachUser.id, clientId: clientUser.id, senderId: coachUser.id,  recipientId: clientUser.id, body: 'Oui bien sur ! Soyez la a 7h30. N oubliez pas vos chaussures de sport.' },
+      { coachId: coachUser.id, clientId: clientUser.id, senderId: clientUser.id, recipientId: coachUser.id,  body: 'Super merci ! J ai une question sur mon programme, semaine 3 je dois faire combien de series au squat ?' },
+      { coachId: coachUser.id, clientId: clientUser.id, senderId: coachUser.id,  recipientId: clientUser.id, body: '4 series de 8-10 repetitions. Commencez leger pour vous echauffer puis montez progressivement.' },
+      { coachId: coachUser.id, clientId: clientUser.id, senderId: clientUser.id, recipientId: coachUser.id,  body: 'Compris, je ferai ca. A mardi !' },
+    ]
+    for (const msg of msgPairs) {
+      const already = await prisma.message.findFirst({ where: { coachId: msg.coachId, clientId: msg.clientId, body: msg.body } })
+      if (!already) {
+        await prisma.message.create({
+          data: { coachId: msg.coachId, clientId: msg.clientId, senderId: msg.senderId, recipientId: msg.recipientId, body: msg.body }
+        })
+      }
+    }
   }
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -246,13 +274,31 @@ async function main() {
   const extraClients = [
     { email: 'aminata.kone@test.com',       name: 'Aminata Koné',       subPlan: 'Abonnement 1 mois',   bookSessions: 2, assignToCoach: true  },
     { email: 'koffi.mensah@test.com',        name: 'Koffi Mensah',        subPlan: 'Carnet 10 séances',  bookSessions: 1, assignToCoach: false },
-    { email: 'fatoumata.diallo@test.com',    name: 'Fatoumata Diallo',    subPlan: null,                  bookSessions: 0, assignToCoach: true  },
+    { email: 'fatoumata.diallo@test.com',    name: 'Fatoumata Diallo',    subPlan: null,                  bookSessions: 0, assignToCoach: false },
     { email: 'oumar.traore@test.com',        name: 'Oumar Traoré',        subPlan: 'Abonnement 3 mois',  bookSessions: 1, assignToCoach: false },
     { email: 'blessing.okonkwo@test.com',    name: 'Blessing Okonkwo',    subPlan: 'Carnet 15 séances',  bookSessions: 2, assignToCoach: false },
   ]
 
   const EXTRA_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
   const coachForExtras = await prisma.user.findUnique({ where: { email: 'coach@demo.com' } })
+  const coach2ForExtras = await prisma.user.findUnique({ where: { email: 'coach2@demo.com' } })
+
+  // --- Coach2 gets sessions + 2 clients + messages for monitor diversity ---
+  if (coach2ForExtras) {
+    const coach2SessionDates = [
+      new Date('2026-01-15T10:00:00Z'),
+      new Date('2026-02-05T10:00:00Z'),
+      new Date('2026-03-06T10:00:00Z'),
+      new Date('2026-03-09T10:00:00Z'),
+    ]
+    const c2Sessions = []
+    for (const dateTime of coach2SessionDates) {
+      let s = await prisma.session.findFirst({ where: { coachId: coach2ForExtras.id, dateTime } })
+      if (!s) s = await prisma.session.create({ data: { coachId: coach2ForExtras.id, dateTime, duration: 60, capacity: 8, location: 'Salle 2' } })
+      c2Sessions.push(s)
+    }
+    console.log('Coach2 sessions seeded')
+  }
 
   for (const ec of extraClients) {
     // Upsert client user
@@ -262,13 +308,25 @@ async function main() {
       create: { name: ec.name, email: ec.email, role: 'CLIENT', passwordHash: EXTRA_PASSWORD_HASH, emailVerified: true },
     })
 
-    // Assign to coach
-    if (ec.assignToCoach && coachForExtras) {
+    // Assign to coach (coach1 for assignToCoach=true, else none)
+    const assignCoach = ec.assignToCoach ? (coachForExtras ?? null) : null
+    if (assignCoach) {
       await prisma.coachClientAssignment.upsert({
         where: { clientId: clientRec.id },
-        update: { coachId: coachForExtras.id, status: 'ACCEPTED' },
-        create: { coachId: coachForExtras.id, clientId: clientRec.id, status: 'ACCEPTED', requestedBy: 'admin' },
+        update: { coachId: assignCoach.id, status: 'ACCEPTED' },
+        create: { coachId: assignCoach.id, clientId: clientRec.id, status: 'ACCEPTED', requestedBy: 'admin' },
       })
+      // Demo messages for monitor
+      const threadMsgs = [
+        { senderId: clientRec.id, recipientId: assignCoach.id, body: `Bonjour ${assignCoach.name}, je suis ${ec.name}. Quand commence notre prochaine seance ?` },
+        { senderId: assignCoach.id, recipientId: clientRec.id, body: `Bonjour ${ec.name} ! Votre prochaine seance est planifiee la semaine prochaine.` },
+      ]
+      for (const msg of threadMsgs) {
+        const already = await prisma.message.findFirst({ where: { coachId: assignCoach.id, clientId: clientRec.id, body: msg.body } })
+        if (!already) {
+          await prisma.message.create({ data: { coachId: assignCoach.id, clientId: clientRec.id, senderId: msg.senderId, recipientId: msg.recipientId, body: msg.body } })
+        }
+      }
     }
 
     // Create subscription
@@ -317,6 +375,31 @@ async function main() {
   }
 
   console.log('Extra fake clients seeded: Aminata, Koffi, Fatoumata, Oumar, Blessing (password: Demo1234!)')
+
+  // Assign Fatoumata to coach2 and seed a thread for monitor
+  if (coach2ForExtras) {
+    const fatoumata = await prisma.user.findUnique({ where: { email: 'fatoumata.diallo@test.com' } })
+    if (fatoumata) {
+      await prisma.coachClientAssignment.upsert({
+        where:  { clientId: fatoumata.id },
+        update: { coachId: coach2ForExtras.id, status: 'ACCEPTED' },
+        create: { coachId: coach2ForExtras.id, clientId: fatoumata.id, status: 'ACCEPTED', requestedBy: 'admin' },
+      })
+      const c2Msgs = [
+        { senderId: fatoumata.id,       recipientId: coach2ForExtras.id, body: 'Bonjour Coach Adjoua, comment se passe le programme de cette semaine ?' },
+        { senderId: coach2ForExtras.id, recipientId: fatoumata.id,       body: 'Tout se passe bien ! On continue le travail cardio mardi et jeudi.' },
+        { senderId: fatoumata.id,       recipientId: coach2ForExtras.id, body: 'Parfait, je serai la ! Dois-je apporter quoi que ce soit ?' },
+        { senderId: coach2ForExtras.id, recipientId: fatoumata.id,       body: 'Juste de l eau et votre enthousiasme. A mardi !' },
+      ]
+      for (const msg of c2Msgs) {
+        const already = await prisma.message.findFirst({ where: { coachId: coach2ForExtras.id, clientId: fatoumata.id, body: msg.body } })
+        if (!already) {
+          await prisma.message.create({ data: { coachId: coach2ForExtras.id, clientId: fatoumata.id, senderId: msg.senderId, recipientId: msg.recipientId, body: msg.body } })
+        }
+      }
+      console.log('Coach2 (Adjoua) client assignment + messages seeded')
+    }
+  }
   // ─────────────────────────────────────────────────────────────────────────
 
   console.log('Seeding complete.')
