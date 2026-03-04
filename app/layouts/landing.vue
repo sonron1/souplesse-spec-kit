@@ -9,14 +9,22 @@
           </span>
         </NuxtLink>
         <div class="flex items-center gap-3">
-          <NuxtLink
-            to="/login"
-            class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-100"
-          >Se connecter</NuxtLink>
-          <NuxtLink
-            to="/register"
-            class="text-sm font-semibold bg-primary-500 hover:bg-primary-400 text-black px-5 py-2 rounded-lg transition-colors"
-          >S'inscrire</NuxtLink>
+          <template v-if="isLoggedIn">
+            <NuxtLink
+              :to="isAdmin ? '/admin' : isCoach ? '/coach' : '/dashboard'"
+              class="text-sm font-semibold bg-primary-500 hover:bg-primary-400 text-black px-5 py-2 rounded-lg transition-colors"
+            >Mon espace</NuxtLink>
+          </template>
+          <template v-else>
+            <NuxtLink
+              to="/login"
+              class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-100"
+            >Se connecter</NuxtLink>
+            <NuxtLink
+              to="/register"
+              class="text-sm font-semibold bg-primary-500 hover:bg-primary-400 text-black px-5 py-2 rounded-lg transition-colors"
+            >S'inscrire</NuxtLink>
+          </template>
         </div>
       </div>
     </header>
@@ -75,3 +83,15 @@
     </footer>
   </div>
 </template>
+
+<script setup lang="ts">
+const { isLoggedIn, isAdmin, isCoach } = useAuth()
+
+// Redirect already-authenticated users away from the landing page
+onMounted(() => {
+  if (isLoggedIn.value) {
+    const dest = isAdmin.value ? '/admin' : isCoach.value ? '/coach' : '/dashboard'
+    navigateTo(dest)
+  }
+})
+</script>

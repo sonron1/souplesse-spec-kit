@@ -419,6 +419,28 @@
   }
   onMounted(() => { refreshUnread(); setInterval(refreshUnread, 30000) })
 
+  // ── Idle timeout: log out non-admins after 20 min of inactivity ────────────
+  const IDLE_MS = 20 * 60 * 1000
+  let idleTimer: ReturnType<typeof setTimeout> | null = null
+  function resetIdle() {
+    if (isAdmin.value) return
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = setTimeout(async () => {
+      await logout()
+    }, IDLE_MS)
+  }
+  const idleEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const
+  onMounted(() => {
+    if (!isAdmin.value) {
+      idleEvents.forEach(e => window.addEventListener(e, resetIdle, { passive: true }))
+      resetIdle()
+    }
+  })
+  onUnmounted(() => {
+    if (idleTimer) clearTimeout(idleTimer)
+    idleEvents.forEach(e => window.removeEventListener(e, resetIdle))
+  })
+
   const drawerOpen = ref(false)
   const coachDrop  = ref(false)
   const adminDrop  = ref(false)
