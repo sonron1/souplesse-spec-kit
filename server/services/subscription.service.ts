@@ -54,7 +54,39 @@ export const subscriptionService = {
     const planDays = plan?.validityDays ?? 30
     const planMaxReports = plan?.maxReports ?? 0
 
-    const expiresAt = new Date(now)
+  async activateSubscription(subscriptionId: string): Promise<Subscription> {
+    const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
+    if (!sub) {
+      throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
+    }
+
+    if (sub.status === 'ACTIVE') {
+      return sub // already active — idempotent
+    }
+
+    const now = new Date()
+    const plan = sub.subscriptionPlanId
+      ? await prisma.subscriptionPlan.findUnique({ where: { id: sub.subscriptionPlanId } })
+      : null
+    const planDays = plan?.validityDays ?? 30
+    const planMaxReports = plan?.maxReports ?? 0
+
+    // Cumulative: if the user already has an active subscription for this plan, extend from its expiry
+    const activeForPlan = sub.subscriptionPlanId
+      ? await prisma.subscription.findFirst({
+          where: {
+            userId: sub.userId,
+            subscriptionPlanId: sub.subscriptionPlanId,
+            status: 'ACTIVE',
+            id: { not: subscriptionId },
+            expiresAt: { gt: now },
+          },
+          orderBy: { expiresAt: 'desc' },
+        })
+      : null
+
+    const baseDate = activeForPlan?.expiresAt ?? now
+    const expiresAt = new Date(baseDate)
     expiresAt.setDate(expiresAt.getDate() + planDays)
 
     const updated = await prisma.subscription.update({
@@ -69,7 +101,7 @@ export const subscriptionService = {
       },
     })
 
-    logger.info({ subscriptionId, userId: sub.userId }, 'Subscription activated')
+    logger.info({ subscriptionId, userId: sub.userId, cumulatedFrom: activeForPlan?.id ?? null }, 'Subscription activated')
     return updated
   },
 
