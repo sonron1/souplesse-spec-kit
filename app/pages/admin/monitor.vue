@@ -1,7 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'admin'] })
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface UserRef { id: string; name: string; email: string }
 interface LastMessage {
   id: string; body: string; createdAt: string; senderId: string; readAt: string | null
@@ -13,16 +12,12 @@ interface Thread {
   lastMessage: LastMessage | null
   messageCount: number; unreadCount: number
 }
-interface CoachGroup {
-  coach: UserRef | null
-  threads: Thread[]
-}
+interface CoachGroup { coach: UserRef | null; threads: Thread[] }
 interface Message {
   id: string; body: string; createdAt: string; senderId: string; readAt: string | null
   sender: { id: string; name: string; role: string }
 }
 
-// â”€â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const { data, pending: loadingThreads, error: threadsError } = await useFetch<{ byCoach: CoachGroup[]; totalThreads: number }>('/api/admin/monitor')
 
 const selectedCoach = ref<CoachGroup | null>(null)
@@ -33,12 +28,10 @@ const search = ref('')
 
 const byCoach = computed(() => data.value?.byCoach ?? [])
 const totalThreads = computed(() => data.value?.totalThreads ?? 0)
-
 const totalUnread = computed(() =>
   byCoach.value.reduce((s, g) => s + g.threads.reduce((ts, t) => ts + t.unreadCount, 0), 0)
 )
 
-// Filter coaches by search
 const filteredCoaches = computed(() => {
   const q = search.value.toLowerCase().trim()
   if (!q) return byCoach.value
@@ -50,7 +43,11 @@ const filteredCoaches = computed(() => {
         t.client?.email?.toLowerCase().includes(q)
       ),
     }))
-    .filter(g => g.coach?.name?.toLowerCase().includes(q) || g.coach?.email?.toLowerCase().includes(q) || g.threads.length > 0)
+    .filter(g =>
+      g.coach?.name?.toLowerCase().includes(q) ||
+      g.coach?.email?.toLowerCase().includes(q) ||
+      g.threads.length > 0
+    )
 })
 
 function selectCoach(group: CoachGroup) {
@@ -78,7 +75,7 @@ async function selectThread(thread: Thread) {
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Ã  l\'instant'
+  if (mins < 1) return "a l'instant"
   if (mins < 60) return `il y a ${mins} min`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `il y a ${hours} h`
@@ -96,9 +93,9 @@ function coachUnread(group: CoachGroup) {
 
 <template>
   <div class="min-h-screen bg-gray-950 text-white flex flex-col">
-    <!-- Page header -->
+    <!-- Header -->
     <div class="border-b border-gray-800 bg-gray-900/60 px-6 py-4 shrink-0">
-      <div class="max-w-full flex items-center justify-between">
+      <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl font-bold text-white flex items-center gap-2">
             <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +104,7 @@ function coachUnread(group: CoachGroup) {
             </svg>
             Surveillance des messages
           </h1>
-          <p class="text-sm text-gray-400 mt-0.5">ModÃ©ration coach â†” client â€” lecture seule</p>
+          <p class="text-sm text-gray-400 mt-0.5">Moderation coach cliento client — lecture seule</p>
         </div>
         <div class="flex items-center gap-3 text-sm text-gray-400">
           <span>{{ totalThreads }} conversation{{ totalThreads !== 1 ? 's' : '' }}</span>
@@ -118,25 +115,26 @@ function coachUnread(group: CoachGroup) {
       </div>
     </div>
 
-    <!-- Loading / Error -->
+    <!-- Loading -->
     <div v-if="loadingThreads" class="flex-1 flex items-center justify-center">
       <div class="flex items-center gap-3 text-gray-400">
         <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
         </svg>
-        Chargement des conversationsâ€¦
+        Chargement des conversations...
       </div>
     </div>
 
-    <div v-else-if="threadsError" class="flex-1 flex items-center justify-center text-center text-red-400 px-6">
+    <!-- Error -->
+    <div v-else-if="threadsError" class="flex-1 flex items-center justify-center text-red-400 text-sm">
       Erreur lors du chargement des conversations.
     </div>
 
     <!-- 3-panel layout -->
-    <div v-else class="flex flex-1 min-h-0" style="height: calc(100vh - 89px)">
+    <div v-else class="flex flex-1 overflow-hidden">
 
-      <!-- â”€â”€ Panel 1: Coaches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- Panel 1: Coaches -->
       <aside class="w-56 shrink-0 border-r border-gray-800 flex flex-col bg-gray-900/30">
         <div class="p-3 border-b border-gray-800">
           <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1 mb-2">Coachs</p>
@@ -144,15 +142,13 @@ function coachUnread(group: CoachGroup) {
             <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            <input v-model="search" type="text" placeholder="Rechercherâ€¦"
+            <input v-model="search" type="text" placeholder="Rechercher..."
               class="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400"/>
           </div>
         </div>
-
         <div v-if="filteredCoaches.length === 0" class="flex-1 flex items-center justify-center p-4">
           <p class="text-gray-600 text-xs text-center">Aucun coach</p>
         </div>
-
         <div v-else class="flex-1 overflow-y-auto">
           <button
             v-for="group in filteredCoaches"
@@ -167,7 +163,7 @@ function coachUnread(group: CoachGroup) {
                   {{ group.coach?.name?.charAt(0).toUpperCase() ?? '?' }}
                 </div>
                 <div class="min-w-0">
-                  <p class="text-xs font-semibold text-white truncate">{{ group.coach?.name ?? 'â€”' }}</p>
+                  <p class="text-xs font-semibold text-white truncate">{{ group.coach?.name ?? '—' }}</p>
                   <p class="text-[10px] text-gray-500">{{ group.threads.length }} client{{ group.threads.length !== 1 ? 's' : '' }}</p>
                 </div>
               </div>
@@ -179,12 +175,11 @@ function coachUnread(group: CoachGroup) {
         </div>
       </aside>
 
-      <!-- â”€â”€ Panel 2: Threads for selected coach â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- Panel 2: Threads for selected coach -->
       <aside class="w-64 shrink-0 border-r border-gray-800 flex flex-col">
         <div v-if="!selectedCoach" class="flex-1 flex items-center justify-center p-4 text-center">
-          <p class="text-gray-600 text-xs">SÃ©lectionnez un coach</p>
+          <p class="text-gray-600 text-xs">Selectionnez un coach</p>
         </div>
-
         <template v-else>
           <div class="px-3 py-2.5 border-b border-gray-800 shrink-0">
             <div class="flex items-center gap-2">
@@ -197,11 +192,9 @@ function coachUnread(group: CoachGroup) {
               </div>
             </div>
           </div>
-
           <div v-if="selectedCoach.threads.length === 0" class="flex-1 flex items-center justify-center p-4">
             <p class="text-gray-600 text-xs text-center">Aucune conversation</p>
           </div>
-
           <div v-else class="flex-1 overflow-y-auto">
             <button
               v-for="thread in selectedCoach.threads"
@@ -216,7 +209,7 @@ function coachUnread(group: CoachGroup) {
                     {{ thread.client?.name?.charAt(0).toUpperCase() ?? '?' }}
                   </div>
                   <div class="min-w-0">
-                    <p class="text-xs font-semibold text-white truncate">{{ thread.client?.name ?? 'â€”' }}</p>
+                    <p class="text-xs font-semibold text-white truncate">{{ thread.client?.name ?? '—' }}</p>
                     <p class="text-[10px] text-gray-500 truncate">{{ thread.client?.email }}</p>
                   </div>
                 </div>
@@ -237,18 +230,16 @@ function coachUnread(group: CoachGroup) {
         </template>
       </aside>
 
-      <!-- â”€â”€ Panel 3: Message viewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- Panel 3: Message viewer -->
       <main class="flex-1 flex flex-col min-w-0 bg-gray-950">
-        <!-- No thread selected -->
         <div v-if="!selectedThread" class="flex-1 flex items-center justify-center text-center p-8">
           <div>
             <svg class="w-14 h-14 text-gray-800 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
-            <p class="text-gray-600 text-sm">SÃ©lectionnez une conversation</p>
+            <p class="text-gray-600 text-sm">Selectionnez une conversation</p>
           </div>
         </div>
-
         <template v-else>
           <!-- Thread header -->
           <div class="border-b border-gray-800 bg-gray-900/40 px-5 py-3 shrink-0">
@@ -260,7 +251,7 @@ function coachUnread(group: CoachGroup) {
                   </div>
                   <div>
                     <p class="text-[10px] text-blue-400 font-semibold leading-tight">Coach</p>
-                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.coach?.name ?? 'â€”' }}</p>
+                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.coach?.name ?? '—' }}</p>
                   </div>
                 </div>
                 <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,7 +263,7 @@ function coachUnread(group: CoachGroup) {
                   </div>
                   <div>
                     <p class="text-[10px] text-green-400 font-semibold leading-tight">Client</p>
-                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.client?.name ?? 'â€”' }}</p>
+                    <p class="text-sm font-medium text-white leading-tight">{{ selectedThread.client?.name ?? '—' }}</p>
                   </div>
                 </div>
               </div>
@@ -282,20 +273,15 @@ function coachUnread(group: CoachGroup) {
 
           <!-- Messages -->
           <div class="flex-1 overflow-y-auto p-5 space-y-3">
-            <div v-if="loadingMessages" class="flex items-center justify-center h-full">
-              <div class="flex items-center gap-2 text-gray-500 text-sm">
-                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                Chargementâ€¦
-              </div>
+            <div v-if="loadingMessages" class="flex items-center justify-center h-32">
+              <svg class="w-4 h-4 animate-spin text-gray-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
             </div>
-
-            <div v-else-if="messages.length === 0" class="flex items-center justify-center h-full">
+            <div v-else-if="messages.length === 0" class="flex items-center justify-center h-32">
               <p class="text-gray-600 text-sm">Aucun message.</p>
             </div>
-
             <template v-else>
               <div
                 v-for="msg in messages"
@@ -334,7 +320,7 @@ function coachUnread(group: CoachGroup) {
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
               </svg>
-              Mode consultation â€” pour contacter un coach utilisez
+              Mode consultation — pour contacter un coach utilisez
               <NuxtLink to="/admin/messages" class="text-yellow-400 hover:underline">Messages coachs</NuxtLink>.
             </div>
           </div>
