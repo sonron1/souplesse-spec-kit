@@ -55,8 +55,11 @@ enum BookingStatus {
 }
 
 enum ProgramType {
-  GAIN
-  LOSS
+  CARDIO
+  FULL_BODY
+  ABDO
+  UPPER_BODY
+  LOWER_BODY
 }
 
 enum PlanType {
@@ -270,9 +273,9 @@ model Booking {
 
 model Program {
   id        String      @id @default(uuid())
-  clientId  String
+  clientId  String      @unique  // one program per client
   coachId   String
-  type      ProgramType @default(GAIN)
+  type      ProgramType @default(FULL_BODY)
   content   Json
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -280,7 +283,6 @@ model Program {
   client User @relation("ClientPrograms", fields: [clientId], references: [id])
   coach  User @relation("CoachPrograms", fields: [coachId], references: [id])
 
-  @@index([clientId])
   @@index([coachId])
 }
 

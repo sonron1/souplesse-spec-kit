@@ -21,6 +21,15 @@ export const programService = {
       })
     }
 
+    // One program per client
+    const existing = await prisma.program.findUnique({ where: { clientId: input.clientId } })
+    if (existing) {
+      throw createError({
+        statusCode: 409,
+        message: 'Ce client a déjà un programme. Modifiez-le plutôt que d\'en créer un nouveau.',
+      })
+    }
+
     const program = await prisma.program.create({
       data: {
         coachId,

@@ -32,3 +32,4 @@ reports/load/
 
 # Prisma generated (regenerate with `npx prisma generate`)
 # node_modules/.prisma is already covered above
+.vercel

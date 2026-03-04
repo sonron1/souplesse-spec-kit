@@ -206,9 +206,9 @@ async function main() {
         data: {
           coachId: coachUser.id,
           clientId: clientUser.id,
-          type: 'GAIN',
+          type: 'FULL_BODY',
           content: {
-            title: 'Programme Prise de Masse – Débutant',
+            title: 'Programme Full Body – Débutant',
             weeks: 8,
             sessionsPerWeek: 3,
             exercises: [

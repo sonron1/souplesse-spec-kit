@@ -8,49 +8,40 @@
     <SkeletonLoader v-if="pending" :count="3" :height="80" />
 
     <div v-else-if="!programs?.length" class="card text-center py-14 text-gray-500">
-      <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-        <svg class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-        </svg>
-      </div>
+      <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center text-2xl">💪</div>
       <p class="text-base font-semibold mb-1">Aucun programme créé</p>
       <p class="text-sm mb-4">Créez votre premier programme pour un client.</p>
       <button class="btn-primary" @click="openCreate">+ Nouveau programme</button>
     </div>
 
-    <div v-else class="space-y-3">
+    <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="program in programs"
         :key="program.id"
-        class="card flex items-start justify-between gap-4"
+        class="rounded-2xl shadow overflow-hidden border border-gray-100 flex flex-col"
       >
-        <div class="min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <p class="font-semibold text-gray-900 truncate">{{ programTitle(program) }}</p>
-            <span
-              class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
-              :class="program.type === 'GAIN' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'"
-            >
-              {{ program.type === 'GAIN' ? 'Prise de masse' : 'Perte de poids' }}
+        <!-- Coloured header -->
+        <div :class="`bg-gradient-to-r ${typeConfig[program.type]?.color ?? 'from-gray-400 to-gray-500'} p-4 text-white`">
+          <div class="flex items-center justify-between">
+            <span class="text-3xl">{{ typeConfig[program.type]?.icon ?? '🏋️' }}</span>
+            <span class="text-xs font-semibold bg-white/20 rounded-full px-2.5 py-0.5">
+              {{ typeConfig[program.type]?.label ?? program.type }}
             </span>
           </div>
-          <p class="text-sm text-gray-500 mt-0.5">
-            Client : <span class="text-gray-700 font-medium">{{ program.client?.name ?? program.client?.email ?? program.clientId }}</span>
-          </p>
-          <div v-if="program.content" class="flex items-center gap-3 mt-1.5 flex-wrap">
-            <span v-if="program.content.weeks" class="text-xs text-gray-400">
-              {{ program.content.weeks }} semaine{{ program.content.weeks > 1 ? 's' : '' }}
-            </span>
-            <span v-if="program.content.sessionsPerWeek" class="text-xs text-gray-400">
-              · {{ program.content.sessionsPerWeek }} séance{{ program.content.sessionsPerWeek > 1 ? 's' : '' }}/sem.
-            </span>
-            <span v-if="program.content.exercises?.length" class="text-xs text-gray-400">
-              · {{ program.content.exercises.length }} exercice{{ program.content.exercises.length > 1 ? 's' : '' }}
-            </span>
-          </div>
+          <p class="mt-2 font-bold text-base leading-tight">{{ programTitle(program) }}</p>
+          <p class="text-white/70 text-xs mt-0.5">{{ program.client?.name ?? program.client?.email }}</p>
         </div>
-        <button class="btn-secondary text-sm shrink-0" @click="openEdit(program)">Modifier</button>
+        <!-- Stats row -->
+        <div class="bg-white px-4 py-3 flex items-center gap-4 text-xs text-gray-500 flex-1">
+          <span v-if="program.content?.weeks">📅 {{ program.content.weeks }} sem.</span>
+          <span v-if="program.content?.sessionsPerWeek">🔄 {{ program.content.sessionsPerWeek }}×/sem.</span>
+          <span v-if="program.content?.exercises?.length">🏃 {{ program.content.exercises.length }} exos</span>
+          <span v-if="!program.content?.weeks && !program.content?.sessionsPerWeek && !program.content?.exercises?.length" class="italic text-gray-300">Non renseigné</span>
+        </div>
+        <!-- Action -->
+        <div class="border-t border-gray-100 px-4 py-2.5 flex justify-end">
+          <button class="btn-secondary text-sm" @click="openEdit(program)">✏️ Modifier</button>
+        </div>
       </div>
     </div>
 
@@ -59,32 +50,71 @@
       v-if="showCreateModal"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
     >
-      <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+      <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-lg">
         <h2 class="text-lg font-bold mb-5">Nouveau programme</h2>
-        <div class="space-y-4">
+        <div class="space-y-5">
+
+          <!-- Client selector -->
           <div>
             <label class="label">Client</label>
             <select v-model="createForm.clientId" class="input">
               <option value="" disabled>Sélectionner un client…</option>
-              <option v-for="c in assignedClients" :key="c.id" :value="c.id">
-                {{ c.name }} ({{ c.email }})
+              <option
+                v-for="c in assignedClients"
+                :key="c.id"
+                :value="c.id"
+                :disabled="clientsWithProgram.has(c.id)"
+              >
+                {{ c.name }} ({{ c.email }}){{ clientsWithProgram.has(c.id) ? ' — déjà un programme' : '' }}
               </option>
             </select>
             <p v-if="!assignedClients.length" class="text-xs text-gray-400 mt-1">Aucun client assigné pour l'instant.</p>
           </div>
+
+          <!-- Type cards -->
           <div>
-            <label class="label">Type d'objectif</label>
-            <select v-model="createForm.type" class="input">
-              <option value="GAIN">Prise de masse</option>
-              <option value="LOSS">Perte de poids</option>
-            </select>
+            <label class="label">Type de programme</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+              <button
+                v-for="(cfg, key) in typeConfig"
+                :key="key"
+                type="button"
+                class="rounded-xl border-2 p-3 text-left transition-all"
+                :class="createForm.type === key
+                  ? 'border-primary-500 bg-primary-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'"
+                @click="createForm.type = key as ProgramType"
+              >
+                <span class="text-2xl block mb-1">{{ cfg.icon }}</span>
+                <span class="text-xs font-semibold text-gray-800">{{ cfg.label }}</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Template preview -->
+          <div v-if="createForm.type" class="rounded-xl bg-gray-50 border border-gray-100 p-3">
+            <p class="text-xs font-semibold text-gray-500 mb-2">📋 Exercices suggérés (modifiables après création)</p>
+            <div class="space-y-1">
+              <div
+                v-for="(ex, i) in EXERCISE_TEMPLATES[createForm.type].slice(0, 4)"
+                :key="i"
+                class="text-xs text-gray-600 flex items-center gap-1.5"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0" />
+                {{ ex.name }} — {{ ex.sets }}×{{ ex.reps }}, repos {{ ex.rest }}
+              </div>
+              <p v-if="EXERCISE_TEMPLATES[createForm.type].length > 4" class="text-xs text-gray-400 italic">
+                + {{ EXERCISE_TEMPLATES[createForm.type].length - 4 }} autres exercices…
+              </p>
+            </div>
+          </div>
+
           <p v-if="createError" class="text-red-600 text-sm">{{ createError }}</p>
         </div>
         <div class="flex gap-3 justify-end mt-6">
           <button class="btn-secondary" @click="showCreateModal = false">Annuler</button>
           <button class="btn-primary" :disabled="!createForm.clientId || saving" @click="submitCreate">
-            {{ saving ? 'Création…' : 'Créer' }}
+            {{ saving ? 'Création…' : 'Créer le programme' }}
           </button>
         </div>
       </div>
@@ -109,14 +139,25 @@
 
           <!-- Objectif -->
           <section>
-            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Objectif</h3>
-            <div>
-              <label class="label">Type</label>
-              <select v-model="editForm.type" class="input max-w-xs">
-                <option value="GAIN">Prise de masse</option>
-                <option value="LOSS">Perte de poids</option>
-              </select>
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Type de programme</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              <button
+                v-for="(cfg, key) in typeConfig"
+                :key="key"
+                type="button"
+                class="rounded-xl border-2 p-2.5 text-center transition-all"
+                :class="editForm.type === key
+                  ? 'border-primary-500 bg-primary-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300'"
+                @click="onEditTypeChange(key as ProgramType)"
+              >
+                <span class="text-xl block">{{ cfg.icon }}</span>
+                <span class="text-[11px] font-semibold text-gray-700 leading-tight mt-0.5 block">{{ cfg.label }}</span>
+              </button>
             </div>
+            <p v-if="editForm.type !== editingOriginalType" class="text-xs text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-1.5">
+              ⚠️ Changer le type rechargera les exercices suggérés — vos modifications seront conservées.
+            </p>
           </section>
 
           <!-- Programme général -->
@@ -217,69 +258,105 @@
   definePageMeta({ middleware: ['auth', 'coach'] })
   const { accessToken } = useAuth()
 
-  interface Exercise {
-    day: string
-    name: string
-    sets: number
-    reps: string
-    rest: string
-  }
+  type ProgramType = 'CARDIO' | 'FULL_BODY' | 'ABDO' | 'UPPER_BODY' | 'LOWER_BODY'
 
-  interface ProgramContent {
-    title?: string
-    weeks?: number
-    sessionsPerWeek?: number
-    exercises?: Exercise[]
-    notes?: string
-  }
-
+  interface Exercise { day: string; name: string; sets: number; reps: string; rest: string }
+  interface ProgramContent { title?: string; weeks?: number; sessionsPerWeek?: number; exercises?: Exercise[]; notes?: string }
   interface Program {
-    id: string
-    clientId: string
-    type: 'GAIN' | 'LOSS'
+    id: string; clientId: string; type: ProgramType
     content?: ProgramContent | null
     client?: { id: string; name: string; email: string } | null
   }
+  interface AssignedClient { id: string; name: string; email: string }
 
-  interface AssignedClient {
-    id: string
-    name: string
-    email: string
+  // ── Type metadata ──────────────────────────────────────────────────────────
+  const typeConfig: Record<ProgramType, { label: string; icon: string; color: string }> = {
+    CARDIO:     { label: 'Cardio',        icon: '🏃', color: 'from-orange-400 to-red-500'    },
+    FULL_BODY:  { label: 'Full Body',     icon: '💪', color: 'from-violet-500 to-purple-600' },
+    ABDO:       { label: 'Abdo',          icon: '🔥', color: 'from-yellow-400 to-orange-500' },
+    UPPER_BODY: { label: 'Haut du Corps', icon: '🤸', color: 'from-blue-500 to-cyan-500'     },
+    LOWER_BODY: { label: 'Bas du Corps',  icon: '🦵', color: 'from-green-500 to-teal-500'    },
+  }
+
+  // ── Exercise templates (coach can edit before validating) ──────────────────
+  const EXERCISE_TEMPLATES: Record<ProgramType, Exercise[]> = {
+    CARDIO: [
+      { day: '',          name: 'Échauffement – Course sur place', sets: 1, reps: '5 min',  rest: '—'   },
+      { day: '',          name: 'Corde à sauter',                  sets: 3, reps: '3 min',  rest: '30s' },
+      { day: '',          name: 'Burpees',                         sets: 3, reps: '15',     rest: '90s' },
+      { day: '',          name: 'Mountain Climbers',               sets: 3, reps: '30',     rest: '45s' },
+      { day: '',          name: 'Jumping Jacks',                   sets: 3, reps: '40',     rest: '30s' },
+      { day: '',          name: 'Sprint sur place',                sets: 4, reps: '30s',    rest: '60s' },
+      { day: '',          name: 'Gainage planche',                 sets: 3, reps: '45s',    rest: '40s' },
+    ],
+    FULL_BODY: [
+      { day: 'Lundi',    name: 'Squat',                      sets: 4, reps: '10-12', rest: '90s' },
+      { day: 'Lundi',    name: 'Pompes',                     sets: 4, reps: '12',    rest: '60s' },
+      { day: 'Mercredi', name: 'Fentes avant',               sets: 3, reps: '12',    rest: '90s' },
+      { day: 'Mercredi', name: 'Rowing haltère',             sets: 3, reps: '12',    rest: '60s' },
+      { day: 'Vendredi', name: 'Soulevé de terre roumain',   sets: 3, reps: '10',    rest: '90s' },
+      { day: 'Vendredi', name: 'Développé militaire',        sets: 3, reps: '10',    rest: '60s' },
+      { day: 'Vendredi', name: 'Gainage',                    sets: 3, reps: '45s',   rest: '45s' },
+    ],
+    ABDO: [
+      { day: '', name: 'Crunch classique',   sets: 4, reps: '20',  rest: '45s' },
+      { day: '', name: 'Planche frontale',   sets: 4, reps: '45s', rest: '30s' },
+      { day: '', name: 'Russian Twist',      sets: 3, reps: '20',  rest: '45s' },
+      { day: '', name: 'Relevé de jambes',   sets: 3, reps: '15',  rest: '60s' },
+      { day: '', name: 'Bicycle Crunch',     sets: 3, reps: '20',  rest: '45s' },
+      { day: '', name: 'Mountain Climbers',  sets: 3, reps: '30',  rest: '40s' },
+      { day: '', name: 'Superman',           sets: 3, reps: '15',  rest: '40s' },
+    ],
+    UPPER_BODY: [
+      { day: 'Lundi',    name: 'Développé couché haltères',        sets: 4, reps: '10',   rest: '90s' },
+      { day: 'Lundi',    name: 'Tractions assistées / Lat Pulldown', sets: 4, reps: '8-10', rest: '90s' },
+      { day: 'Mercredi', name: 'Développé militaire',              sets: 3, reps: '10',   rest: '90s' },
+      { day: 'Mercredi', name: 'Curl biceps haltères',             sets: 3, reps: '12',   rest: '60s' },
+      { day: 'Vendredi', name: 'Extension triceps poulie',         sets: 3, reps: '12',   rest: '60s' },
+      { day: 'Vendredi', name: 'Élévations latérales',             sets: 3, reps: '15',   rest: '60s' },
+      { day: 'Vendredi', name: 'Rowing barre',                     sets: 4, reps: '10',   rest: '90s' },
+    ],
+    LOWER_BODY: [
+      { day: 'Lundi',    name: 'Squat barre',                          sets: 4, reps: '12', rest: '90s' },
+      { day: 'Lundi',    name: 'Presse à cuisses',                     sets: 4, reps: '12', rest: '90s' },
+      { day: 'Mercredi', name: 'Fentes marchées',                      sets: 3, reps: '12', rest: '90s' },
+      { day: 'Mercredi', name: 'Leg Curl couché',                      sets: 3, reps: '12', rest: '60s' },
+      { day: 'Vendredi', name: 'Soulevé de terre jambes tendues',      sets: 3, reps: '10', rest: '90s' },
+      { day: 'Vendredi', name: 'Extensions mollets debout',            sets: 4, reps: '15', rest: '45s' },
+      { day: 'Vendredi', name: 'Hip Thrust',                           sets: 4, reps: '12', rest: '90s' },
+    ],
   }
 
   const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
 
-  // Fetch coach's assigned clients for the dropdown
   const { data: clientsData } = await useLazyFetch<{ success: boolean; clients: AssignedClient[] }>('/api/coach/clients', {
     headers: authHeaders,
     default: () => ({ success: true, clients: [] }),
   })
   const assignedClients = computed(() => clientsData.value?.clients ?? [])
 
-  const {
-    data: response,
-    pending,
-    refresh,
-  } = await useLazyFetch<{ success: boolean; programs: Program[] }>('/api/programs', {
+  const { data: response, pending, refresh } = await useLazyFetch<{ success: boolean; programs: Program[] }>('/api/programs', {
     headers: authHeaders,
     default: () => ({ success: true, programs: [] }),
   })
-
   const programs = computed(() => response.value?.programs ?? [])
 
+  // Set of clientIds that already have a program (for disabling in dropdown)
+  const clientsWithProgram = computed(() => new Set(programs.value.map((p) => p.clientId)))
+
   function programTitle(p: Program) {
-    return p.content?.title || (p.type === 'GAIN' ? 'Programme Prise de masse' : 'Programme Perte de poids')
+    return p.content?.title || typeConfig[p.type]?.label || p.type
   }
 
-  // --- Create ---
+  // ── Create ─────────────────────────────────────────────────────────────────
   const showCreateModal = ref(false)
-  const createForm = reactive({ clientId: '', type: 'GAIN' as 'GAIN' | 'LOSS' })
+  const createForm = reactive({ clientId: '', type: 'FULL_BODY' as ProgramType })
   const createError = ref('')
   const saving = ref(false)
 
   function openCreate() {
     createForm.clientId = ''
-    createForm.type = 'GAIN'
+    createForm.type = 'FULL_BODY'
     createError.value = ''
     showCreateModal.value = true
   }
@@ -288,10 +365,14 @@
     createError.value = ''
     saving.value = true
     try {
+      const content: ProgramContent = {
+        title: `Programme ${typeConfig[createForm.type].label}`,
+        exercises: EXERCISE_TEMPLATES[createForm.type].map((ex) => ({ ...ex })),
+      }
       await $fetch('/api/programs', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken.value}` },
-        body: { clientId: createForm.clientId, type: createForm.type, content: {} },
+        body: { clientId: createForm.clientId, type: createForm.type, content },
       })
       showCreateModal.value = false
       await refresh()
@@ -303,11 +384,12 @@
     }
   }
 
-  // --- Edit ---
+  // ── Edit ───────────────────────────────────────────────────────────────────
   const showEditModal = ref(false)
   const editingId = ref('')
+  const editingOriginalType = ref<ProgramType>('FULL_BODY')
   const editForm = reactive({
-    type: 'GAIN' as 'GAIN' | 'LOSS',
+    type: 'FULL_BODY' as ProgramType,
     content: {
       title: '',
       weeks: undefined as number | undefined,
@@ -320,6 +402,7 @@
 
   function openEdit(program: Program) {
     editingId.value = program.id
+    editingOriginalType.value = program.type
     editForm.type = program.type
     const c = program.content ?? {}
     editForm.content.title = c.title ?? ''
@@ -327,8 +410,21 @@
     editForm.content.sessionsPerWeek = c.sessionsPerWeek ?? undefined
     editForm.content.notes = c.notes ?? ''
     editForm.content.exercises = (c.exercises ?? []).map((ex) => ({ ...ex }))
+    // If no exercises yet, pre-fill from template
+    if (!editForm.content.exercises.length) {
+      editForm.content.exercises = EXERCISE_TEMPLATES[program.type].map((ex) => ({ ...ex }))
+    }
     editError.value = ''
     showEditModal.value = true
+  }
+
+  function onEditTypeChange(newType: ProgramType) {
+    editForm.type = newType
+    // If exercises were untouched template (or empty), replace with new template
+    editForm.content.exercises = EXERCISE_TEMPLATES[newType].map((ex) => ({ ...ex }))
+    if (!editForm.content.title || editForm.content.title.startsWith('Programme ')) {
+      editForm.content.title = `Programme ${typeConfig[newType].label}`
+    }
   }
 
   function addExercise() {

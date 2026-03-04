@@ -14,7 +14,7 @@ interface ProgramContent {
   title?: string; weeks?: number; sessionsPerWeek?: number
   exercises?: Exercise[]; notes?: string
 }
-interface Program { id: string; clientId: string; type: 'GAIN' | 'LOSS'; content?: ProgramContent | null }
+interface Program { id: string; clientId: string; type: 'CARDIO' | 'FULL_BODY' | 'ABDO' | 'UPPER_BODY' | 'LOWER_BODY'; content?: ProgramContent | null }
 
 const { data, pending, error } = await useLazyFetch<{ success: boolean; programs: Program[] }>('/api/programs', {
   headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
@@ -31,8 +31,11 @@ function toggleExercises(id: string) {
 }
 
 const typeConfig = {
-  GAIN: { label: 'Prise de masse', icon: '💪', color: 'from-blue-500 to-indigo-600', badge: 'bg-blue-100 text-blue-700 border-blue-200' },
-  LOSS: { label: 'Perte de poids', icon: '🔥', color: 'from-orange-500 to-red-500', badge: 'bg-orange-100 text-orange-700 border-orange-200' },
+  CARDIO:     { label: 'Cardio',        icon: '🏃', color: 'from-orange-400 to-red-500',    badge: 'bg-orange-100 text-orange-700 border-orange-200' },
+  FULL_BODY:  { label: 'Full Body',     icon: '💪', color: 'from-violet-500 to-purple-600', badge: 'bg-violet-100 text-violet-700 border-violet-200' },
+  ABDO:       { label: 'Abdo',          icon: '🔥', color: 'from-yellow-400 to-orange-500', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  UPPER_BODY: { label: 'Haut du Corps', icon: '🤸', color: 'from-blue-500 to-cyan-500',     badge: 'bg-blue-100 text-blue-700 border-blue-200'   },
+  LOWER_BODY: { label: 'Bas du Corps',  icon: '🦵', color: 'from-green-500 to-teal-500',    badge: 'bg-green-100 text-green-700 border-green-200' },
 }
 </script>
 
