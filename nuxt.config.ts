@@ -102,11 +102,6 @@ export default defineNuxtConfig({
     },
   },
 
-  alias: {
-    '~types': '<rootDir>/types',
-    '~server': '<rootDir>/server',
-  },
-
   runtimeConfig: {
     // Private (server-only) keys
     jwtSecret: process.env.JWT_SECRET ?? '',

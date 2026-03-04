@@ -3,8 +3,6 @@
   // definePageMeta, navigateTo, $fetch, useAuth, …) in every Vue SFC.
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
-    // Required when inheriting non-relative path mappings from .nuxt/tsconfig.json
-    "baseUrl": ".",
     // Re-add node + vitest globals (.nuxt/tsconfig.json resets types to [])
     "types": ["node", "vitest"],
     // .nuxt/tsconfig.json enables this but it breaks array-index usage in server code
