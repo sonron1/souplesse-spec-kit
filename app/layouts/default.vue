@@ -30,22 +30,57 @@
 
           <!-- CLIENT-only links (hidden from coaches and admins) -->
           <template v-if="isClient">
-            <NuxtLink to="/sessions" class="nav-pill" active-class="nav-pill-active">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              Séances
-            </NuxtLink>
-            <NuxtLink to="/dashboard/bookings" class="nav-pill" active-class="nav-pill-active">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-              Réservations
-            </NuxtLink>
+            <div class="relative" @mouseenter="sessionsDrop = true" @mouseleave="sessionsDrop = false">
+              <button
+                class="nav-pill"
+                :class="isOnSessionsRoute ? 'nav-pill-active' : ''"
+                @click="sessionsDrop = !sessionsDrop"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Séances
+                <svg class="w-3 h-3 transition-transform" :class="sessionsDrop ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <Transition name="drop">
+                <div v-if="sessionsDrop" class="dropdown-panel">
+                  <NuxtLink to="/sessions" class="dropdown-item" @click="sessionsDrop = false">
+                    <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Séances disponibles
+                  </NuxtLink>
+                  <NuxtLink to="/dashboard/programs" class="dropdown-item" @click="sessionsDrop = false">
+                    <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    Programmes
+                  </NuxtLink>
+                </div>
+              </Transition>
+            </div>
+            <div class="relative" @mouseenter="bookingsDrop = true" @mouseleave="bookingsDrop = false">
+              <button
+                class="nav-pill"
+                :class="isOnBookingsRoute ? 'nav-pill-active' : ''"
+                @click="bookingsDrop = !bookingsDrop"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Réservations
+                <svg class="w-3 h-3 transition-transform" :class="bookingsDrop ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <Transition name="drop">
+                <div v-if="bookingsDrop" class="dropdown-panel">
+                  <NuxtLink to="/dashboard/bookings" class="dropdown-item" @click="bookingsDrop = false">
+                    <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    Mes réservations
+                  </NuxtLink>
+                  <NuxtLink to="/dashboard/calendar" class="dropdown-item" @click="bookingsDrop = false">
+                    <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Calendrier
+                  </NuxtLink>
+                </div>
+              </Transition>
+            </div>
             <NuxtLink to="/dashboard/subscriptions" class="nav-pill" active-class="nav-pill-active">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
               Abonnement
             </NuxtLink>
-            <NuxtLink v-if="!isCoach" to="/dashboard/programs" class="nav-pill" active-class="nav-pill-active">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-              Programmes
-            </NuxtLink>
+
             <NuxtLink to="/dashboard/messages" class="nav-pill relative" active-class="nav-pill-active">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
               Messages
@@ -53,10 +88,7 @@
                 {{ unreadMessages > 99 ? '99+' : unreadMessages }}
               </span>
             </NuxtLink>
-            <NuxtLink to="/dashboard/calendar" class="nav-pill" active-class="nav-pill-active">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              Calendrier
-            </NuxtLink>
+
             <NuxtLink to="/dashboard/mon-coach" class="nav-pill" active-class="nav-pill-active">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               Mon coach
@@ -266,9 +298,17 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     Séances disponibles
                   </NuxtLink>
+                  <NuxtLink to="/dashboard/programs" class="drawer-link pl-10" active-class="drawer-link-active" @click="drawerOpen = false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    Programmes
+                  </NuxtLink>
                   <NuxtLink to="/dashboard/bookings" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Mes réservations
+                  </NuxtLink>
+                  <NuxtLink to="/dashboard/calendar" class="drawer-link pl-10" active-class="drawer-link-active" @click="drawerOpen = false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Calendrier
                   </NuxtLink>
                   <NuxtLink to="/dashboard/subscriptions" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
@@ -278,20 +318,13 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                     Notifications
                   </NuxtLink>
-                  <NuxtLink v-if="!isCoach" to="/dashboard/programs" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-                    Mes programmes
-                  </NuxtLink>
+
                   <NuxtLink to="/dashboard/messages" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     Messages
                     <span v-if="unreadMessages > 0" class="ml-auto bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 min-w-[18px] text-center leading-4">
                       {{ unreadMessages > 99 ? '99+' : unreadMessages }}
                     </span>
-                  </NuxtLink>
-                  <NuxtLink to="/dashboard/calendar" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Calendrier
                   </NuxtLink>
                   <NuxtLink to="/dashboard/mon-coach" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -441,19 +474,25 @@
     idleEvents.forEach(e => window.removeEventListener(e, resetIdle))
   })
 
-  const drawerOpen = ref(false)
-  const coachDrop  = ref(false)
-  const adminDrop  = ref(false)
+  const drawerOpen   = ref(false)
+  const coachDrop    = ref(false)
+  const adminDrop    = ref(false)
+  const bookingsDrop = ref(false)
+  const sessionsDrop = ref(false)
 
   // Close dropdowns on route change
   watch(() => route.path, () => {
-    coachDrop.value = false
-    adminDrop.value = false
-    drawerOpen.value = false
+    coachDrop.value    = false
+    adminDrop.value    = false
+    bookingsDrop.value = false
+    sessionsDrop.value = false
+    drawerOpen.value   = false
   })
 
-  const isOnCoachRoute = computed(() => route.path.startsWith('/coach'))
-  const isOnAdminRoute = computed(() => route.path.startsWith('/admin'))
+  const isOnCoachRoute    = computed(() => route.path.startsWith('/coach'))
+  const isOnAdminRoute    = computed(() => route.path.startsWith('/admin'))
+  const isOnBookingsRoute = computed(() => route.path.startsWith('/dashboard/bookings') || route.path.startsWith('/dashboard/calendar'))
+  const isOnSessionsRoute = computed(() => route.path === '/sessions' || route.path.startsWith('/dashboard/programs'))
 
   const userInitial = computed(() => (user.value?.name ?? '?')[0].toUpperCase())
   const roleLabel = computed(() => {
