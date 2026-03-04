@@ -215,13 +215,52 @@
     }
   }
 
-  // Poll every 5s
+  // --- Silent polling (no full re-render) ---
+  // Patch conversation list in-place: only update unreadCount + lastMessage
+  async function silentPollConvos() {
+    const fresh = await $fetch<{ conversations: ConversationRow[] }>('/api/messages', {
+      headers: { Authorization: `Bearer ${accessToken.value}` },
+    }).catch(() => null)
+    if (!fresh || !convoData.value) return
+    const normalized = fresh.conversations.map((c) => ({
+      ...c,
+      client: c.client ?? (c as ConversationRow & { coach?: ConversationRow['client'] }).coach ?? { id: '', name: '—', email: '' },
+    }))
+    const existing = convoData.value.conversations
+    for (const freshItem of normalized) {
+      const match = existing.find((e) => (e.client?.id ?? '') === (freshItem.client?.id ?? ''))
+      if (match) {
+        match.unreadCount = freshItem.unreadCount
+        match.lastMessage = freshItem.lastMessage
+      }
+    }
+  }
+
+  // Append only new messages — never replaces the array so no DOM flash
+  async function silentPollMessages() {
+    if (!selected.value) return
+    const data = await $fetch<{ messages: Message[] }>(
+      `/api/messages/${selected.value.client.id}`,
+      { headers: { Authorization: `Bearer ${accessToken.value}` } }
+    ).catch(() => null)
+    if (!data) return
+    const existingIds = new Set(messages.value.map((m) => m.id))
+    const newMsgs = data.messages.filter((m) => !existingIds.has(m.id))
+    if (newMsgs.length) {
+      messages.value.push(...newMsgs)
+      nextTick(() => {
+        if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
+      })
+    }
+  }
+
+  // Poll every 5s without touching the DOM for unchanged data
   let pollTimer: ReturnType<typeof setInterval> | null = null
   onMounted(() => {
     pollTimer = setInterval(async () => {
       await ensureFresh()
-      await refreshConvos()
-      if (selected.value) await loadMessages()
+      await silentPollConvos()
+      await silentPollMessages()
     }, 5000)
   })
   onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
