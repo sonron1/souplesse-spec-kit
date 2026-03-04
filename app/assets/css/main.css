@@ -55,4 +55,37 @@
   .badge-gold {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700;
   }
+
+  /* Admin dark card */
+  .card-dark {
+    @apply bg-black text-white rounded-2xl p-5 shadow-sm;
+  }
+
+  /* Dark button — black with yellow text */
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black text-yellow-400 font-bold text-sm transition-colors hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+}
+
+/* ── Vue Transition helpers ─────────────────────────────────── */
+
+/* fade (modals) */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* fade-up (toast) */
+.fade-up-enter-active,
+.fade-up-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-up-enter-from,
+.fade-up-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
 }
