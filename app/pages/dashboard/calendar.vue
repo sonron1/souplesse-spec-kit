@@ -16,19 +16,19 @@
 
       <!-- Stats row -->
       <div class="mt-4 grid grid-cols-3 gap-3">
-        <div class="card text-center py-4">
-          <p class="text-2xl font-extrabold text-primary-600">{{ upcomingSessions }}</p>
-          <p class="text-xs text-gray-400 mt-1">Seances a venir</p>
+        <div class="bg-white rounded-xl shadow border border-gray-100 text-center py-4" style="color-scheme:light">
+          <p class="text-2xl font-extrabold text-primary-500">{{ upcomingSessions }}</p>
+          <p class="text-xs text-gray-500 mt-1">Séances à venir</p>
         </div>
-        <div class="card text-center py-4">
+        <div class="bg-white rounded-xl shadow border border-gray-100 text-center py-4" style="color-scheme:light">
           <p class="text-2xl font-extrabold text-green-600">{{ confirmedBookings }}</p>
-          <p class="text-xs text-gray-400 mt-1">Reservations</p>
+          <p class="text-xs text-gray-500 mt-1">Réservations</p>
         </div>
-        <div class="card text-center py-4">
-          <p class="text-2xl font-extrabold" :class="(subscription?.daysLeft ?? 0) <= 7 ? 'text-amber-500' : 'text-gray-900'">
+        <div class="bg-white rounded-xl shadow border border-gray-100 text-center py-4" style="color-scheme:light">
+          <p class="text-2xl font-extrabold" :class="(subscription?.daysLeft ?? 0) <= 7 ? 'text-amber-500' : 'text-gray-800'">
             {{ subscription?.daysLeft ?? 0 }}
           </p>
-          <p class="text-xs text-gray-400 mt-1">Jours abonnement</p>
+          <p class="text-xs text-gray-500 mt-1">Jours abonnement</p>
         </div>
       </div>
     </div>
