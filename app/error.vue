@@ -60,7 +60,11 @@
 </template>
 
 <script setup lang="ts">
-  import type { NuxtError } from '#app'
+  interface NuxtError {
+    statusCode?: number
+    statusMessage?: string
+    message?: string
+  }
 
   const props = defineProps<{ error: NuxtError | null }>()
 
