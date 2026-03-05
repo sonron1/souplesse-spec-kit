@@ -6,15 +6,15 @@ import { Resend } from 'resend'
 import logger from './logger'
 
 function getResend(): Resend {
-  return new Resend(process.env.RESEND_API_KEY ?? '')
+  return new Resend((process.env.RESEND_API_KEY ?? '').trim())
 }
 
 function getFrom(): string {
-  return process.env.RESEND_FROM ?? 'Souplesse Fitness <onboarding@resend.dev>'
+  return (process.env.RESEND_FROM ?? 'Souplesse Fitness <noreply@souplessefitness.com>').trim()
 }
 
 function getAppUrl(): string {
-  return process.env.APP_URL ?? 'http://localhost:3000'
+  return (process.env.APP_URL ?? 'https://souplesse-speckit.vercel.app').trim()
 }
 
 // ─── Email templates ──────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
     console.log(`\n[DEV] Email verification link for ${to}:\n  ${verifyUrl}\n`)
   }
 
-  const apiKey = process.env.RESEND_API_KEY ?? ''
+  const apiKey = (process.env.RESEND_API_KEY ?? '').trim()
   if (!apiKey) {
     logger.warn({ to }, 'RESEND_API_KEY not set — skipping email send')
     return
