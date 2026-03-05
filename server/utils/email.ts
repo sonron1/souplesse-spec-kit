@@ -14,7 +14,7 @@ function getFrom(): string {
 }
 
 function getAppUrl(): string {
-  return (process.env.APP_URL ?? 'https://souplesse-speckit.vercel.app').trim()
+  return (process.env.APP_URL ?? 'https://souplessefitness.com').trim()
 }
 
 // ─── Email templates ──────────────────────────────────────────────────────────
