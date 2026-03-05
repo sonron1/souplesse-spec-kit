@@ -60,7 +60,9 @@
       })
       emit('success')
     } catch (e) {
-      emit('error', (e as { message?: string })?.message ?? 'Erreur de confirmation')
+      const err = e as { message?: string; statusMessage?: string; data?: { message?: string } }
+      const msg = err.statusMessage ?? err.data?.message ?? err.message ?? 'Erreur de confirmation'
+      emit('error', msg)
     } finally {
       loading.value = false
     }

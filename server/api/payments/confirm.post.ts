@@ -1,4 +1,4 @@
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readBody, createError } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { confirmPayment } from '../../services/payments.service'
 import { prisma } from '../../utils/prisma'
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const parse = ConfirmBody.safeParse(body)
   if (!parse.success) {
-    return { statusCode: 400, body: { error: 'invalid_body', details: parse.error.flatten() } }
+    throw createError({ statusCode: 400, statusMessage: 'invalid_body', data: parse.error.flatten() })
   }
 
   // FR-016: resolve partnerEmail to partnerUserId
@@ -39,9 +39,10 @@ export default defineEventHandler(async (event) => {
       subscriptionPlanId: parse.data.subscriptionPlanId,
       partnerUserId,
     })
-    return { statusCode: 200, body: { ok: true, subscriptionId: result.subscriptionId } }
+    return { ok: true, subscriptionId: result.subscriptionId }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'confirm_failed'
-    return { statusCode: 500, body: { error: 'confirm_failed', message } }
+    console.error('[confirm.post] confirmPayment error:', message)
+    throw createError({ statusCode: 502, statusMessage: message })
   }
 })

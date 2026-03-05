@@ -1,13 +1,18 @@
 import { prisma } from '../utils/prisma'
 import type { KkiapayWebhookEnvelopeType } from '../validators/payments.schemas'
 import crypto from 'crypto'
+import { kkiapay } from '@kkiapay-org/nodejs-sdk'
 
 const _isSandbox = (process.env.NUXT_PUBLIC_KKIAPAY_IS_SANDBOX || '').trim().toLowerCase() === 'true'
-const KKIAPAY_API_BASE = (
-  process.env.KKIAPAY_API_BASE ||
-  (_isSandbox ? 'https://sandbox-api.kkiapay.me' : 'https://api.kkiapay.me')
-).trim()
-const KKIAPAY_SECRET_KEY = (process.env.KKIAPAY_SECRET_KEY || '').trim() || undefined
+
+function getKkiapayClient() {
+  return kkiapay({
+    privatekey: (process.env.KKIAPAY_SECRET_KEY || '').trim(),
+    publickey: (process.env.NUXT_PUBLIC_KKIAPAY_PUBLIC_KEY || '').trim(),
+    secretkey: (process.env.KKIAPAY_WEBHOOK_SECRET || '').trim(),
+    sandbox: _isSandbox,
+  })
+}
 
 export async function createPaymentOrder(opts: { userId: string; subscriptionPlanId: string; partnerUserId?: string }) {
   const { userId, subscriptionPlanId, partnerUserId } = opts
@@ -32,7 +37,9 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
   })
 
   // If secret key available, call Kkiapay to create an order, otherwise return a mock token (for tests)
-  if (KKIAPAY_SECRET_KEY) {
+  const kkiapaySecretKey = (process.env.KKIAPAY_SECRET_KEY || '').trim()
+  const kkiapayApiBase = _isSandbox ? 'https://api-sandbox.kkiapay.me' : 'https://api.kkiapay.me'
+  if (kkiapaySecretKey) {
     const payload = {
       amount,
       currency,
@@ -41,10 +48,10 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
       metadata: { userId, subscriptionPlanId },
     }
 
-    const res = await fetch(`${KKIAPAY_API_BASE}/v1/charges`, {
+    const res = await fetch(`${kkiapayApiBase}/v1/charges`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${KKIAPAY_SECRET_KEY}`,
+        Authorization: `Bearer ${kkiapaySecretKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
@@ -212,39 +219,30 @@ export async function confirmPayment(opts: {
     return { subscriptionId: sub?.id ?? null }
   }
 
-  // Verify transaction with KKiaPay
-  const secretKey = KKIAPAY_SECRET_KEY
-  if (!secretKey) throw new Error('KKIAPAY_SECRET_KEY not configured')
-
-  const verifyRes = await fetch(
-    `${KKIAPAY_API_BASE}/api/v1/transactions/${encodeURIComponent(transactionId)}/status`,
-    {
-      headers: {
-        'x-secret-key': secretKey,
-        Accept: 'application/json',
-      },
-    }
-  )
-
-  if (!verifyRes.ok) {
-    const text = await verifyRes.text()
-    console.error(`[confirmPayment] KKiaPay verify HTTP ${verifyRes.status} — sandbox=${_isSandbox} base=${KKIAPAY_API_BASE} txId=${transactionId}`, text)
-    throw new Error(`KKiaPay verification failed: ${verifyRes.status} ${text}`)
+  // Verify transaction with KKiaPay SDK
+  const k = getKkiapayClient()
+  let verifyData: Record<string, unknown>
+  try {
+    verifyData = await k.verify(transactionId) as Record<string, unknown>
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error(`[confirmPayment] KKiaPay verify failed — sandbox=${_isSandbox} txId=${transactionId}: ${msg}`)
+    throw new Error(`KKiaPay verification failed: ${msg}`)
   }
 
-  const verifyData = await verifyRes.json()
-  const status: string = (verifyData?.status ?? verifyData?.data?.status ?? '').toString().toUpperCase()
-
-  console.log(`[confirmPayment] KKiaPay status="${status}" for txId=${transactionId} sandbox=${_isSandbox}`)
+  const status: string = (verifyData?.status ?? '').toString().toUpperCase()
+  console.log(`[confirmPayment] KKiaPay status="${status}" txId=${transactionId} sandbox=${_isSandbox}`)
 
   if (!['SUCCESS', 'SUCCESSFUL', 'COMPLETE', 'COMPLETED', 'PAID'].includes(status)) {
-    throw new Error(`Transaction not successful: ${status}`)
+    throw new Error(`Transaction not successful: ${status} — ${JSON.stringify(verifyData)}`)
   }
 
   const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } })
   if (!plan) throw new Error('SubscriptionPlan not found')
 
-  const amount: number = verifyData?.amount ?? verifyData?.data?.amount ?? plan.priceSingle
+  const amount: number = typeof verifyData?.amount === 'number'
+    ? verifyData.amount
+    : plan.priceSingle
 
   // Record the payment with raw provider response (FR-007)
   const payment = await prisma.payment.create({
