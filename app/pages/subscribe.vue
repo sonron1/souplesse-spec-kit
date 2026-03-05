@@ -47,8 +47,8 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
 
 async function onPaymentSuccess(_planId: string) {
   showToast('Paiement réussi ! Redirection…', 'success')
-  await new Promise(r => setTimeout(r, 2000))
-  await navigateTo('/dashboard/subscriptions')
+  await new Promise(r => setTimeout(r, 1500))
+  await navigateTo('/dashboard/subscriptions?payment=success')
 }
 function onPaymentError(planId: string, msg: string) {
   planErrors[planId] = `Paiement échoué : ${msg}`

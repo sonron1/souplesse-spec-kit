@@ -23,10 +23,50 @@
       </NuxtLink>
     </div>
 
+    <!-- ── Payment success banner ─────────────────────────────── -->
+    <Transition name="fade-up">
+      <div v-if="showSuccessBanner" class="mb-6 flex items-center justify-between gap-4 bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-green-800 text-sm">Paiement effectué avec succès !</p>
+            <p class="text-xs text-green-600 mt-0.5">Votre abonnement est en cours d'activation. Actualisez si nécessaire.</p>
+          </div>
+        </div>
+        <button class="text-green-500 hover:text-green-700 shrink-0" @click="dismissBanner">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </Transition>
+
     <SkeletonLoader v-if="pending" :count="2" :height="120" />
 
-    <!-- Empty state -->
-    <div v-else-if="!subscriptions?.length" class="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-16 px-6">
+    <!-- Post-payment processing: payment done but subscription not yet visible -->
+    <div v-else-if="isPostPayment && !activeSub && !pendingSubs.length" class="bg-white rounded-2xl border border-yellow-200 shadow-sm text-center py-12 px-6">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-yellow-50 border border-yellow-200 flex items-center justify-center">
+        <svg class="w-8 h-8 text-yellow-500 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+      </div>
+      <p class="text-base font-semibold text-gray-800 mb-1">Activation en cours…</p>
+      <p class="text-sm text-gray-400 mb-5">Votre abonnement est en cours de traitement. Cela peut prendre quelques secondes.</p>
+      <button class="btn-primary inline-flex items-center gap-2 text-sm" @click="refresh">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        Actualiser
+      </button>
+    </div>
+
+    <!-- Empty state (no payment attempted) -->
+    <div v-else-if="!subscriptions?.length && !showSuccessBanner" class="bg-white rounded-2xl border border-gray-100 shadow-sm text-center py-16 px-6">
       <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-400/10 border border-primary-400/20 flex items-center justify-center">
         <svg class="w-8 h-8 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
@@ -117,6 +157,24 @@
         </div>
       </div>
 
+      <!-- ── Pending subscription card ────────────────────────── -->
+      <div v-for="sub in pendingSubs" :key="sub.id" class="bg-white rounded-2xl border border-yellow-200 shadow-sm overflow-hidden">
+        <div class="h-1.5 w-full bg-yellow-400" />
+        <div class="p-6 flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-yellow-50 border border-yellow-200 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6 text-yellow-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-yellow-600 uppercase tracking-widest mb-0.5">Traitement en cours</p>
+            <h3 class="text-lg font-extrabold text-gray-900">{{ sub.subscriptionPlan?.name ?? sub.type }}</h3>
+            <p class="text-sm text-gray-500 mt-1">Votre paiement est en cours de validation. L'abonnement sera activé dans quelques instants.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- ── History ──────────────────────────────────────────── -->
       <div v-if="pastSubs.length">
         <div class="flex items-center gap-2 mb-3">
@@ -142,10 +200,10 @@
               </div>
             </div>
             <span
-              :class="sub.status === 'ACTIVE' ? 'text-green-700 bg-green-100' : 'text-gray-500 bg-gray-100'"
+              :class="statusClass(sub.status)"
               class="px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap"
             >
-              {{ sub.status === 'ACTIVE' ? 'Actif' : 'Expiré' }}
+              {{ statusLabel(sub.status) }}
             </span>
           </div>
         </div>
@@ -159,6 +217,8 @@
   definePageMeta({ middleware: ['auth', 'client-only'] })
 
   const { accessToken } = useAuth()
+  const route = useRoute()
+  const router = useRouter()
 
   interface Subscription {
     id: string
@@ -169,13 +229,43 @@
     subscriptionPlan?: { name: string; planType: string } | null
   }
 
-  const { data: subscriptions, pending } = await useLazyFetch<Subscription[]>('/api/subscriptions', {
+  const { data: subscriptions, pending, refresh } = await useLazyFetch<Subscription[]>('/api/subscriptions', {
     headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
     default: () => [],
   })
 
   const activeSub = computed(() => subscriptions.value?.find((s) => s.status === 'ACTIVE') ?? null)
-  const pastSubs = computed(() => subscriptions.value?.filter((s) => s.status !== 'ACTIVE') ?? [])
+  const pendingSubs = computed(() => subscriptions.value?.filter((s) => s.status === 'PENDING') ?? [])
+  const pastSubs = computed(() => subscriptions.value?.filter((s) => !['ACTIVE', 'PENDING'].includes(s.status)) ?? [])
+
+  // Banner shown when redirected from successful payment
+  const isPostPayment = ref(route.query.payment === 'success')
+  const bannerDismissed = ref(false)
+  const showSuccessBanner = computed(() => isPostPayment.value && !bannerDismissed.value)
+
+  // If redirected after payment, clean query and poll once after 3s
+  if (isPostPayment.value) {
+    router.replace({ query: {} })
+    setTimeout(() => { refresh() }, 3000)
+  }
+
+  function dismissBanner() { bannerDismissed.value = true }
+
+  function statusLabel(status: string) {
+    const map: Record<string, string> = {
+      ACTIVE: 'Actif', PENDING: 'En attente', FAILED: 'Échoué',
+      EXPIRED: 'Expiré', CANCELLED: 'Annulé',
+    }
+    return map[status] ?? status
+  }
+  function statusClass(status: string) {
+    const map: Record<string, string> = {
+      ACTIVE: 'text-green-700 bg-green-100',
+      PENDING: 'text-yellow-700 bg-yellow-100',
+      FAILED: 'text-red-700 bg-red-100',
+    }
+    return map[status] ?? 'text-gray-500 bg-gray-100'
+  }
 
   function formatDate(d: string | null) {
     if (!d) return '—'
@@ -195,3 +285,8 @@
     return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
   }
 </script>
+
+<style scoped>
+.fade-up-enter-active, .fade-up-leave-active { transition: opacity .3s ease, transform .3s ease; }
+.fade-up-enter-from, .fade-up-leave-to { opacity: 0; transform: translateY(-8px); }
+</style>

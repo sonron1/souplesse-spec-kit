@@ -2,8 +2,12 @@ import { prisma } from '../utils/prisma'
 import type { KkiapayWebhookEnvelopeType } from '../validators/payments.schemas'
 import crypto from 'crypto'
 
-const KKIAPAY_API_BASE = process.env.KKIAPAY_API_BASE || 'https://api.kkiapay.me'
-const KKIAPAY_SECRET_KEY = process.env.KKIAPAY_SECRET_KEY
+const _isSandbox = (process.env.NUXT_PUBLIC_KKIAPAY_IS_SANDBOX || '').trim().toLowerCase() === 'true'
+const KKIAPAY_API_BASE = (
+  process.env.KKIAPAY_API_BASE ||
+  (_isSandbox ? 'https://sandbox-api.kkiapay.me' : 'https://api.kkiapay.me')
+).trim()
+const KKIAPAY_SECRET_KEY = (process.env.KKIAPAY_SECRET_KEY || '').trim() || undefined
 
 export async function createPaymentOrder(opts: { userId: string; subscriptionPlanId: string; partnerUserId?: string }) {
   const { userId, subscriptionPlanId, partnerUserId } = opts
@@ -73,7 +77,7 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
 }
 
 export async function verifyWebhookSignature(rawBody: string, signatureHeader?: string) {
-  const secret = process.env.KKIAPAY_WEBHOOK_SECRET
+  const secret = (process.env.KKIAPAY_WEBHOOK_SECRET || '').trim()
   if (!secret) return false
   if (!signatureHeader) return false
 
@@ -224,13 +228,16 @@ export async function confirmPayment(opts: {
 
   if (!verifyRes.ok) {
     const text = await verifyRes.text()
+    console.error(`[confirmPayment] KKiaPay verify HTTP ${verifyRes.status} — sandbox=${_isSandbox} base=${KKIAPAY_API_BASE} txId=${transactionId}`, text)
     throw new Error(`KKiaPay verification failed: ${verifyRes.status} ${text}`)
   }
 
   const verifyData = await verifyRes.json()
-  const status: string = verifyData?.status ?? verifyData?.data?.status ?? ''
+  const status: string = (verifyData?.status ?? verifyData?.data?.status ?? '').toString().toUpperCase()
 
-  if (!['SUCCESS', 'success', 'SUCCESSFUL', 'successful'].includes(status)) {
+  console.log(`[confirmPayment] KKiaPay status="${status}" for txId=${transactionId} sandbox=${_isSandbox}`)
+
+  if (!['SUCCESS', 'SUCCESSFUL', 'COMPLETE', 'COMPLETED', 'PAID'].includes(status)) {
     throw new Error(`Transaction not successful: ${status}`)
   }
 
