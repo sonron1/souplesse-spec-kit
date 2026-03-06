@@ -19,6 +19,7 @@
       "priceCouple": null,
       "validityDays": 1,
       "maxReports": 0,
+      "maxPauses": 0,
       "isActive": true
     },
     {
@@ -28,6 +29,7 @@
       "priceCouple": null,
       "validityDays": 30,
       "maxReports": 0,
+      "maxPauses": 0,
       "isActive": true
     },
     {
@@ -37,6 +39,7 @@
       "priceCouple": null,
       "validityDays": 90,
       "maxReports": 0,
+      "maxPauses": 0,
       "isActive": true
     },
     {
@@ -46,6 +49,7 @@
       "priceCouple": 25000,
       "validityDays": 30,
       "maxReports": 0,
+      "maxPauses": 0,
       "isActive": true
     },
     {
@@ -55,6 +59,7 @@
       "priceCouple": 40000,
       "validityDays": 30,
       "maxReports": 1,
+      "maxPauses": 1,
       "isActive": true
     },
     {
@@ -64,6 +69,7 @@
       "priceCouple": 75000,
       "validityDays": 90,
       "maxReports": 2,
+      "maxPauses": 2,
       "isActive": true
     },
     {
@@ -73,6 +79,7 @@
       "priceCouple": 120000,
       "validityDays": 180,
       "maxReports": 2,
+      "maxPauses": 2,
       "isActive": true
     },
     {
@@ -82,15 +89,37 @@
       "priceCouple": 200000,
       "validityDays": 365,
       "maxReports": 3,
+      "maxPauses": 3,
       "isActive": true
     },
     {
-      "name": "Autres activités",
+      "name": "Fit Dance",
       "planType": "MONTHLY",
       "priceSingle": 10000,
       "priceCouple": null,
       "validityDays": 30,
       "maxReports": 0,
+      "maxPauses": 0,
+      "isActive": true
+    },
+    {
+      "name": "Taekwondo",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "maxPauses": 0,
+      "isActive": true
+    },
+    {
+      "name": "Boxe",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "maxPauses": 0,
       "isActive": true
     }
   ],

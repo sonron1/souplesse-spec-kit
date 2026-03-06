@@ -4,7 +4,7 @@ import { requireAdmin } from '../../utils/role'
 import { statsService } from '../../services/stats.service'
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
   const stats = await statsService.getDashboardStats()
   return { success: true, stats }

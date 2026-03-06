@@ -1,5 +1,5 @@
 import { prisma } from '../utils/prisma'
-import type { User, UserRole } from '.prisma/client'
+import type { User, UserRole, Gender } from '.prisma/client'
 
 export type CreateUserInput = {
   name: string
@@ -7,6 +7,15 @@ export type CreateUserInput = {
   passwordHash: string
   role?: UserRole
   emailVerificationToken?: string
+  // Extended profile (v3)
+  firstName?: string
+  lastName?: string
+  phone?: string
+  gender?: Gender
+  birthDay?: number | null
+  birthMonth?: number | null
+  avatarUrl?: string | null
+  emailVerified?: boolean
 }
 
 export type UpdateUserInput = Partial<{
@@ -17,6 +26,17 @@ export type UpdateUserInput = Partial<{
   lockedUntil: Date | null
   emailVerified: boolean
   emailVerificationToken: string | null
+  // Extended profile (v3)
+  firstName: string
+  lastName: string
+  phone: string | null
+  gender: Gender | null
+  birthDay: number | null
+  birthMonth: number | null
+  avatarUrl: string | null
+  // Session token (v3)
+  sessionToken: string | null
+  sessionTokenIssuedAt: Date | null
 }>
 
 /**
@@ -101,5 +121,26 @@ export const userRepository = {
   /** Count total users. */
   async count(): Promise<number> {
     return prisma.user.count()
+  },
+
+  /** Find a user by their phone number. */
+  async findByPhone(phone: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { phone } })
+  },
+
+  /** Find a user by their active session token. */
+  async findBySessionToken(token: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { sessionToken: token } })
+  },
+
+  /** Set (or clear) the session token for a user. */
+  async updateSessionToken(id: string, token: string | null): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: {
+        sessionToken: token,
+        sessionTokenIssuedAt: token ? new Date() : null,
+      },
+    })
   },
 }

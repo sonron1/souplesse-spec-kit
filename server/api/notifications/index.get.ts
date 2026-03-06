@@ -9,7 +9,7 @@ import { notificationService } from '../../services/notification.service'
  * ?limit=N       → max results (default 20)
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   const query = getQuery(event)
   const limit = Math.min(50, Math.max(1, Number(query.limit ?? 20)))
   const unreadOnly = query.unread === 'true'

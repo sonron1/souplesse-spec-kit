@@ -7,7 +7,7 @@ import { prisma } from '../../../utils/prisma'
  * Returns all bookings for a session. Coaches and admins only.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
 
   if (user.role !== 'COACH' && user.role !== 'ADMIN') {
     throw createError({ statusCode: 403, message: 'Réservé aux coachs et administrateurs' })

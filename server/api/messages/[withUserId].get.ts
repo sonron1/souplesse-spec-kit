@@ -13,7 +13,7 @@ import { prisma } from '../../utils/prisma'
  * - COACH ↔ ADMIN : direct thread (clientId = null)
  */
 export default defineEventHandler(async (event) => {
-  const me = requireAuth(event)
+  const me = await requireAuth(event)
   const withUserId = getRouterParam(event, 'withUserId')!
 
   const other = await prisma.user.findUnique({ where: { id: withUserId } })

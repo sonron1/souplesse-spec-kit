@@ -77,6 +77,11 @@ enum AssignmentStatus {
   REJECTED   // client refused the coach
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 // ---------------------------------------------------------------------------
 // Core User Model
 // ---------------------------------------------------------------------------
@@ -91,11 +96,24 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Extended profile fields (v3)
+  firstName    String?
+  lastName     String?
+  phone        String?   @unique
+  gender       Gender?
+  birthDay     Int?      // 1–31
+  birthMonth   Int?      // 1–12
+  avatarUrl    String?
+
   // Security fields (T0217 account lockout, T0218 email verification)
   loginAttempts          Int       @default(0)
   lockedUntil            DateTime?
   emailVerified          Boolean   @default(false)
   emailVerificationToken String?   @unique
+
+  // Session token (v3 — single session, multi-device revocation)
+  sessionToken          String?   @unique
+  sessionTokenIssuedAt  DateTime?
 
   subscriptions Subscription[]
   payments      Payment[]
@@ -146,6 +164,7 @@ model SubscriptionPlan {
   priceCouple  Int?
   validityDays Int
   maxReports   Int
+  maxPauses    Int      @default(0)
   isActive     Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -170,8 +189,17 @@ model Subscription {
   maxReports         Int?
   partnerUserId      String?
   isActive           Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+
+  // Pause / report fields (v3 — Bloc J)
+  pauseCount   Int       @default(0)
+  pausedAt     DateTime?
+  pausedUntil  DateTime?
+
+  // Expiration reminder (v3 — Bloc I)
+  reminderSentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user             User              @relation(fields: [userId], references: [id])
   subscriptionPlan SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id])
@@ -338,6 +366,7 @@ model Message {
   clientId    String?   // null = admin↔coach direct thread
   body        String
   readAt      DateTime?
+  editedAt    DateTime? // v3 — message editing (Bloc P)
   createdAt   DateTime  @default(now())
 
   sender    User @relation("SentMessages",     fields: [senderId],    references: [id])

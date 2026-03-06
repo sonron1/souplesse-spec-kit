@@ -12,7 +12,7 @@ const ConfirmBody = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
 
   const body = await readBody(event)
   const parse = ConfirmBody.safeParse(body)

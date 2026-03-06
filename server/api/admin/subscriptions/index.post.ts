@@ -18,7 +18,7 @@ const GrantSchema = z.object({
  * for this plan, the expiry is extended (cumulative).
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const body = await readBody(event)

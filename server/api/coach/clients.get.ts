@@ -7,7 +7,7 @@ import { requireAuth } from '../../middleware/auth.middleware'
  * Coach: return the list of clients assigned to the authenticated coach.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
 
   const assignments = await prisma.coachClientAssignment.findMany({
     where: { coachId: user.sub, status: 'ACCEPTED' },

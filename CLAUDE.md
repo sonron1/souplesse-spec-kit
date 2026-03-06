@@ -97,26 +97,26 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 
 ## Planned (v3) — specs/2-supplements-fonctionnels/tasks.md
 
-| Bloc | Périmètre | Statut |
-|------|-----------|--------|
-| A | User model étendu (firstName, lastName, phone, gender, birthDay, birthMonth, avatarUrl) | 🔴 todo |
-| B | Formulaire inscription amélioré + indicateur force mot de passe | 🔴 todo |
-| C | Session unique (sessionToken en base, révocation multi-device) | 🔴 todo |
-| D | Idle timeout 30 min + avertissement J-2min | 🔴 todo |
-| E | Page profil `/profile` (tous rôles, sections adaptées) | 🔴 todo |
-| F | Catalogue abonnements officiel (tarifs FCFA, maxPauses) | 🔴 todo |
-| G | Réservation conditionnée à abonnement actif | 🔴 todo |
-| H | Expiration auto abonnements (Vercel Cron) | 🔴 todo |
-| I | Rappel email J-3 expiration | 🔴 todo |
-| J | Report / Pause abonnement | 🔴 todo |
-| K | Cumul abonnements (prolongation au lieu de doublon) | 🔴 todo |
-| L | Validation genre opposé pour abonnement couple | 🔴 todo |
-| M | Sessions : tri récent, fix annulation, désactiver bouton si déjà réservé | 🔴 todo |
-| N | Filtres dates sessions (dateFin ≥ dateDébut, multi-jours) | 🔴 todo |
-| O | Pagination (users, sessions, bookings) | 🔴 todo |
-| P | Messagerie : scroll + édition messages | 🔴 todo |
-| Q | Mise à jour dynamique (polling 30s) | 🔴 todo |
-| R | Tests couvrant tous les nouveaux blocs | 🔴 todo |
+| Bloc | Périmètre | Tâches | Statut |
+|------|-----------|--------|--------|
+| A | User model étendu (firstName, lastName, phone, gender, birthDay, birthMonth, avatarUrl) — vérif unicité email + phone | A001–A012 | 🔴 todo |
+| B | Formulaire inscription amélioré + indicateur force mot de passe + validation temps réel | B001–B006 | 🔴 todo |
+| C | Session unique (sessionToken en base, révocation multi-device) | C001–C006 | 🔴 todo |
+| D | Idle timeout 30 min + avertissement J-2min + reset sur interaction | D001–D003 | 🔴 todo |
+| E | Page profil `/profile` (tous rôles, sections adaptées, upload avatar, nav link) | E001–E011 | 🔴 todo |
+| F | Catalogue abonnements officiel (tarifs FCFA, maxPauses, label FCFA) | F001–F005 | 🔴 todo |
+| G | Réservation conditionnée à abonnement actif (HTTP 402, modale, redirect dashboard) | G001–G004 | 🔴 todo |
+| H | Expiration auto abonnements (Vercel Cron, bandeau in-app, désactiver Réserver) | H001–H004 | 🔴 todo |
+| I | Rappel J-3 expiration : email + notification in-app + message interne | I001–I007 | 🔴 todo |
+| J | Report / Pause abonnement + notif email admin + notif in-app admin + statut liste | J001–J009 | 🔴 todo |
+| K | Cumul abonnements (prolongation au lieu de doublon) | K001–K003 | 🔴 todo |
+| L | Validation genre opposé pour abonnement couple + sélecteur partenaire amélioré | L001–L003 | 🔴 todo |
+| M | Sessions : tri récent, fix annulation, désactiver si déjà réservé, popup calendrier, permissions admin/coach | M001–M007 | 🔴 todo |
+| N | Filtres dates sessions (dateFin ≥ dateDébut, multi-jours, params API from/to) | N001–N003 | 🔴 todo |
+| O | Pagination (users, sessions, bookings, messages) + composant réutilisable | O001–O009 | 🔴 todo |
+| P | Messagerie : scroll + édition messages (PATCH /api/messages/:id) | P001–P003 | 🔴 todo |
+| Q | Mise à jour dynamique polling 30s + composable usePolling + indicateur visuel | Q001–Q004 | 🔴 todo |
+| R | Tests couvrant tous les nouveaux blocs | R001–R005 | 🔴 todo |
 
 ## Subscription Plans (official — FCFA)
 

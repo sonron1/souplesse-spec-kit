@@ -26,6 +26,7 @@ async function main() {
         priceCouple: p.priceCouple === null ? null : p.priceCouple,
         validityDays: p.validityDays,
         maxReports: p.maxReports,
+        maxPauses: p.maxPauses ?? 0,
         isActive: p.isActive,
       },
       create: {
@@ -35,6 +36,7 @@ async function main() {
         priceCouple: p.priceCouple === null ? null : p.priceCouple,
         validityDays: p.validityDays,
         maxReports: p.maxReports,
+        maxPauses: p.maxPauses ?? 0,
         isActive: p.isActive,
       },
     })
@@ -135,16 +137,42 @@ async function main() {
   // Seed demo accounts (dev / staging use)
   const DEMO_PASSWORD_HASH = await bcrypt.hash('Demo1234!', 12)
   const demoUsers = [
-    { email: 'admin@demo.com',   name: 'Admin Demo',       role: 'ADMIN'  },
-    { email: 'coach@demo.com',   name: 'Coach Serge',      role: 'COACH'  },
-    { email: 'coach2@demo.com',  name: 'Coach Adjoua',     role: 'COACH'  },
-    { email: 'client@demo.com',  name: 'Client Demo',      role: 'CLIENT' },
+    {
+      email: 'admin@demo.com', name: 'Admin Demo', role: 'ADMIN',
+      firstName: 'Admin', lastName: 'Demo', phone: '+22996000001', gender: 'MALE',
+      birthDay: 1, birthMonth: 1,
+    },
+    {
+      email: 'coach@demo.com', name: 'Coach Serge', role: 'COACH',
+      firstName: 'Serge', lastName: 'Kouassi', phone: '+22996000002', gender: 'MALE',
+      birthDay: 15, birthMonth: 4,
+    },
+    {
+      email: 'coach2@demo.com', name: 'Coach Adjoua', role: 'COACH',
+      firstName: 'Adjoua', lastName: 'N\'Dri', phone: '+22996000003', gender: 'FEMALE',
+      birthDay: 22, birthMonth: 7,
+    },
+    {
+      email: 'client@demo.com', name: 'Client Demo', role: 'CLIENT',
+      firstName: 'Client', lastName: 'Demo', phone: '+22996000004', gender: 'MALE',
+      birthDay: 10, birthMonth: 3,
+    },
   ]
   for (const u of demoUsers) {
     await prisma.user.upsert({
       where:  { email: u.email },
-      update: { name: u.name, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
-      create: { name: u.name, email: u.email, role: u.role, passwordHash: DEMO_PASSWORD_HASH, emailVerified: true },
+      update: {
+        name: u.name, role: u.role, passwordHash: DEMO_PASSWORD_HASH,
+        emailVerified: true,
+        firstName: u.firstName, lastName: u.lastName, phone: u.phone,
+        gender: u.gender, birthDay: u.birthDay, birthMonth: u.birthMonth,
+      },
+      create: {
+        name: u.name, email: u.email, role: u.role,
+        passwordHash: DEMO_PASSWORD_HASH, emailVerified: true,
+        firstName: u.firstName, lastName: u.lastName, phone: u.phone,
+        gender: u.gender, birthDay: u.birthDay, birthMonth: u.birthMonth,
+      },
     })
   }
   console.log('Demo accounts seeded: admin@demo.com | coach@demo.com | coach2@demo.com | client@demo.com (password: Demo1234!)')

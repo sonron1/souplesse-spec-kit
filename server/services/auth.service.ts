@@ -6,7 +6,7 @@ import { createError } from 'h3'
 import logger from '../utils/logger'
 import { systemLog } from '../utils/systemLog'
 import { sendVerificationEmail } from '../utils/email'
-import type { RegisterInput, LoginInput } from '../validators/auth.schemas'
+import type { RegisterInput, LoginInput, UpdateProfileInput } from '../validators/auth.schemas'
 
 const BCRYPT_ROUNDS = 12
 /** Max consecutive failed login attempts before account lockout. */
@@ -22,7 +22,14 @@ export interface AuthTokens {
 export interface AuthUser {
   id: string
   name: string
+  firstName?: string | null
+  lastName?: string | null
   email: string
+  phone?: string | null
+  gender?: string | null
+  birthDay?: number | null
+  birthMonth?: number | null
+  avatarUrl?: string | null
   role: string
 }
 
@@ -39,15 +46,32 @@ export const authService = {
   async register(input: RegisterInput): Promise<{ user: AuthUser }> {
     const existing = await userRepository.findByEmail(input.email)
     if (existing) {
-      throw createError({ statusCode: 409, message: 'Cette adresse email est déjà utilisée' })
+      throw createError({ statusCode: 409, data: { code: 'email_taken' }, message: 'Cette adresse email est déjà utilisée' })
+    }
+
+    // A008: check phone uniqueness
+    if (input.phone) {
+      const existingPhone = await userRepository.findByPhone(input.phone)
+      if (existingPhone) {
+        throw createError({ statusCode: 409, data: { code: 'phone_taken' }, message: 'Ce numéro de téléphone est déjà utilisé' })
+      }
     }
 
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS)
     // Generate a secure email verification token (T0218)
     const emailVerificationToken = crypto.randomBytes(32).toString('hex')
 
+    // Build display name from firstName + lastName
+    const name = `${input.firstName} ${input.lastName}`.trim()
+
     const user = await userRepository.create({
-      name: input.name,
+      name,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      phone: input.phone,
+      gender: input.gender as 'MALE' | 'FEMALE',
+      birthDay: input.birthDay ?? null,
+      birthMonth: input.birthMonth ?? null,
       email: input.email,
       passwordHash,
       role: 'CLIENT',
@@ -120,7 +144,11 @@ export const authService = {
     // Successful login — reset counter
     await userRepository.resetLoginAttempts(user.id)
 
-    const tokens = await _issueTokens(user.id, user.email, user.role)
+    // C003: generate a new sessionToken to revoke any existing sessions
+    const sessionToken = crypto.randomUUID()
+    await userRepository.updateSessionToken(user.id, sessionToken)
+
+    const tokens = await _issueTokens(user.id, user.email, user.role, sessionToken)
     logger.info({ userId: user.id }, 'User logged in')
     systemLog({ action: 'USER_LOGIN', userId: user.id, message: `Login: ${user.email}` })
 
@@ -153,6 +181,8 @@ export const authService = {
    */
   async logout(userId: string): Promise<void> {
     await userRepository.clearRefreshToken(userId)
+    // C005: revoke session token so existing access tokens are invalidated
+    await userRepository.updateSessionToken(userId, null)
     logger.info({ userId }, 'User logged out')
   },
 
@@ -173,18 +203,85 @@ export const authService = {
     logger.info({ userId: user.id }, 'Email verified')
     return { email: user.email }
   },
+
+  /**
+   * Return the full profile of the authenticated user (A010).
+   */
+  async getProfile(userId: string): Promise<AuthUser> {
+    const user = await userRepository.findById(userId)
+    if (!user) throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
+    return _safeUser(user)
+  },
+
+  /**
+   * Update the profile of the authenticated user (A011).
+   * Email and role are not updatable here.
+   */
+  async updateProfile(userId: string, input: UpdateProfileInput): Promise<AuthUser> {
+    // Check phone uniqueness if changed
+    if (input.phone) {
+      const existing = await userRepository.findByPhone(input.phone)
+      if (existing && existing.id !== userId) {
+        throw createError({ statusCode: 409, data: { code: 'phone_taken' }, message: 'Ce numéro de téléphone est déjà utilisé' })
+      }
+    }
+
+    // Rebuild display name if first/last name changes
+    const current = await userRepository.findById(userId)
+    if (!current) throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
+
+    const firstName = input.firstName ?? current.firstName ?? ''
+    const lastName = input.lastName ?? current.lastName ?? ''
+    const name = `${firstName} ${lastName}`.trim() || current.name
+
+    const updated = await userRepository.update(userId, {
+      name,
+      firstName: input.firstName ?? undefined,
+      lastName: input.lastName ?? undefined,
+      phone: input.phone ?? undefined,
+      gender: (input.gender as 'MALE' | 'FEMALE' | undefined) ?? undefined,
+      birthDay: input.birthDay ?? undefined,
+      birthMonth: input.birthMonth ?? undefined,
+      avatarUrl: input.avatarUrl ?? undefined,
+    })
+    return _safeUser(updated)
+  },
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
-async function _issueTokens(userId: string, email: string, role: string): Promise<AuthTokens> {
-  const base = { sub: userId, email, role }
+async function _issueTokens(userId: string, email: string, role: string, sessionToken?: string): Promise<AuthTokens> {
+  const base = { sub: userId, email, role, ...(sessionToken ? { sessionToken } : {}) }
   const accessToken = signAccessToken(base)
   const refreshToken = signRefreshToken(base)
   await userRepository.update(userId, { refreshToken })
   return { accessToken, refreshToken }
 }
 
-function _safeUser(user: { id: string; name: string; email: string; role: string }): AuthUser {
-  return { id: user.id, name: user.name, email: user.email, role: user.role }
+function _safeUser(user: {
+  id: string
+  name: string
+  firstName?: string | null
+  lastName?: string | null
+  email: string
+  phone?: string | null
+  gender?: string | null
+  birthDay?: number | null
+  birthMonth?: number | null
+  avatarUrl?: string | null
+  role: string
+}): AuthUser {
+  return {
+    id: user.id,
+    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phone: user.phone,
+    gender: user.gender,
+    birthDay: user.birthDay,
+    birthMonth: user.birthMonth,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+  }
 }

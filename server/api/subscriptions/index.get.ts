@@ -3,7 +3,7 @@ import { requireAuth } from '../../middleware/auth.middleware'
 import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
 
   const subscriptions = await prisma.subscription.findMany({
     where: { userId: user.sub },

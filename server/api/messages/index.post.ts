@@ -15,7 +15,7 @@ const bodySchema = z.object({
  * CLIENT cannot initiate — throws 403 if the coach has not messaged first.
  */
 export default defineEventHandler(async (event) => {
-  const me = requireAuth(event)
+  const me = await requireAuth(event)
 
   const raw = await readBody(event)
   const parsed = bodySchema.safeParse(raw)

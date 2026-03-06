@@ -84,3 +84,4 @@ export const passwordSchema = z
   .max(128, 'Mot de passe trop long')
   .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
   .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
+  .regex(/[^A-Za-z0-9]/, 'Le mot de passe doit contenir au moins un caractère spécial')

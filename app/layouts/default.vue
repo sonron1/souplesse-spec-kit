@@ -432,6 +432,35 @@
     <footer class="bg-black text-gray-500 text-center text-xs py-4">
       © {{ new Date().getFullYear() }} Souplesse — Centre de fitness &amp; bien-être
     </footer>
+
+    <!-- ── Idle warning modal (D003) ── -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="showIdleWarning"
+          class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-orange-100 flex items-center justify-center">
+              <svg class="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Déconnexion imminente</h3>
+            <p class="text-sm text-gray-500 mb-6">
+              Vous serez déconnecté dans <strong>2 minutes</strong> en raison d'inactivité.
+            </p>
+            <button
+              class="btn-primary w-full"
+              @click="resetIdle"
+            >
+              Rester connecté
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -452,13 +481,24 @@
   }
   onMounted(() => { refreshUnread(); setInterval(refreshUnread, 30000) })
 
-  // ── Idle timeout: log out non-admins after 20 min of inactivity ────────────
-  const IDLE_MS = 20 * 60 * 1000
+  // ── Idle timeout: log out non-admins after 30 min of inactivity (D001/D003) ──
+  const IDLE_MS = 30 * 60 * 1000          // 30 min total
+  const WARN_MS = 28 * 60 * 1000          // warn at 28 min
   let idleTimer: ReturnType<typeof setTimeout> | null = null
+  let warnTimer: ReturnType<typeof setTimeout> | null = null
+  const showIdleWarning = ref(false)
+
   function resetIdle() {
     if (isAdmin.value) return
     if (idleTimer) clearTimeout(idleTimer)
+    if (warnTimer) clearTimeout(warnTimer)
+    showIdleWarning.value = false
+    // Show warning 2 min before logout
+    warnTimer = setTimeout(() => {
+      showIdleWarning.value = true
+    }, WARN_MS)
     idleTimer = setTimeout(async () => {
+      showIdleWarning.value = false
       await logout()
     }, IDLE_MS)
   }
@@ -471,6 +511,7 @@
   })
   onUnmounted(() => {
     if (idleTimer) clearTimeout(idleTimer)
+    if (warnTimer) clearTimeout(warnTimer)
     idleEvents.forEach(e => window.removeEventListener(e, resetIdle))
   })
 

@@ -20,7 +20,7 @@ const createSessionSchema = z.object({
  * Returns a kkiapayToken to initialise the Kkiapay widget on the client.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireRole(user, 'CLIENT') // Only clients can purchase subscriptions
   const body = await validateBody(event, createSessionSchema)
 

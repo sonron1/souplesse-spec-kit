@@ -6,6 +6,7 @@ export interface JwtPayload {
   email: string
   role: string
   type: 'access' | 'refresh'
+  sessionToken?: string // v3 — single-session enforcement
   iat?: number
   exp?: number
 }

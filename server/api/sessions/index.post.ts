@@ -6,7 +6,7 @@ import { createSessionSchema } from '../../validators/booking.schemas'
 import { sessionRepository } from '../../repositories/session.repository'
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireCoach(user)
 
   const body = await validateBody(event, createSessionSchema)

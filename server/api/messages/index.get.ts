@@ -10,7 +10,7 @@ import { messageService } from '../../services/message.service'
  * CLIENT → their assigned coach conversation (if any)
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
 
   if (user.role === 'ADMIN') {
     const conversations = await messageService.getAdminCoachConversations(user.sub)

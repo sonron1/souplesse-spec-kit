@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
       page: query.page,
       limit: query.limit,
       total,
-      totalPages: Math.max(1, Math.ceil(total / query.limit)),
+      totalPages: Math.max(1, Math.ceil(total / (query.limit ?? 20))),
     },
   }
 })

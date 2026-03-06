@@ -46,24 +46,40 @@ describe('US1 E2E: signup → purchase (Kkiapay) → webhook activation', () => 
     const mockUser = {
       id: 'user-e2e',
       name: 'E2E User',
+      firstName: 'E2E',
+      lastName: 'User',
       email: 'e2e@example.com',
+      phone: '+22900000099',
+      gender: null,
+      birthDay: null,
+      birthMonth: null,
+      avatarUrl: null,
       passwordHash: '$2a$12$mock',
       role: 'CLIENT' as const,
       refreshToken: null,
+      emailVerified: true,
+      emailVerificationToken: null,
+      sessionToken: null,
+      sessionTokenIssuedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
     mockUserRepo.findByEmail.mockResolvedValue(null)
-    mockUserRepo.create.mockResolvedValue(mockUser)
-    mockUserRepo.update.mockResolvedValue(mockUser)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockUserRepo.create.mockResolvedValue(mockUser as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockUserRepo.update.mockResolvedValue(mockUser as any)
 
-    const { user, tokens } = await authService.register({
-      name: 'E2E User',
+    const { user } = await authService.register({
+      firstName: 'E2E',
+      lastName: 'User',
       email: 'e2e@example.com',
+      phone: '+22900000099',
+      gender: 'MALE',
       password: 'E2ePassword1!',
+      confirmPassword: 'E2ePassword1!',
     })
     expect(user.id).toBe('user-e2e')
-    expect(tokens.accessToken).toBe('e2e-access-token')
 
     // 2. Create subscription (PENDING)
     const mockPlan = {

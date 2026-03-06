@@ -19,7 +19,7 @@ const PatchUserSchema = z.object({
  * Edit a user's role, name, or email (ADMIN only).
  */
 export default defineEventHandler(async (event) => {
-  const requestingUser = requireAuth(event)
+  const requestingUser = await requireAuth(event)
   requireAdmin(requestingUser)
 
   const id = getRouterParam(event, 'id')

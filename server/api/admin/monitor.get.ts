@@ -8,7 +8,7 @@ import { prisma } from '../../utils/prisma'
  * Returns all coach↔client threads grouped by coach, for admin moderation.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireRole(user, 'ADMIN')
 
   // Fetch all messages that belong to a coach↔client thread

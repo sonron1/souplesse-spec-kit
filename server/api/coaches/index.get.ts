@@ -8,7 +8,7 @@ import { prisma } from '../../utils/prisma'
  * Used by clients to browse and request a coach.
  */
 export default defineEventHandler(async (event) => {
-  requireAuth(event)
+  await requireAuth(event)
 
   const coaches = await prisma.user.findMany({
     where: { role: 'COACH' },

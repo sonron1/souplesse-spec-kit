@@ -9,7 +9,7 @@ import { notificationService } from '../../services/notification.service'
  * Also accepts ?all=true as a shorthand to mark all notifications read.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   const id = event.context.params?.id
 
   if (id === 'all') {

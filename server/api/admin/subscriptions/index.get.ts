@@ -8,7 +8,7 @@ import { requireAdmin } from '../../../utils/role'
  * Admin-only: list all subscriptions with user and plan info, paginated.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const query = getQuery(event)

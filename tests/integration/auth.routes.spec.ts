@@ -21,17 +21,21 @@ beforeEach(() => {
 })
 
 describe('POST /api/auth/register (route handler unit)', () => {
-  it('calls authService.register and returns tokens', async () => {
-    mockAuth.register.mockResolvedValue({ user: MOCK_USER, tokens: MOCK_TOKENS })
+  it('calls authService.register and returns the user', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockAuth.register.mockResolvedValue({ user: MOCK_USER as any })
 
     const result = await authService.register({
-      name: 'Test User',
+      firstName: 'Test',
+      lastName: 'User',
       email: 'test@example.com',
+      phone: '+22900000000',
+      gender: 'MALE',
       password: 'Password1!',
+      confirmPassword: 'Password1!',
     })
 
     expect(result.user.email).toBe('test@example.com')
-    expect(result.tokens.accessToken).toBe('access-token')
   })
 
   it('propagates 409 when email is taken', async () => {
@@ -41,7 +45,15 @@ describe('POST /api/auth/register (route handler unit)', () => {
     })
 
     await expect(
-      authService.register({ name: 'X', email: 'dup@example.com', password: 'Password1!' })
+      authService.register({
+        firstName: 'X',
+        lastName: 'Y',
+        email: 'dup@example.com',
+        phone: '+22900000001',
+        gender: 'MALE',
+        password: 'Password1!',
+        confirmPassword: 'Password1!',
+      })
     ).rejects.toMatchObject({ statusCode: 409 })
   })
 })

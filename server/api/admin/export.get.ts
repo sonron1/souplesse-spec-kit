@@ -13,7 +13,7 @@ function toCsvRow(values: (string | number | null | undefined)[]): string {
 }
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const payments = await prisma.payment.findMany({

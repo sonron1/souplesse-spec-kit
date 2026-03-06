@@ -9,7 +9,7 @@ import { prisma } from '../../../utils/prisma'
  * Does NOT mark messages as read.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireRole(user, 'ADMIN')
 
   const { coachId, clientId } = getQuery(event) as { coachId?: string; clientId?: string }

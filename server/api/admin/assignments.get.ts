@@ -8,7 +8,7 @@ import { requireAdmin } from '../../utils/role'
  * Admin-only: list coach-client assignments, optionally filtered by status.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const { status } = getQuery(event) as { status?: string }

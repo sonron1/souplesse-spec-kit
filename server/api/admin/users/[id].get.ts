@@ -8,7 +8,7 @@ import { prisma } from '../../../utils/prisma'
  * Returns full user profile including subscriptions, bookings count, and coach assignment.
  */
 export default defineEventHandler(async (event) => {
-  const admin = requireAuth(event)
+  const admin = await requireAuth(event)
   requireAdmin(admin)
 
   const id = getRouterParam(event, 'id')!

@@ -8,7 +8,7 @@ import { prisma } from '../../utils/prisma'
  * Admin-only: extended analytics for the comptability/inventory view.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const now = new Date()
@@ -88,13 +88,13 @@ export default defineEventHandler(async (event) => {
   }
 
   // Resolve plan names for planBreakdown
-  const planIds = planBreakdown.map(p => p.subscriptionPlanId).filter(Boolean) as string[]
+  const planIds = (planBreakdown as { subscriptionPlanId: string | null }[]).map(p => p.subscriptionPlanId).filter(Boolean) as string[]
   const plans = planIds.length
     ? await prisma.subscriptionPlan.findMany({ where: { id: { in: planIds } }, select: { id: true, name: true, planType: true } })
     : []
-  const planMap = Object.fromEntries(plans.map(p => [p.id, p]))
+  const planMap = Object.fromEntries((plans as { id: string; name: string; planType: string }[]).map(p => [p.id, p]))
 
-  const planStats = planBreakdown.map(p => ({
+  const planStats = (planBreakdown as { subscriptionPlanId: string | null; _count: { _all: number } }[]).map(p => ({
     planId: p.subscriptionPlanId,
     planName: planMap[p.subscriptionPlanId ?? '']?.name ?? 'Inconnu',
     planType: planMap[p.subscriptionPlanId ?? '']?.planType ?? '',
@@ -102,13 +102,13 @@ export default defineEventHandler(async (event) => {
   }))
 
   // Resolve user names for topClients
-  const topUserIds = topClients.map(t => t.userId)
+  const topUserIds = (topClients as { userId: string; _sum: { amount: number | null } }[]).map(t => t.userId)
   const topUsers = topUserIds.length
     ? await prisma.user.findMany({ where: { id: { in: topUserIds } }, select: { id: true, name: true, email: true } })
     : []
-  const userMap = Object.fromEntries(topUsers.map(u => [u.id, u]))
+  const userMap = Object.fromEntries((topUsers as { id: string; name: string | null; email: string }[]).map(u => [u.id, u]))
 
-  const topClientStats = topClients.map(t => ({
+  const topClientStats = (topClients as { userId: string; _sum: { amount: number | null } }[]).map(t => ({
     userId: t.userId,
     name: userMap[t.userId]?.name ?? '—',
     email: userMap[t.userId]?.email ?? '—',

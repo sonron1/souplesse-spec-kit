@@ -17,7 +17,7 @@ const bodySchema = z.object({
  * Notifies all admins.
  */
 export default defineEventHandler(async (event) => {
-  const me = requireAuth(event)
+  const me = await requireAuth(event)
 
   if (me.role !== 'CLIENT') {
     throw createError({ statusCode: 403, message: 'Réservé aux clients.' })

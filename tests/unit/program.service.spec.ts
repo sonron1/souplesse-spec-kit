@@ -25,7 +25,7 @@ const MOCK_PROGRAM = {
   id: 'prog-1',
   coachId: 'coach-1',
   clientId: 'client-1',
-  type: 'GAIN' as const,
+  type: 'CARDIO' as const,
   content: { exercises: [] },
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -45,7 +45,7 @@ describe('programService.createProgram', () => {
 
     const result = await programService.createProgram('coach-1', {
       clientId: 'client-1',
-      type: 'GAIN',
+      type: 'CARDIO',
       content: { exercises: [] },
     })
     expect(result.coachId).toBe('coach-1')
@@ -60,18 +60,18 @@ describe('programService.updateProgram', () => {
       coachId: 'coach-1',
       clientId: 'client-1',
     } as never)
-    const updated = { ...MOCK_PROGRAM, type: 'LOSS' as const }
+    const updated = { ...MOCK_PROGRAM, type: 'LOWER_BODY' as const }
     mockPrisma.program.update.mockResolvedValue(updated)
 
-    const result = await programService.updateProgram('prog-1', 'coach-1', { type: 'LOSS' })
-    expect(result.type).toBe('LOSS')
+    const result = await programService.updateProgram('prog-1', 'coach-1', { type: 'LOWER_BODY' })
+    expect(result.type).toBe('LOWER_BODY')
   })
 
   it('throws 403 if a different coach tries to update', async () => {
     mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM)
 
     await expect(
-      programService.updateProgram('prog-1', 'other-coach', { type: 'LOSS' })
+      programService.updateProgram('prog-1', 'other-coach', { type: 'LOWER_BODY' })
     ).rejects.toMatchObject({ statusCode: 403 })
   })
 

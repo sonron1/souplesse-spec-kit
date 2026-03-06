@@ -3,6 +3,18 @@
     <h2 class="text-xl font-bold text-gray-900 mb-1">Content(e) de vous revoir&nbsp;!</h2>
     <p class="text-sm text-gray-500 mb-6">Connectez-vous pour accéder à votre espace.</p>
 
+    <!-- C006: session revoked notice -->
+    <div
+      v-if="sessionRevokedMsg"
+      class="bg-orange-50 border border-orange-200 text-orange-700 rounded-lg px-4 py-3 mb-4 text-sm flex items-start gap-2"
+    >
+      <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      {{ sessionRevokedMsg }}
+    </div>
+
     <div
       v-if="error"
       class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm"
@@ -59,12 +71,20 @@
 
 <script setup lang="ts">
   const { login } = useAuth()
+  const route = useRoute()
 
   const form = reactive({ email: '', password: '' })
   const loading = ref(false)
   const error = ref<string | null>(null)
 
   definePageMeta({ layout: 'auth' })
+
+  // C006: show message if redirected after session revocation
+  const sessionRevokedMsg = computed(() =>
+    route.query.reason === 'session_revoked'
+      ? 'Votre session a été fermée car vous vous êtes connecté sur un autre appareil.'
+      : null
+  )
 
   async function handleLogin() {
     error.value = null

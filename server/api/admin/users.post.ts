@@ -23,7 +23,7 @@ const BCRYPT_ROUNDS = 12
  * - Sets emailVerified = true (admin-created accounts bypass verification).
  */
 export default defineEventHandler(async (event) => {
-  const admin = requireAuth(event)
+  const admin = await requireAuth(event)
   requireAdmin(admin)
 
   const body = await readBody(event)

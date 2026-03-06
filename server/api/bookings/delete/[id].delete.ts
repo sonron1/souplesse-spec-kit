@@ -9,7 +9,7 @@ import logger from '../../../utils/logger'
  * Only CONFIRMED bookings that haven't started yet can be cancelled.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   const id = getRouterParam(event, 'id')
 
   if (!id) throw createError({ statusCode: 400, message: 'Identifiant de réservation manquant' })

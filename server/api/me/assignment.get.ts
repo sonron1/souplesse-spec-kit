@@ -7,7 +7,7 @@ import { prisma } from '../../utils/prisma'
  * CLIENT only — returns the client's current coach assignment (any status).
  */
 export default defineEventHandler(async (event) => {
-  const me = requireAuth(event)
+  const me = await requireAuth(event)
 
   const assignment = await prisma.coachClientAssignment.findFirst({
     where: { clientId: me.sub },

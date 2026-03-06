@@ -1,7 +1,8 @@
 ---
 description: 'Suppléments fonctionnels v2 — Souplesse Fitness'
 created: '2026-03-06'
-status: 'in-progress'
+updated: '2026-03-06'
+status: 'planned'
 ---
 
 # Tasks: Suppléments Fonctionnels v2
@@ -120,6 +121,8 @@ status: 'in-progress'
 - [ ] I003 [DB] Ajouter le champ `reminderSentAt` (DateTime?) au modèle `Subscription` pour éviter les doublons d'envoi
 - [ ] I004 [DB] Générer et appliquer la migration `npx prisma migrate dev --name add-subscription-reminder`
 - [ ] I005 [UI] Ajouter une bannière in-app si l'abonnement expire dans ≤ 3 jours (vérifier dans `subscriptions.vue` au chargement)
+- [ ] I006 [API] Dans le cron, créer une `Notification` en base (modèle existant) pour l'utilisateur concerné : "Votre abonnement expire dans X jours"
+- [ ] I007 [API] Dans le cron, créer un message système dans la messagerie interne (`DirectMessage` ou `Message`) pour notifier l'utilisateur in-app
 
 ---
 
@@ -130,9 +133,10 @@ status: 'in-progress'
 - [ ] J003 [API] Créer `POST /api/subscriptions/:id/pause` : vérifie `pauseCount < plan.maxPauses`, incrémente `pauseCount`, met `status = PAUSED`, enregistre `pausedAt`
 - [ ] J004 [API] Créer `POST /api/subscriptions/:id/resume` : remet `status = ACTIVE`, calcule nouveau `expiresAt` (ajoute la durée de pause), efface `pausedAt`
 - [ ] J005 [API] Notifier l'admin par email à chaque pause (utiliser Resend)
-- [ ] J006 [UI] Dans `app/pages/dashboard/subscriptions.vue` : afficher bouton "Mettre en pause" si `pauseCount < plan.maxPauses` et abonnement ACTIVE
-- [ ] J007 [UI] Afficher le statut PAUSED avec la date de reprise prévue
-- [ ] J008 [UI] Dans `app/pages/admin/users/[id].vue` (ou drawer users) : afficher le nombre de reports utilisés/disponibles
+- [ ] J006 [API] Créer une `Notification` en base pour l'admin à chaque pause (visible dans la cloche de notification)
+- [ ] J007 [UI] Dans `app/pages/dashboard/subscriptions.vue` : afficher bouton "Mettre en pause" si `pauseCount < plan.maxPauses` et abonnement ACTIVE
+- [ ] J008 [UI] Afficher le statut PAUSED avec la date de reprise prévue
+- [ ] J009 [UI] Dans `app/pages/admin/users/[id].vue` (ou drawer users) : afficher le nombre de reports utilisés/disponibles et statut PAUSED visible dans la liste utilisateurs
 
 ---
 
@@ -159,6 +163,8 @@ status: 'in-progress'
 - [ ] M003 [UI] Dans `app/pages/dashboard/bookings.vue` : afficher séances confirmées et séances annulées dans deux onglets séparés (déjà partiellement fait — finaliser)
 - [ ] M004 [UI] Retirer le calendrier permanent de la page sessions — le remplacer par une icône calendrier ouvrant un date-picker popup (composant natif ou `<input type="date">` stylisé)
 - [ ] M005 [UI] Si l'utilisateur a déjà une réservation active pour une séance : désactiver le bouton "Réserver" et afficher "Déjà réservé"
+- [ ] M006 [API] Vérifier que `POST/PATCH/DELETE /api/sessions` : ADMIN peut créer/modifier/supprimer toutes les séances ; COACH ne peut modifier/supprimer que ses propres séances (`session.coachId === currentUser.id`)
+- [ ] M007 [UI] Dans les pages coach (`/coach/sessions`), masquer les boutons Modifier/Supprimer sur les séances qui n'appartiennent pas au coach connecté
 
 ---
 
@@ -175,10 +181,12 @@ status: 'in-progress'
 - [ ] O001 [API] Ajouter pagination `?page=1&limit=20` à `GET /api/admin/users`
 - [ ] O002 [API] Ajouter pagination `?page=1&limit=20` à `GET /api/sessions`
 - [ ] O003 [API] Ajouter pagination `?page=1&limit=20` à `GET /api/bookings`
-- [ ] O004 [UI] Composant `<Pagination>` réutilisable : prev / numéros / next
-- [ ] O005 [UI] Intégrer `<Pagination>` dans la page admin utilisateurs
-- [ ] O006 [UI] Intégrer `<Pagination>` dans la page sessions client
-- [ ] O007 [UI] Intégrer `<Pagination>` dans la page réservations client
+- [ ] O004 [API] Ajouter pagination `?page=1&limit=20` à `GET /api/messages` (ou équivalent)
+- [ ] O005 [UI] Composant `<Pagination>` réutilisable : prev / numéros / next
+- [ ] O006 [UI] Intégrer `<Pagination>` dans la page admin utilisateurs
+- [ ] O007 [UI] Intégrer `<Pagination>` dans la page sessions client
+- [ ] O008 [UI] Intégrer `<Pagination>` dans la page réservations client
+- [ ] O009 [UI] Intégrer `<Pagination>` dans la page messages / historique messagerie
 
 ---
 
@@ -214,9 +222,37 @@ status: 'in-progress'
 ```
 A (DB user) → B (register form) → C (session unique) → D (idle timer)
 → E (profile page) → F (plans catalog) → G (booking gate) → H (expiration)
-→ I (reminder email) → J (pause) → K (cumul) → L (couple check)
-→ M (sessions fixes) → N (filtres dates) → O (pagination)
+→ I (reminder email+notif) → J (pause+notif) → K (cumul) → L (couple check)
+→ M (sessions fixes+permissions) → N (filtres dates) → O (pagination)
 → P (messages) → Q (polling) → R (tests)
 ```
 
 Blocs parallélisables une fois les dépendances DB satisfaites : `E // F // G // H`
+
+---
+
+## Récapitulatif par fonctionnalité source
+
+| Fonctionnalité demandée | Blocs couvrants |
+|---|---|
+| Champs utilisateur (nom, prénom, phone, sexe, anniversaire, avatar) | A |
+| Formulaire inscription + force mot de passe | B |
+| Vérification email/phone existant | A008, A009, B006 |
+| Session unique (révocation multi-device) | C |
+| Déconnexion auto inactivité 30 min + avertissement J-2min | D |
+| Page profil `/profile` (tous rôles) | E |
+| Catalogue abonnements officiel (FCFA, maxPauses) | F |
+| Réservation conditionnée à abonnement actif | G |
+| Expiration auto abonnements (Vercel Cron) | H |
+| Rappel expiration J-3 (email + notif + messagerie) | I |
+| Report / Pause abonnement + notif admin | J |
+| Cumul abonnements (prolongation) | K |
+| Abonnement couple (sexe opposé) | L |
+| Séances : tri récent, fix annulation, désactiver si déjà réservé | M |
+| Suppression calendrier permanent → popup | M004 |
+| Permissions admin/coach sur séances | M006, M007 |
+| Filtres dates sessions (dateFin ≥ dateDébut, multi-jours) | N |
+| Pagination (users, sessions, bookings, messages) | O |
+| Messagerie : scroll + édition messages | P |
+| Mise à jour dynamique polling 30s | Q |
+| Tests couvrant tous les nouveaux blocs | R |

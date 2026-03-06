@@ -16,6 +16,7 @@ vi.mock('../../server/utils/email', () => ({ sendVerificationEmail: vi.fn().mock
 const mockUserRepo = vi.mocked(userRepository)
 const mockJwt = vi.mocked(jwtUtils)
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MOCK_USER = {
   id: 'user-1',
   name: 'Test User',
@@ -25,7 +26,7 @@ const MOCK_USER = {
   refreshToken: null,
   createdAt: new Date(),
   updatedAt: new Date(),
-}
+} as any
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -36,19 +37,22 @@ beforeEach(() => {
 
 // ─── register() ───────────────────────────────────────────────────────────────
 describe('authService.register', () => {
-  it('creates a new user and returns tokens', async () => {
+  it('creates a new user and sends verification email', async () => {
     mockUserRepo.findByEmail.mockResolvedValue(null)
+    mockUserRepo.findByPhone?.mockResolvedValue?.(null)
     mockUserRepo.create.mockResolvedValue(MOCK_USER)
 
     const result = await authService.register({
-      name: 'Test User',
+      firstName: 'Test',
+      lastName: 'User',
       email: 'test@example.com',
+      phone: '+22900000001',
+      gender: 'MALE',
       password: 'Password1!',
+      confirmPassword: 'Password1!',
     })
 
     expect(result.user.email).toBe('test@example.com')
-    expect(result.tokens.accessToken).toBe('mock-access-token')
-    expect(result.tokens.refreshToken).toBe('mock-refresh-token')
     expect(mockUserRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'test@example.com' })
     )
@@ -58,15 +62,32 @@ describe('authService.register', () => {
     mockUserRepo.findByEmail.mockResolvedValue(MOCK_USER)
 
     await expect(
-      authService.register({ name: 'X', email: 'test@example.com', password: 'Password1!' })
+      authService.register({
+        firstName: 'X',
+        lastName: 'Y',
+        email: 'test@example.com',
+        phone: '+22900000002',
+        gender: 'MALE',
+        password: 'Password1!',
+        confirmPassword: 'Password1!',
+      })
     ).rejects.toMatchObject({ statusCode: 409 })
   })
 
   it('hashes the password before storing', async () => {
     mockUserRepo.findByEmail.mockResolvedValue(null)
+    mockUserRepo.findByPhone?.mockResolvedValue?.(null)
     mockUserRepo.create.mockResolvedValue(MOCK_USER)
 
-    await authService.register({ name: 'X', email: 'new@example.com', password: 'Password1!' })
+    await authService.register({
+      firstName: 'X',
+      lastName: 'Y',
+      email: 'new@example.com',
+      phone: '+22900000003',
+      gender: 'MALE',
+      password: 'Password1!',
+      confirmPassword: 'Password1!',
+    })
 
     const createCall = mockUserRepo.create.mock.calls[0][0]
     expect(createCall.passwordHash).not.toBe('Password1!')

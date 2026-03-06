@@ -5,7 +5,14 @@ import { $fetch } from 'ofetch'
 interface AuthUser {
   id: string
   name: string
+  firstName?: string | null
+  lastName?: string | null
   email: string
+  phone?: string | null
+  gender?: string | null
+  birthDay?: number | null
+  birthMonth?: number | null
+  avatarUrl?: string | null
   role: string
 }
 
@@ -67,10 +74,20 @@ export function useAuth() {
    * Does NOT auto-login — the user must verify their email first.
    * Returns the email so the caller can display a "check your inbox" screen.
    */
-  async function register(name: string, email: string, password: string): Promise<{ email: string }> {
+  async function register(params: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    gender: 'MALE' | 'FEMALE'
+    password: string
+    confirmPassword: string
+    birthDay?: number | null
+    birthMonth?: number | null
+  }): Promise<{ email: string }> {
     const data = await $fetch<{ user: AuthUser }>('/api/auth/register', {
       method: 'POST',
-      body: { name, email, password },
+      body: params,
     })
     return { email: data.user.email }
   }
@@ -101,6 +118,15 @@ export function useAuth() {
     }
     _clearSession()
     await navigateTo('/login')
+  }
+
+  /**
+   * C006: handle session_revoked errors globally.
+   * Call this when a 401 with code session_revoked is received.
+   */
+  async function handleSessionRevoked() {
+    _clearSession()
+    await navigateTo('/login?reason=session_revoked')
   }
 
   async function refresh() {
@@ -158,7 +184,7 @@ export function useAuth() {
     refreshTokenCookie.value = null
   }
 
-  return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh, ensureFresh }
+  return { user, isLoggedIn, isAdmin, isCoach, isClient, accessToken, register, login, logout, refresh, ensureFresh, handleSessionRevoked }
 }
 
 /** A valid JWT has exactly 3 base64url segments separated by dots. */

@@ -16,7 +16,7 @@ const PatchSubscriptionSchema = z.object({
  * CANCELLED → sets isActive=false
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const id = event.context.params?.id

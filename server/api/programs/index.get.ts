@@ -5,7 +5,7 @@ import { createError } from 'h3'
 import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   const query = getQuery(event)
   const clientId = query.clientId as string | undefined
 

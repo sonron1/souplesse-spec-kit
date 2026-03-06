@@ -8,7 +8,7 @@ import { prisma } from '../../utils/prisma'
  * Coaches and admins always receive { active: true } — they never need a subscription.
  */
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
 
   // Staff roles bypass the subscription gate entirely
   if (user.role !== 'CLIENT') {

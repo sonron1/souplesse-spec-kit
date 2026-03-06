@@ -11,7 +11,7 @@ import { systemLog } from '../../../utils/systemLog'
  * An admin cannot delete their own account.
  */
 export default defineEventHandler(async (event) => {
-  const requestingUser = requireAuth(event)
+  const requestingUser = await requireAuth(event)
   requireAdmin(requestingUser)
 
   const id = getRouterParam(event, 'id')

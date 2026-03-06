@@ -6,7 +6,7 @@ import { createProgramSchema } from '../../validators/program.schemas'
 import { programService } from '../../services/program.service'
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireCoach(user)
 
   const body = await validateBody(event, createProgramSchema)

@@ -5,7 +5,7 @@ import { validateQuery, paginationSchema } from '../../validators/index'
 import { userRepository } from '../../repositories/user.repository'
 
 export default defineEventHandler(async (event) => {
-  const user = requireAuth(event)
+  const user = await requireAuth(event)
   requireAdmin(user)
 
   const query = validateQuery(event, paginationSchema)
