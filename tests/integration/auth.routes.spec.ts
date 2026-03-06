@@ -56,6 +56,26 @@ describe('POST /api/auth/register (route handler unit)', () => {
       })
     ).rejects.toMatchObject({ statusCode: 409 })
   })
+
+  it('R004 — propagates 409 phone_taken when phone already registered', async () => {
+    mockAuth.register.mockRejectedValue({
+      statusCode: 409,
+      data: { code: 'phone_taken' },
+      statusMessage: 'Ce numéro de téléphone est déjà utilisé',
+    })
+
+    await expect(
+      authService.register({
+        firstName: 'A',
+        lastName: 'B',
+        email: 'new@example.com',
+        phone: '+22900000001',
+        gender: 'FEMALE',
+        password: 'Password1!',
+        confirmPassword: 'Password1!',
+      })
+    ).rejects.toMatchObject({ statusCode: 409, data: { code: 'phone_taken' } })
+  })
 })
 
 describe('POST /api/auth/login (route handler unit)', () => {

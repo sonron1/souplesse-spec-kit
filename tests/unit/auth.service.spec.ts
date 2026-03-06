@@ -74,6 +74,23 @@ describe('authService.register', () => {
     ).rejects.toMatchObject({ statusCode: 409 })
   })
 
+  it('throws 409 if phone already registered (phone_taken)', async () => {
+    mockUserRepo.findByEmail.mockResolvedValue(null)
+    mockUserRepo.findByPhone = vi.fn().mockResolvedValue(MOCK_USER)
+
+    await expect(
+      authService.register({
+        firstName: 'X',
+        lastName: 'Y',
+        email: 'new@example.com',
+        phone: '+22900000001',
+        gender: 'MALE',
+        password: 'Password1!',
+        confirmPassword: 'Password1!',
+      })
+    ).rejects.toMatchObject({ statusCode: 409, data: { code: 'phone_taken' } })
+  })
+
   it('hashes the password before storing', async () => {
     mockUserRepo.findByEmail.mockResolvedValue(null)
     mockUserRepo.findByPhone?.mockResolvedValue?.(null)
