@@ -35,6 +35,20 @@ const past = computed(() =>
     .sort((a, b) => new Date(b.session?.dateTime ?? 0).getTime() - new Date(a.session?.dateTime ?? 0).getTime())
 )
 
+const PAGE_SIZE = 5
+const upcomingPage = ref(1)
+const pastPage = ref(1)
+
+const upcomingPaged = computed(() =>
+  upcoming.value.slice((upcomingPage.value - 1) * PAGE_SIZE, upcomingPage.value * PAGE_SIZE)
+)
+const upcomingTotalPages = computed(() => Math.max(1, Math.ceil(upcoming.value.length / PAGE_SIZE)))
+
+const pastPaged = computed(() =>
+  past.value.slice((pastPage.value - 1) * PAGE_SIZE, pastPage.value * PAGE_SIZE)
+)
+const pastTotalPages = computed(() => Math.max(1, Math.ceil(past.value.length / PAGE_SIZE)))
+
 const totalCount = computed(() => (bookings.value ?? []).length)
 
 function statusLabel(s: string) {
@@ -138,7 +152,7 @@ async function cancelBooking(id: string) {
           </h2>
           <div class="space-y-3">
             <div
-              v-for="b in upcoming"
+              v-for="b in upcomingPaged"
               :key="b.id"
               class="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-yellow-200 transition-all p-5 flex items-center gap-5"
             >
@@ -176,6 +190,16 @@ async function cancelBooking(id: string) {
               </div>
             </div>
           </div>
+          <!-- Upcoming pagination -->
+          <div v-if="upcomingTotalPages > 1" class="flex items-center justify-center gap-2 mt-4">
+            <button :disabled="upcomingPage === 1" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="upcomingPage--">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="text-xs font-semibold text-gray-500">{{ upcomingPage }} / {{ upcomingTotalPages }}</span>
+            <button :disabled="upcomingPage === upcomingTotalPages" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="upcomingPage++">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
         </section>
 
         <!-- ── Past ─────────────────────────────────────────── -->
@@ -186,7 +210,7 @@ async function cancelBooking(id: string) {
           </h2>
           <div class="space-y-2">
             <div
-              v-for="b in past"
+              v-for="b in pastPaged"
               :key="b.id"
               class="bg-gray-50 rounded-xl border border-gray-100 p-4 flex items-center gap-4 opacity-75"
             >
@@ -202,6 +226,16 @@ async function cancelBooking(id: string) {
                 {{ statusLabel(b.status) }}
               </span>
             </div>
+          </div>
+          <!-- Past pagination -->
+          <div v-if="pastTotalPages > 1" class="flex items-center justify-center gap-2 mt-4">
+            <button :disabled="pastPage === 1" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="pastPage--">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="text-xs font-semibold text-gray-500">{{ pastPage }} / {{ pastTotalPages }}</span>
+            <button :disabled="pastPage === pastTotalPages" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="pastPage++">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
           </div>
         </section>
       </template>

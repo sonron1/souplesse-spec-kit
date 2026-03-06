@@ -1,6 +1,7 @@
 import { defineEventHandler, getRequestHeader, createError } from 'h3'
 import { prisma } from '../../utils/prisma'
 import { notificationService } from '../../services/notification.service'
+import { sendSubscriptionReminderEmail } from '../../utils/email'
 import logger from '../../utils/logger'
 
 const REMINDER_DAYS = 3
@@ -31,6 +32,12 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  // Find a system admin to use as the internal-message sender
+  const adminUser = await prisma.user.findFirst({
+    where: { role: 'ADMIN' },
+    select: { id: true },
+  })
+
   let sent = 0
 
   for (const sub of subscriptions) {
@@ -40,7 +47,7 @@ export default defineEventHandler(async (event) => {
       : 'bientôt'
 
     try {
-      // In-app notification (I004–I005)
+      // I004–I005 — In-app notification
       await notificationService.create({
         userId: sub.user.id,
         type: 'SUBSCRIPTION_EXPIRING',
@@ -48,10 +55,26 @@ export default defineEventHandler(async (event) => {
         body: `Votre ${planName} expire le ${expiryDate}. Renouvelez dès maintenant pour continuer à accéder aux séances.`,
       })
 
-      // TODO (I001–I003): Send email notification via email provider (e.g. Resend / Nodemailer)
-      // Requires EMAIL_FROM + email provider env vars to be configured.
-      // Example: await emailService.sendSubscriptionReminder({ to: sub.user.email, planName, expiryDate })
-      logger.info({ userId: sub.user.id, email: sub.user.email, planName, expiryDate }, 'Subscription reminder email stub (email provider not configured)')
+      // I003 — Internal message (admin → client)
+      if (adminUser) {
+        await prisma.message.create({
+          data: {
+            senderId: adminUser.id,
+            recipientId: sub.user.id,
+            coachId: adminUser.id,
+            clientId: sub.user.id,
+            body: `📅 Rappel : votre ${planName} expire le ${expiryDate}. Rendez-vous sur https://souplessefitness.com/subscribe pour renouveler votre abonnement.`,
+          },
+        })
+      }
+
+      // I001 — Email reminder (graceful skip if RESEND_API_KEY not set)
+      await sendSubscriptionReminderEmail(
+        sub.user.email,
+        sub.user.firstName ?? 'Membre',
+        planName,
+        expiryDate,
+      )
 
       // Mark as reminded (I007)
       await prisma.subscription.update({

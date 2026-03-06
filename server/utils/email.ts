@@ -114,3 +114,71 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
     console.error('[Resend unexpected error]', err)
   }
 }
+/**
+ * Send a subscription expiry reminder email (3 days before expiry).
+ * Silently skipped when RESEND_API_KEY is not configured.
+ */
+export async function sendSubscriptionReminderEmail(
+  to: string,
+  firstName: string,
+  planName: string,
+  expiryDate: string,
+): Promise<void> {
+  const apiKey = (process.env.RESEND_API_KEY ?? '').trim()
+  if (!apiKey) {
+    logger.warn({ to }, 'RESEND_API_KEY not set — skipping reminder email')
+    return
+  }
+
+  const renewUrl = `${getAppUrl()}/subscribe`
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><title>Abonnement bientôt expiré</title></head>
+<body style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#f5f5f5;margin:0;padding:0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+        <tr><td style="background:#000000;padding:28px 40px;text-align:center;">
+          <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Souplesse<span style="color:#EAB308;">·</span>Fitness</span>
+        </td></tr>
+        <tr><td style="padding:40px;color:#1a1a1a;">
+          <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;">Votre abonnement expire bientôt</h2>
+          <p style="margin:0 0 16px;color:#555;line-height:1.6;">Bonjour ${firstName},</p>
+          <p style="margin:0 0 24px;color:#555;line-height:1.6;">
+            Votre <strong>${planName}</strong> expire le <strong>${expiryDate}</strong>.
+            Renouvelez dès maintenant pour continuer à profiter des séances du club.
+          </p>
+          <p style="text-align:center;margin:0 0 32px;">
+            <a href="${renewUrl}" style="display:inline-block;background:#EAB308;color:#000000;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;">
+              Renouveler mon abonnement
+            </a>
+          </p>
+          <p style="margin:0;color:#888;font-size:13px;">Si vous avez déjà renouvelé, ignorez cet email.</p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eee;text-align:center;">
+          <span style="color:#aaa;font-size:12px;">© ${new Date().getFullYear()} Souplesse Fitness — Cotonou, Bénin</span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+  const resend = getResend()
+  try {
+    const { data, error } = await resend.emails.send({
+      from: getFrom(),
+      to,
+      subject: `Votre ${planName} expire le ${expiryDate} — Souplesse Fitness`,
+      html,
+      text: `Bonjour ${firstName}, votre ${planName} expire le ${expiryDate}. Renouvelez sur ${renewUrl}`,
+    })
+    if (error) {
+      logger.error({ to, error }, 'Resend: failed to send reminder email')
+    } else {
+      logger.info({ to, emailId: data?.id }, 'Subscription reminder email sent via Resend')
+    }
+  } catch (err) {
+    logger.error({ to, err }, 'Resend: unexpected error sending reminder email')
+  }
+}

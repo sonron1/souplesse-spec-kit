@@ -56,29 +56,61 @@
     </div>
 
     <!-- ── Date filters (upcoming only) ──────────────────── -->
-    <div v-if="tab === 'upcoming'" class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 mb-6">
-      <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0014 13.828V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.172a1 1 0 00-.293-.707L1.293 6.707A1 1 0 011 6V4z"/></svg>
-        Filtres
-      </p>
-      <div class="flex flex-wrap gap-3 items-end">
-        <div>
-          <label class="label">À partir du</label>
-          <input v-model="fromDate" type="date" class="input w-40" :min="todayStr" />
+    <div v-if="tab === 'upcoming'" class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 overflow-hidden">
+      <!-- Toggle bar -->
+      <button
+        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition-colors"
+        @click="showFilters = !showFilters"
+      >
+        <span class="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+          <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          Filtrer par date
+          <span v-if="fromDate || toDate" class="ml-1 bg-yellow-100 text-yellow-700 border border-yellow-200 text-[10px] font-bold px-1.5 py-0.5 rounded-full">actif</span>
+        </span>
+        <span class="flex items-center gap-2">
+          <span v-if="fromDate || toDate" class="text-xs text-gray-400 font-medium">
+            {{ fromDate || '…' }} → {{ toDate || '…' }}
+          </span>
+          <svg :class="showFilters ? 'rotate-180' : ''" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </span>
+      </button>
+      <!-- Collapsible body -->
+      <Transition name="collapse">
+        <div v-if="showFilters" class="border-t border-gray-100 px-5 py-4">
+          <div class="flex flex-wrap gap-3 items-end">
+            <div>
+              <label class="label">À partir du</label>
+              <div class="relative">
+                <input v-model="fromDate" type="date" class="input w-44 pr-8" :min="todayStr" />
+                <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+            </div>
+            <div>
+              <label class="label">Jusqu'au</label>
+              <div class="relative">
+                <input v-model="toDate" type="date" class="input w-44 pr-8" :min="fromDate || todayStr" />
+                <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+            </div>
+            <button class="btn-primary flex items-center gap-1.5" @click="applyFilters(); showFilters = false">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              Appliquer
+            </button>
+            <button class="btn-secondary flex items-center gap-1.5" @click="resetFilters(); showFilters = false">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Réinitialiser
+            </button>
+          </div>
         </div>
-        <div>
-          <label class="label">Jusqu'au</label>
-          <input v-model="toDate" type="date" class="input w-40" :min="todayStr" />
-        </div>
-        <button class="btn-primary flex items-center gap-1.5" @click="applyFilters">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          Filtrer
-        </button>
-        <button class="btn-secondary flex items-center gap-1.5" @click="resetFilters">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          Réinitialiser
-        </button>
-      </div>
+      </Transition>
     </div>
 
     <!-- Loading -->
@@ -306,6 +338,7 @@
   const todayStr = computed(() => new Date().toISOString().split('T')[0])
   const fromDate = ref('')
   const toDate = ref('')
+  const showFilters = ref(false)
 
   const subHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
   const { data: subData, pending: subPending } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
@@ -411,3 +444,14 @@
     return new Date(dt).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 </script>
+<style scoped>
+.collapse-enter-active, .collapse-leave-active {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+.collapse-enter-from, .collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+</style>
