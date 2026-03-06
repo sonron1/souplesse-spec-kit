@@ -102,7 +102,11 @@
                 <h3 class="text-xl font-extrabold text-gray-900">{{ activeSub.subscriptionPlan?.name ?? activeSub.type }}</h3>
               </div>
             </div>
-            <span class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-xl shrink-0">
+            <span v-if="activeSub.pausedAt" class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1.5 rounded-xl shrink-0">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 9v6m4-6v6"/></svg>
+              En pause
+            </span>
+            <span v-else class="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-xl shrink-0">
               <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
               </svg>
@@ -152,6 +156,35 @@
                 class="h-full bg-primary-400 rounded-full transition-all duration-500"
                 :style="`width: ${progressPct(activeSub)}%`"
               />
+            </div>
+          </div>
+
+          <!-- Pause / resume action -->
+          <div v-if="activeSub.subscriptionPlan?.maxPauses" class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+            <div class="text-xs text-gray-500">
+              <span v-if="activeSub.pausedAt">Abonnement en pause depuis le {{ formatDate(activeSub.pausedAt) }}</span>
+              <span v-else>Pauses disponibles : {{ activeSub.pauseCount }} / {{ activeSub.subscriptionPlan.maxPauses }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <p v-if="pauseError" class="text-xs text-red-600">{{ pauseError }}</p>
+              <button
+                v-if="activeSub.pausedAt"
+                class="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 transition-colors px-3 py-1.5 rounded-lg disabled:opacity-50"
+                :disabled="pauseLoading"
+                @click="resumeSub"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {{ pauseLoading ? 'En cours…' : 'Reprendre' }}
+              </button>
+              <button
+                v-else-if="activeSub.pauseCount < activeSub.subscriptionPlan.maxPauses"
+                class="flex items-center gap-1.5 text-xs font-semibold text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-colors px-3 py-1.5 rounded-lg disabled:opacity-50"
+                :disabled="pauseLoading"
+                @click="pauseSub"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {{ pauseLoading ? 'En cours…' : 'Mettre en pause' }}
+              </button>
             </div>
           </div>
         </div>
@@ -226,7 +259,9 @@
     status: string
     startsAt: string | null
     expiresAt: string | null
-    subscriptionPlan?: { name: string; planType: string } | null
+    pausedAt: string | null
+    pauseCount: number
+    subscriptionPlan?: { name: string; planType: string; maxPauses: number } | null
   }
 
   const { data: subscriptions, pending, refresh } = await useLazyFetch<Subscription[]>('/api/subscriptions', {
@@ -283,6 +318,46 @@
     const total = new Date(sub.expiresAt).getTime() - new Date(sub.startsAt).getTime()
     const elapsed = Date.now() - new Date(sub.startsAt).getTime()
     return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
+  }
+
+  // Pause / resume
+  const pauseLoading = ref(false)
+  const pauseError = ref('')
+
+  async function pauseSub() {
+    if (!activeSub.value) return
+    pauseError.value = ''
+    pauseLoading.value = true
+    try {
+      await $fetch(`/api/subscriptions/${activeSub.value.id}/pause`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+      await refresh()
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      pauseError.value = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'
+    } finally {
+      pauseLoading.value = false
+    }
+  }
+
+  async function resumeSub() {
+    if (!activeSub.value) return
+    pauseError.value = ''
+    pauseLoading.value = true
+    try {
+      await $fetch(`/api/subscriptions/${activeSub.value.id}/resume`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+      await refresh()
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      pauseError.value = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'
+    } finally {
+      pauseLoading.value = false
+    }
   }
 </script>
 

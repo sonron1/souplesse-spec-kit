@@ -188,18 +188,23 @@
                   </div>
                 </div>
                 <button
-                  :disabled="remaining(session) === 0 || bookingInProgress === session.id"
-                  class="btn-primary whitespace-nowrap flex items-center gap-1.5 disabled:opacity-50"
+                  :disabled="remaining(session) === 0 || !!bookingInProgress || bookedSessionIds.has(session.id)"
+                  class="whitespace-nowrap flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  :class="bookedSessionIds.has(session.id) ? 'btn-secondary' : 'btn-primary'"
                   @click="bookSession(session.id)"
                 >
-                  <svg v-if="bookingInProgress !== session.id && remaining(session) > 0" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  <svg v-else-if="bookingInProgress === session.id" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <svg v-if="bookingInProgress === session.id" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
+                  <svg v-else-if="bookedSessionIds.has(session.id)" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <svg v-else-if="remaining(session) > 0" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
                   <span v-if="bookingInProgress === session.id">Réservation…</span>
+                  <span v-else-if="bookedSessionIds.has(session.id)">Déjà réservé</span>
                   <span v-else-if="remaining(session) === 0">Complet</span>
                   <span v-else>Réserver</span>
                 </button>
@@ -249,8 +254,38 @@
         </div>
       </Transition>
     </Teleport>
-  </div>
-</template>
+
+    <!-- Subscription required modal (G002/G003) -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="showSubscriptionModal"
+          class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          @click.self="showSubscriptionModal = false"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-orange-100 flex items-center justify-center">
+              <svg class="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Abonnement requis</h3>
+            <p class="text-sm text-gray-500 mb-6">
+              Vous devez avoir un abonnement actif pour réserver une séance.<br/>
+              Choisissez une formule adaptée à vos objectifs.
+            </p>
+            <div class="flex flex-col gap-3">
+              <NuxtLink to="/subscribe" class="btn-primary w-full text-center" @click="showSubscriptionModal = false">
+                Voir les formules
+              </NuxtLink>
+              <button class="btn-secondary w-full" @click="showSubscriptionModal = false">
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
 <script setup lang="ts">
   definePageMeta({ middleware: 'auth' })
@@ -289,12 +324,14 @@
   const queryParams = computed(() => {
     const p: Record<string, string | number> = { page: page.value, limit: LIMIT }
     if (tab.value === 'upcoming') {
-      // upcoming: from today midnight to optional end date
+      // upcoming: from today midnight to optional end date, sorted ASC
       p.from = fromDate.value || todayStr.value
       if (toDate.value) p.to = toDate.value
+      p.order = 'asc'
     } else {
-      // past: everything strictly before today (use beginning of today as upper bound)
+      // past: everything strictly before today, sorted DESC (most recent first)
       p.to = todayStr.value + 'T00:00:00.000Z'
+      p.order = 'desc'
     }
     return p
   })
@@ -319,8 +356,24 @@
   function resetFilters() { fromDate.value = ''; toDate.value = ''; page.value = 1; refresh() }
   function goToPage(n: number) { page.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
+  // M005 — track which sessions the user has already booked
+  const bookedSessionIds = ref(new Set<string>())
+  if (isClient.value) {
+    try {
+      const bkData = await $fetch<{ bookings: { status: string; session: { id: string } }[] }>('/api/bookings', {
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+      bookedSessionIds.value = new Set(
+        bkData.bookings
+          .filter(b => b.status === 'CONFIRMED')
+          .map(b => b.session.id)
+      )
+    } catch { /* silent */ }
+  }
+
   const bookingInProgress = ref<string | null>(null)
   const toastMessage = ref('')
+  const showSubscriptionModal = ref(false)
 
   async function bookSession(sessionId: string) {
     if (!confirm('Confirmer la reservation de cette seance ?')) return
@@ -332,10 +385,18 @@
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
       showToast('Reservation confirmee !')
+      // M005: immediately mark as booked without waiting for re-fetch
+      bookedSessionIds.value = new Set([...bookedSessionIds.value, sessionId])
       await refresh()
     } catch (e) {
-      const err = e as { data?: { message?: string; statusMessage?: string }; statusMessage?: string }
-      showToast('Echec : ' + (err?.data?.message ?? err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'))
+      const err = e as { status?: number; statusCode?: number; data?: { code?: string; message?: string; statusMessage?: string }; statusMessage?: string }
+      const code = err?.data?.code
+      const status = err?.status ?? err?.statusCode
+      if (status === 402 || code === 'subscription_required') {
+        showSubscriptionModal.value = true
+      } else {
+        showToast('Echec : ' + (err?.data?.message ?? err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'))
+      }
     } finally {
       bookingInProgress.value = null
     }

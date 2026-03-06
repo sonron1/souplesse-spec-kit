@@ -95,11 +95,11 @@ describe('US2 E2E: booking flow', () => {
     })
   })
 
-  it('user without subscription cannot book', async () => {
+  it('user without subscription cannot book (402 subscription_required)', async () => {
     mockSubscription.hasActiveSubscription.mockResolvedValue(false)
 
     await expect(bookingService.bookSession('user-no-sub', 'sess-e2e')).rejects.toMatchObject({
-      statusCode: 403,
+      statusCode: 402,
     })
   })
 })

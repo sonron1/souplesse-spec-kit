@@ -73,11 +73,11 @@ describe('bookingService.bookSession', () => {
     expect(result.status).toBe('CONFIRMED')
   })
 
-  it('throws 403 if user has no active subscription', async () => {
+  it('throws 402 if user has no active subscription', async () => {
     mockSubscription.hasActiveSubscription.mockResolvedValue(false)
 
     await expect(bookingService.bookSession('user-1', 'sess-1')).rejects.toMatchObject({
-      statusCode: 403,
+      statusCode: 402,
     })
   })
 

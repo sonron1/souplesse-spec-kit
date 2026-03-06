@@ -115,6 +115,14 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 Inscrits
               </button>
+              <button class="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors px-3 py-1.5 rounded-lg" @click="openEditModal(session)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Modifier
+              </button>
+              <button class="flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 transition-colors px-3 py-1.5 rounded-lg" @click="openDeleteConfirm(session.id)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Supprimer
+              </button>
               <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-400/15 text-primary-700">Planifiée</span>
             </div>
           </div>
@@ -277,6 +285,95 @@
           </div>
           <div class="px-6 py-4 border-t border-gray-100 flex justify-end">
             <button class="btn-secondary" @click="attendeesModal.open = false">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ── Edit session modal ─────────────────────────────── -->
+    <Transition name="fade">
+      <div v-if="editModal.open" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4" @click.self="editModal.open = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </div>
+              <h2 class="text-base font-bold text-gray-900">Modifier la séance</h2>
+            </div>
+            <button class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors" @click="editModal.open = false">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="px-6 py-5 space-y-4">
+            <div>
+              <label class="label flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Date et heure
+              </label>
+              <input v-model="editModal.dateTime" type="datetime-local" class="input" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="label">Durée (min)</label>
+                <input v-model.number="editModal.duration" type="number" min="15" max="240" step="15" class="input" />
+              </div>
+              <div>
+                <label class="label">Capacité</label>
+                <input v-model.number="editModal.capacity" type="number" min="1" max="200" class="input" />
+              </div>
+            </div>
+            <div>
+              <label class="label">Lieu (optionnel)</label>
+              <input v-model="editModal.location" type="text" class="input" placeholder="Salle A, Studio 2…" />
+            </div>
+            <div v-if="editModal.error" class="flex items-center gap-2 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ editModal.error }}
+            </div>
+          </div>
+          <div class="flex gap-3 justify-end px-6 py-4 border-t border-gray-100">
+            <button class="btn-secondary" @click="editModal.open = false">Annuler</button>
+            <button class="btn-primary flex items-center gap-2" :disabled="editModal.saving" @click="submitEdit">
+              <svg v-if="!editModal.saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+              </svg>
+              {{ editModal.saving ? 'Enregistrement…' : 'Enregistrer' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ── Delete confirm modal ────────────────────────────── -->
+    <Transition name="fade">
+      <div v-if="deleteModal.open" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4" @click.self="deleteModal.open = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div class="px-6 py-6 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </div>
+            <h2 class="text-base font-bold text-gray-900 mb-2">Supprimer la séance ?</h2>
+            <p class="text-sm text-gray-500">Toutes les réservations confirmées seront annulées. Cette action est irréversible.</p>
+            <div v-if="deleteModal.error" class="mt-3 flex items-center gap-2 bg-red-50 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {{ deleteModal.error }}
+            </div>
+          </div>
+          <div class="flex gap-3 justify-end px-6 py-4 border-t border-gray-100">
+            <button class="btn-secondary" @click="deleteModal.open = false">Annuler</button>
+            <button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50" :disabled="deleteModal.deleting" @click="confirmDelete">
+              <svg v-if="!deleteModal.deleting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              {{ deleteModal.deleting ? 'Suppression…' : 'Supprimer' }}
+            </button>
           </div>
         </div>
       </div>
@@ -451,6 +548,88 @@ async function submitCreate() {
     formError.value = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur inconnue'
   } finally {
     saving.value = false
+  }
+}
+
+// Edit modal
+const editModal = reactive({
+  open: false,
+  sessionId: '',
+  dateTime: '',
+  duration: 60,
+  capacity: 10,
+  location: '',
+  error: '',
+  saving: false,
+})
+
+function openEditModal(session: Session) {
+  const dt = new Date(session.dateTime)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const local = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+  editModal.sessionId = session.id
+  editModal.dateTime = local
+  editModal.duration = session.duration
+  editModal.capacity = session.capacity
+  editModal.location = session.location ?? ''
+  editModal.error = ''
+  editModal.open = true
+}
+
+async function submitEdit() {
+  editModal.error = ''
+  if (!editModal.dateTime) { editModal.error = 'Veuillez sélectionner une date et heure.'; return }
+  editModal.saving = true
+  try {
+    await $fetch(`/api/sessions/${editModal.sessionId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${accessToken.value}` },
+      body: {
+        dateTime: new Date(editModal.dateTime).toISOString(),
+        duration: editModal.duration,
+        capacity: editModal.capacity,
+        ...(editModal.location ? { location: editModal.location } : {}),
+      },
+    })
+    editModal.open = false
+    await refresh()
+  } catch (e) {
+    const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+    editModal.error = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur inconnue'
+  } finally {
+    editModal.saving = false
+  }
+}
+
+// Delete confirm
+const deleteModal = reactive({
+  open: false,
+  sessionId: '',
+  deleting: false,
+  error: '',
+})
+
+function openDeleteConfirm(sessionId: string) {
+  deleteModal.sessionId = sessionId
+  deleteModal.error = ''
+  deleteModal.open = true
+}
+
+async function confirmDelete() {
+  deleteModal.error = ''
+  deleteModal.deleting = true
+  try {
+    await $fetch(`/api/sessions/${deleteModal.sessionId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken.value}` },
+    })
+    deleteModal.open = false
+    await refresh()
+  } catch (e) {
+    const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+    deleteModal.error = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur inconnue'
+  } finally {
+    deleteModal.deleting = false
   }
 }
 

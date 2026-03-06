@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
     limit: query.limit,
     from: query.from ? new Date(query.from) : undefined,
     to: query.to ? new Date(query.to) : undefined,
+    order: (query.order ?? 'asc') as 'asc' | 'desc',
   }
   const [sessions, total] = await Promise.all([
     sessionRepository.findAll(filterOpts),

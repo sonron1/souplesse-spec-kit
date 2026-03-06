@@ -122,18 +122,48 @@
             </div>
 
             <div
-              class="max-w-[72%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm"
+              class="max-w-[72%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm group"
               :class="msg.sender.id === me?.id
                 ? 'bg-black text-primary-400 rounded-br-sm'
                 : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm'"
             >
-              <p>{{ msg.body }}</p>
-              <p
-                class="text-[10px] mt-1 text-right"
-                :class="msg.sender.id === me?.id ? 'text-gray-500' : 'text-gray-400'"
-              >
-                {{ formatTime(msg.createdAt) }}
-              </p>
+              <!-- Edit mode -->
+              <div v-if="editingMsgId === msg.id" class="flex flex-col gap-2 min-w-[160px]">
+                <textarea
+                  v-model="editingBody"
+                  rows="2"
+                  class="w-full bg-transparent border-b border-primary-400/50 resize-none focus:outline-none text-inherit placeholder-current/40"
+                  @keydown.enter.exact.prevent="saveEditMsg(msg.id)"
+                  @keydown.escape="editingMsgId = null"
+                />
+                <p v-if="editError" class="text-xs text-red-400">{{ editError }}</p>
+                <div class="flex gap-2 justify-end text-[10px]">
+                  <button class="opacity-70 hover:opacity-100" @click="editingMsgId = null">Annuler</button>
+                  <button class="font-semibold hover:opacity-80" :disabled="editSaving" @click="saveEditMsg(msg.id)">
+                    {{ editSaving ? '…' : 'Enregistrer' }}
+                  </button>
+                </div>
+              </div>
+              <!-- Normal display -->
+              <div v-else>
+                <p>{{ msg.body }}</p>
+                <div class="flex items-center justify-end gap-1.5 mt-1">
+                  <button
+                    v-if="msg.sender.id === me?.id && canEditMsg(msg)"
+                    class="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity leading-none"
+                    title="Modifier"
+                    @click="startEditMsg(msg)"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  </button>
+                  <p
+                    class="text-[10px]"
+                    :class="msg.sender.id === me?.id ? 'text-gray-500' : 'text-gray-400'"
+                  >
+                    {{ formatTime(msg.createdAt) }}<span v-if="msg.editedAt" class="ml-1 opacity-70">(modifié)</span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -188,6 +218,7 @@
     body: string
     createdAt: string
     readAt: string | null
+    editedAt: string | null
     sender: { id: string; name: string; role: string }
   }
 
@@ -283,5 +314,41 @@
 
   function formatTime(str: string) {
     return new Date(str).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  // Message edit
+  const editingMsgId = ref<string | null>(null)
+  const editingBody = ref('')
+  const editSaving = ref(false)
+  const editError = ref('')
+
+  function canEditMsg(msg: Message) {
+    return Date.now() - new Date(msg.createdAt).getTime() < 15 * 60 * 1000
+  }
+
+  function startEditMsg(msg: Message) {
+    editingMsgId.value = msg.id
+    editingBody.value = msg.body
+    editError.value = ''
+  }
+
+  async function saveEditMsg(msgId: string) {
+    editError.value = ''
+    editSaving.value = true
+    try {
+      await $fetch(`/api/messages/${msgId}`, {
+        method: 'PATCH',
+        headers: authHeader(),
+        body: { body: editingBody.value },
+      })
+      const msg = messages.value.find((m) => m.id === msgId)
+      if (msg) { msg.body = editingBody.value; msg.editedAt = new Date().toISOString() }
+      editingMsgId.value = null
+    } catch (e) {
+      const err = e as { data?: { statusMessage?: string }; statusMessage?: string }
+      editError.value = err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'
+    } finally {
+      editSaving.value = false
+    }
   }
 </script>

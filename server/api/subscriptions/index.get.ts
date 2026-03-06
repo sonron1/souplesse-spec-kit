@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const subscriptions = await prisma.subscription.findMany({
     where: { userId: user.sub },
-    include: { subscriptionPlan: { select: { name: true, planType: true } } },
+    include: { subscriptionPlan: { select: { name: true, planType: true, maxPauses: true } } },
     orderBy: { createdAt: 'desc' },
   })
 

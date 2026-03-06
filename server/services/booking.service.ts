@@ -34,7 +34,8 @@ export const bookingService = {
     const hasActive = await subscriptionService.hasActiveSubscription(userId)
     if (!hasActive) {
       throw createError({
-        statusCode: 403,
+        statusCode: 402,
+        data: { code: 'subscription_required' },
         message: 'Un abonnement actif est requis pour réserver une séance',
       })
     }

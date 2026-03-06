@@ -14,6 +14,7 @@ const dateOrDatetime = z.string().refine(
 export const listSessionsQuerySchema = paginationSchema.extend({
   from: dateOrDatetime.optional(),
   to: dateOrDatetime.optional(),
+  order: z.enum(['asc', 'desc']).default('asc'),
 })
 
 export const createSessionSchema = z.object({

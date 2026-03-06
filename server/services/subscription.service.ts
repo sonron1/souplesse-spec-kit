@@ -129,4 +129,59 @@ export const subscriptionService = {
       orderBy: { createdAt: 'desc' },
     })
   },
+
+  /**
+   * Pause an active subscription. Increments pauseCount and records pausedAt.
+   * Status stays ACTIVE but the cron job will skip paused subs from expiring.
+   * Checks that pauseCount < plan.maxPauses before allowing.
+   */
+  async pauseSubscription(subscriptionId: string, userId: string): Promise<Subscription> {
+    const sub = await prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { subscriptionPlan: true },
+    })
+    if (!sub) throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
+    if (sub.userId !== userId) throw createError({ statusCode: 403, message: 'Accès refusé' })
+    if (sub.status !== 'ACTIVE') throw createError({ statusCode: 400, message: 'L\'abonnement n\'est pas actif' })
+    if (sub.pausedAt) throw createError({ statusCode: 400, message: 'L\'abonnement est déjà en pause' })
+
+    const maxPauses = sub.subscriptionPlan?.maxPauses ?? 0
+    if (sub.pauseCount >= maxPauses) {
+      throw createError({ statusCode: 400, message: `Nombre de pauses maximum atteint (${maxPauses})` })
+    }
+
+    const updated = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        pausedAt: new Date(),
+        pauseCount: { increment: 1 },
+      },
+    })
+    logger.info({ subscriptionId, userId }, 'Subscription paused')
+    return updated
+  },
+
+  /**
+   * Resume a paused subscription. Clears pausedAt and extends expiresAt by the pause duration.
+   */
+  async resumeSubscription(subscriptionId: string, userId: string): Promise<Subscription> {
+    const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
+    if (!sub) throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
+    if (sub.userId !== userId) throw createError({ statusCode: 403, message: 'Accès refusé' })
+    if (!sub.pausedAt) throw createError({ statusCode: 400, message: 'L\'abonnement n\'est pas en pause' })
+
+    const pausedMs = Date.now() - sub.pausedAt.getTime()
+    const newExpiry = sub.expiresAt ? new Date(sub.expiresAt.getTime() + pausedMs) : null
+
+    const updated = await prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        pausedAt: null,
+        pausedUntil: null,
+        ...(newExpiry ? { expiresAt: newExpiry } : {}),
+      },
+    })
+    logger.info({ subscriptionId, userId, pausedMs }, 'Subscription resumed, expiry extended')
+    return updated
+  },
 }

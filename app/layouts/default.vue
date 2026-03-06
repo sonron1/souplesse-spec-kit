@@ -202,8 +202,8 @@
           <!-- Notification bell (clients + coaches, desktop) -->
           <NotificationBell v-if="isClient || isCoach" class="hidden lg:flex" />
 
-          <!-- User chip (tablet lg+) -->
-          <div class="hidden lg:flex items-center gap-2.5 bg-gray-900 hover:bg-gray-800 transition-colors rounded-xl px-3 py-1.5 cursor-default">
+          <!-- User chip (tablet lg+) — links to /profile -->
+          <NuxtLink to="/profile" class="hidden lg:flex items-center gap-2.5 bg-gray-900 hover:bg-gray-800 transition-colors rounded-xl px-3 py-1.5 cursor-pointer group" title="Mon profil">
             <div
               class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
               :class="isAdmin ? 'bg-yellow-400 text-black' : isCoach ? 'bg-blue-400 text-black' : 'bg-primary-500 text-black'"
@@ -211,12 +211,12 @@
               {{ userInitial }}
             </div>
             <div class="leading-none">
-              <p class="text-xs font-semibold text-white">{{ user?.name?.split(' ')[0] }}</p>
+              <p class="text-xs font-semibold text-white group-hover:text-primary-300 transition-colors">{{ user?.name?.split(' ')[0] }}</p>
               <p class="text-[10px] mt-0.5" :class="isAdmin ? 'text-yellow-400' : isCoach ? 'text-blue-400' : 'text-gray-400'">
                 {{ roleLabel }}
               </p>
             </div>
-          </div>
+          </NuxtLink>
 
           <button
             class="hidden lg:flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-900"
@@ -405,8 +405,17 @@
                 </div>
               </nav>
 
-              <!-- Footer: logout -->
-              <div class="px-3 py-4 border-t border-gray-800">
+              <!-- Footer: profile + logout -->
+              <div class="px-3 py-4 border-t border-gray-800 space-y-1">
+                <NuxtLink
+                  to="/profile"
+                  class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-gray-900 transition-colors"
+                  active-class="bg-gray-900 text-white"
+                  @click="drawerOpen = false"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  Mon profil
+                </NuxtLink>
                 <button
                   class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-gray-900 transition-colors"
                   @click="drawerOpen = false; handleLogout()"
