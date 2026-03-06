@@ -14,6 +14,31 @@ interface Plan {
 const coupleMode = reactive<Record<string, 'single' | 'couple'>>({})
 const partnerEmails = reactive<Record<string, string>>({})
 
+// L003: Enhanced partner selector with debounced lookup
+const { accessToken } = useAuth()
+interface PartnerLookup { loading: boolean; name: string | null; gender: string | null; error: string | null }
+const partnerLookups = reactive<Record<string, PartnerLookup>>({})
+const lookupTimers: Record<string, ReturnType<typeof setTimeout>> = {}
+
+function lookupPartner(planId: string, email: string) {
+  partnerLookups[planId] = { loading: false, name: null, gender: null, error: null }
+  clearTimeout(lookupTimers[planId])
+  if (!email || !email.includes('@')) return
+  lookupTimers[planId] = setTimeout(async () => {
+    partnerLookups[planId] = { loading: true, name: null, gender: null, error: null }
+    try {
+      const res = await $fetch<{ found: boolean; name: string; gender: string | null }>(
+        `/api/users/lookup?email=${encodeURIComponent(email)}`,
+        { headers: { Authorization: `Bearer ${accessToken.value}` } }
+      )
+      partnerLookups[planId] = { loading: false, name: res.name, gender: res.gender, error: null }
+    } catch (e) {
+      const err = e as { data?: { message?: string }; message?: string }
+      partnerLookups[planId] = { loading: false, name: null, gender: null, error: err?.data?.message ?? err?.message ?? 'Email introuvable' }
+    }
+  }, 600)
+}
+
 function activePrice(plan: Plan): number {
   return coupleMode[plan.id] === 'couple' && plan.priceCouples
     ? plan.priceCouples
@@ -149,15 +174,34 @@ const typeDesc: Record<string, string> = {
                 >Couple</button>
               </div>
 
-              <!-- Partner email -->
+              <!-- Partner email (enhanced L003) -->
               <div v-if="coupleMode[plan.id] === 'couple'" class="mb-4">
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Email du partenaire</label>
-                <input
-                  v-model="partnerEmails[plan.id]"
-                  type="email"
-                  class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-yellow-400"
-                  placeholder="partenaire@email.com"
-                />
+                <div class="relative">
+                  <input
+                    v-model="partnerEmails[plan.id]"
+                    type="email"
+                    class="w-full text-sm border rounded-xl px-3 py-2 focus:outline-none transition pr-8"
+                    :class="partnerLookups[plan.id]?.name ? 'border-green-400 focus:border-green-500' : partnerLookups[plan.id]?.error ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-yellow-400'"
+                    placeholder="partenaire@email.com"
+                    @input="lookupPartner(plan.id, partnerEmails[plan.id])"
+                  />
+                  <div v-if="partnerLookups[plan.id]?.loading" class="absolute right-2.5 top-2.5">
+                    <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                  </div>
+                  <div v-else-if="partnerLookups[plan.id]?.name" class="absolute right-2.5 top-2.5">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                </div>
+                <!-- Partner found -->
+                <div v-if="partnerLookups[plan.id]?.name" class="mt-1.5 flex items-center gap-1.5 text-xs text-green-700">
+                  <span class="font-semibold">{{ partnerLookups[plan.id].name }}</span>
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" :class="partnerLookups[plan.id].gender === 'MALE' ? 'bg-blue-100 text-blue-700' : partnerLookups[plan.id].gender === 'FEMALE' ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-500'">
+                    {{ partnerLookups[plan.id].gender === 'MALE' ? '\u2642 Homme' : partnerLookups[plan.id].gender === 'FEMALE' ? '\u2640 Femme' : 'Genre inconnu' }}
+                  </span>
+                </div>
+                <!-- Error -->
+                <p v-if="partnerLookups[plan.id]?.error" class="mt-1 text-xs text-red-600">{{ partnerLookups[plan.id].error }}</p>
               </div>
 
               <!-- Price -->
