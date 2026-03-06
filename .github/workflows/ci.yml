@@ -15,6 +15,14 @@ jobs:
       matrix:
         node-version: [18.x]
 
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/souplesse_test
+      DIRECT_DATABASE_URL: postgresql://ci:ci@localhost:5432/souplesse_test
+      JWT_SECRET: ci-test-jwt-secret-minimum-32-chars-long!!
+      JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret-minimum-32!!
+      KKIAPAY_SECRET_KEY: ci-test-key
+      KKIAPAY_WEBHOOK_SECRET: ci-test-webhook-secret
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -45,15 +53,9 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
 
       - name: Run migrations
         run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
 
       - name: Lint
         run: npm run lint
@@ -68,16 +70,7 @@ jobs:
         run: npm run test:coverage
         env:
           CI: true
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-jwt-secret-32-chars-long!!' }}
-          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET || 'ci-test-refresh-secret-32chars!!' }}
-          KKIAPAY_SECRET_KEY: ${{ secrets.KKIAPAY_SECRET_KEY || 'ci-test-key' }}
-          KKIAPAY_WEBHOOK_SECRET: ${{ secrets.KKIAPAY_WEBHOOK_SECRET || 'ci-test-webhook-secret' }}
 
       - name: Build
         run: npm run build
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
-          DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL || 'postgresql://ci:ci@localhost:5432/souplesse_test' }}
 

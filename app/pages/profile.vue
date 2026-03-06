@@ -288,10 +288,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch } from 'vue'
-import { useAuth } from '~/composables/useAuth'
-import { $fetch } from 'ofetch'
-
 definePageMeta({ middleware: ['auth'] })
 
 const { user, isAdmin, isCoach, isClient, accessToken } = useAuth()
