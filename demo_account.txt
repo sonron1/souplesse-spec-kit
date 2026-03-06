@@ -1,4 +1,23 @@
-Card	Email	Password	Role
-Admin Demo	admin@demo.com	Demo1234!	Full admin access
-Coach Demo	coach@demo.com	Demo1234!	Coach dashboard + sessions
-Client Demo	client@demo.com	Demo1234!	Bookings + subscriptions
+All passwords: Demo1234!
+
+ADMINS (2)
+  admin@souplesse.com       Yaba Adodo        — full admin access
+  admin2@souplesse.com      Kodjo Tossou      — full admin access
+
+COACHES (4)
+  coach.serge@souplesse.com    Serge Kouassi   — 4 past + 4 upcoming sessions, 3 clients
+  coach.adjoua@souplesse.com   Adjoua N'Dri    — 3 past + 3 upcoming sessions, 3 clients
+  coach.ibrahim@souplesse.com  Ibrahim Mensah  — 2 past + 3 upcoming sessions, 2 clients
+  coach.divine@souplesse.com   Divine Amoussou — 2 past + 2 upcoming sessions, 2 clients
+
+MEMBERS (10)
+  aminata.kone@souplesse.com     Aminata Kone       Abo 1 mois     18j  coach Serge
+  koffi.mensah@souplesse.com     Koffi Mensah       Carnet 10      22j  coach Serge
+  mariam.coulibaly@souplesse.com Mariam Coulibaly   Suivi perso     2j  coach Serge  ⚠ expiring
+  fatoumata.diallo@souplesse.com Fatoumata Diallo   Sans abo            coach Adjoua
+  oumar.traore@souplesse.com     Oumar Traore       Abo 3 mois     67j  coach Adjoua
+  cedric.agossou@souplesse.com   Cedric Agossou     Abo 1 an      310j  coach Adjoua
+  blessing.okonkwo@souplesse.com Blessing Okonkwo   Carnet 15      55j  coach Ibrahim
+  djibril.ndiaye@souplesse.com   Djibril Ndiaye     Abo 1 mois     10j  coach Ibrahim
+  aicha.sow@souplesse.com        Aicha Sow          Sans abo            coach Divine
+  leonce.gnancadja@souplesse.com Leonce Gnancadja   Abo 6 mois    140j  coach Divine
