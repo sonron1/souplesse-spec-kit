@@ -80,6 +80,13 @@ export const bookingService = {
         }
       }
 
+      // If a CANCELLED booking already exists for this user+session (unique constraint),
+      // reactivate it instead of creating a new record to avoid a DB unique violation.
+      const cancelled = await tx.booking.findUnique({ where: { userId_sessionId: { userId, sessionId } } })
+      if (cancelled && cancelled.status === 'CANCELLED') {
+        return tx.booking.update({ where: { id: cancelled.id }, data: { status: 'CONFIRMED' } })
+      }
+
       return tx.booking.create({ data: { userId, sessionId } })
     })
 

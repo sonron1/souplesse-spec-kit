@@ -85,6 +85,16 @@ export const subscriptionService = {
       },
     })
 
+    // Cumul: if we extended from an existing active sub, deactivate that old one now
+    // so the user has only one ACTIVE sub per plan at any time (no duplicates).
+    if (activeForPlan) {
+      await prisma.subscription.update({
+        where: { id: activeForPlan.id },
+        data: { status: 'EXPIRED', isActive: false },
+      })
+      logger.info({ supersededId: activeForPlan.id, newId: subscriptionId }, 'Old subscription superseded by cumulated renewal')
+    }
+
     logger.info({ subscriptionId, userId: sub.userId, cumulatedFrom: activeForPlan?.id ?? null }, 'Subscription activated')
     return updated
   },
