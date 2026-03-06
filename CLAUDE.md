@@ -1,6 +1,6 @@
 ﻿# souplesse-speckit Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-03
+Auto-generated from all feature plans. Last updated: 2026-03-06
 
 ## Active Technologies
 
@@ -92,6 +92,47 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 - **Email verification enforced**: `register()` no longer issues tokens — user must verify email before first login. `register.vue` shows a "check your inbox" screen. `POST /api/auth/resend-verification` allows retrying. Login blocked with HTTP 403 if `emailVerified === false`.
 - **Admin create user**: `POST /api/admin/users` — creates CLIENT/COACH, auto-generates password, sets `emailVerified = true` (admin bypass, no email). Full user detail via `GET /api/admin/users/:id`.
 - **Admin users page**: Full redesign — stats header, role filters, clickable row → sticky detail drawer (sub history, coach assignment, booking stats).
+- **Payment flow fixed**: KKiaPay sandbox verify now uses `POST https://api-sandbox.kkiapay.me/api/v1/transactions/status` via `@kkiapay-org/nodejs-sdk`; `confirm.post.ts` now throws `createError()` so `$fetch` catches real failures.
+- **Error page**: `app/error.vue` global error boundary — styled 404 / 403 / 500 pages.
+
+## Planned (v3) — specs/2-supplements-fonctionnels/tasks.md
+
+| Bloc | Périmètre | Statut |
+|------|-----------|--------|
+| A | User model étendu (firstName, lastName, phone, gender, birthDay, birthMonth, avatarUrl) | 🔴 todo |
+| B | Formulaire inscription amélioré + indicateur force mot de passe | 🔴 todo |
+| C | Session unique (sessionToken en base, révocation multi-device) | 🔴 todo |
+| D | Idle timeout 30 min + avertissement J-2min | 🔴 todo |
+| E | Page profil `/profile` (tous rôles, sections adaptées) | 🔴 todo |
+| F | Catalogue abonnements officiel (tarifs FCFA, maxPauses) | 🔴 todo |
+| G | Réservation conditionnée à abonnement actif | 🔴 todo |
+| H | Expiration auto abonnements (Vercel Cron) | 🔴 todo |
+| I | Rappel email J-3 expiration | 🔴 todo |
+| J | Report / Pause abonnement | 🔴 todo |
+| K | Cumul abonnements (prolongation au lieu de doublon) | 🔴 todo |
+| L | Validation genre opposé pour abonnement couple | 🔴 todo |
+| M | Sessions : tri récent, fix annulation, désactiver bouton si déjà réservé | 🔴 todo |
+| N | Filtres dates sessions (dateFin ≥ dateDébut, multi-jours) | 🔴 todo |
+| O | Pagination (users, sessions, bookings) | 🔴 todo |
+| P | Messagerie : scroll + édition messages | 🔴 todo |
+| Q | Mise à jour dynamique (polling 30s) | 🔴 todo |
+| R | Tests couvrant tous les nouveaux blocs | 🔴 todo |
+
+## Subscription Plans (official — FCFA)
+
+| Formule | Solo | Couple | Validité | Reports |
+|---------|------|--------|----------|---------|
+| Séance | 1 500 | — | 1 j | 0 |
+| Carnet 10 séances | 10 000 | — | 30 j | 0 |
+| Carnet 15 séances | 20 000 | — | 90 j | 0 |
+| Abonnement 1 mois | 15 000 | 25 000 | 30 j | 0 |
+| Suivi personnel | 20 000 | 40 000 | 30 j | 1 |
+| Abonnement 3 mois | 40 000 | 75 000 | 90 j | 2 |
+| Abonnement 6 mois | 70 000 | 120 000 | 180 j | 2 |
+| Abonnement 1 an | 120 000 | 200 000 | 365 j | 3 |
+| Fit Dance | 10 000 | — | 30 j | 0 |
+| Taekwondo | 10 000 | — | 30 j | 0 |
+| Boxe | 10 000 | — | 30 j | 0 |
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
