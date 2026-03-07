@@ -474,7 +474,7 @@
 </template>
 
 <script setup lang="ts">
-  const { user, isAdmin, isCoach, isClient, logout, accessToken, ensureFresh } = useAuth()
+  const { user, isAdmin, isCoach, isClient, logout, accessToken, ensureFresh, handleSessionRevoked } = useAuth()
   const route = useRoute()
 
   // Unread messages badge (poll every 30s, only for coach/client)
@@ -489,6 +489,27 @@
     if (data) unreadMessages.value = data.unreadTotal
   }
   onMounted(() => { refreshUnread(); setInterval(refreshUnread, 30000) })
+
+  // ── Single-session heartbeat: every 30 s verify this session is still active.
+  // If another device logged in, the server returns 401 session_revoked and we
+  // redirect to login immediately — for ALL roles (clients, coaches, admins).
+  let sessionHeartbeatTimer: ReturnType<typeof setInterval> | null = null
+  async function checkSession() {
+    if (!accessToken.value) return
+    try {
+      await $fetch('/api/auth/session', {
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+    } catch (err: unknown) {
+      const e = err as { data?: { data?: { code?: string } } }
+      if (e?.data?.data?.code === 'session_revoked') {
+        await handleSessionRevoked()
+      }
+    }
+  }
+  onMounted(() => {
+    sessionHeartbeatTimer = setInterval(checkSession, 30_000)
+  })
 
   // ── Idle timeout: log out non-admins after 30 min of inactivity (D001/D003) ──
   const IDLE_MS = 30 * 60 * 1000          // 30 min total
@@ -521,6 +542,7 @@
   onUnmounted(() => {
     if (idleTimer) clearTimeout(idleTimer)
     if (warnTimer) clearTimeout(warnTimer)
+    if (sessionHeartbeatTimer) clearInterval(sessionHeartbeatTimer)
     idleEvents.forEach(e => window.removeEventListener(e, resetIdle))
   })
 
