@@ -66,6 +66,12 @@ export default defineNuxtConfig({
 
   nitro: {
     compressPublicAssets: true,
+    externals: {
+      // Resend SDK uses native fetch directly; bundling it inline ensures it
+      // gets the real Node.js global fetch instead of Nitro's internal polyfill,
+      // which caused "Unable to fetch data. The request could not be resolved."
+      inline: ['resend'],
+    },
     routeRules: {
       // Security headers applied globally
       '/**': {
