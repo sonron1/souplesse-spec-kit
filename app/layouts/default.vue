@@ -490,12 +490,19 @@
   }
   onMounted(() => { refreshUnread(); setInterval(refreshUnread, 30000) })
 
-  // ── Single-session heartbeat: every 30 s verify this session is still active.
-  // If another device logged in, the server returns 401 session_revoked and we
-  // redirect to login immediately — for ALL roles (clients, coaches, admins).
+  // ── Single-session heartbeat: check every 3 s to detect when another device
+  // logs in. Uses ensureFresh() first so an expired access token goes through
+  // refreshToken(), which also validates the sessionToken — giving session_revoked
+  // even when the access token has expired. Also fires immediately on mount so
+  // a revoked session is caught the instant you open/reload the page.
   let sessionHeartbeatTimer: ReturnType<typeof setInterval> | null = null
   async function checkSession() {
     if (!accessToken.value) return
+    // If token is expired, refresh it first.
+    // refreshToken() now validates sessionToken → returns session_revoked if
+    // another device has logged in, which handleSessionRevoked() catches.
+    const fresh = await ensureFresh()
+    if (!fresh) return // ensureFresh already redirected on session_revoked
     try {
       await $fetch('/api/auth/session', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
@@ -508,7 +515,8 @@
     }
   }
   onMounted(() => {
-    sessionHeartbeatTimer = setInterval(checkSession, 30_000)
+    checkSession() // immediate check — catches revoked sessions on page load/reload
+    sessionHeartbeatTimer = setInterval(checkSession, 3_000)
   })
 
   // ── Idle timeout: log out non-admins after 30 min of inactivity (D001/D003) ──
