@@ -139,8 +139,15 @@ export function useAuth() {
       accessToken.value = data.tokens.accessToken
       refreshTokenCookie.value = data.tokens.refreshToken
       return true
-    } catch {
-      _clearSession()
+    } catch (err: unknown) {
+      // C006: if the server explicitly revoked this session (another device logged in),
+      // redirect to /login with an informative message instead of silently clearing.
+      const e = err as { data?: { data?: { code?: string } } }
+      if (e?.data?.data?.code === 'session_revoked') {
+        await handleSessionRevoked()
+      } else {
+        _clearSession()
+      }
       return false
     }
   }

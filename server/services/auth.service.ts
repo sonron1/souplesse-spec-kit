@@ -158,6 +158,7 @@ export const authService = {
   /**
    * Refresh access+refresh token pair using a valid refresh token.
    * Throws HTTP 401 if token is invalid or revoked.
+   * C003/C004: validates the session token to enforce single-device sessions.
    */
   async refreshToken(token: string): Promise<AuthTokens> {
     let payload: ReturnType<typeof verifyRefreshToken>
@@ -172,7 +173,18 @@ export const authService = {
       throw createError({ statusCode: 401, message: 'Token de rafraîchissement révoqué' })
     }
 
-    const tokens = await _issueTokens(user.id, user.email, user.role)
+    // C003: if the refresh token embeds a sessionToken, verify it still matches
+    // the one stored in DB. A mismatch means another device has logged in since.
+    if (payload.sessionToken && user.sessionToken !== payload.sessionToken) {
+      throw createError({
+        statusCode: 401,
+        data: { code: 'session_revoked' },
+        message: 'Votre session a été fermée sur cet appareil',
+      })
+    }
+
+    // Carry the current DB sessionToken forward so future requireAuth checks work
+    const tokens = await _issueTokens(user.id, user.email, user.role, user.sessionToken ?? undefined)
     return tokens
   },
 
