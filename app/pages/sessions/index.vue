@@ -376,7 +376,7 @@
 <script setup lang="ts">
   definePageMeta({ middleware: 'auth' })
 
-  const { accessToken, isClient } = useAuth()
+  const { accessToken, isClient, ensureFresh } = useAuth()
 
   const tabs = [
     { label: 'A venir', value: 'upcoming' },
@@ -448,11 +448,15 @@
   function resetFilters() { fromDate.value = ''; toDate.value = ''; page.value = 1; refresh() }
   async function goToPage(n: number) { page.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }); await nextTick(); refresh() }
 
-  // M005 — track which sessions the user has already booked
-  // NOTE: /api/bookings returns Booking[] directly (not { bookings: [] })
+  // M005 — track which sessions the user has already booked.
+  // Loaded in onMounted (client-only) after ensureFresh() so an expired token
+  // never silently empties the Set on page refresh.
   const bookedSessionIds = ref(new Set<string>())
-  if (isClient.value) {
+
+  async function loadBookings() {
+    if (!isClient.value) return
     try {
+      await ensureFresh()
       const bkData = await $fetch<Array<{ status: string; session: { id: string } }>>('/api/bookings', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
@@ -463,6 +467,8 @@
       )
     } catch { /* silent */ }
   }
+
+  onMounted(loadBookings)
 
   const bookingInProgress = ref<string | null>(null)
   const toastMessage = ref('')
@@ -487,9 +493,10 @@
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
       showToast('Réservation confirmée !')
-      // M005: immediately mark as booked without waiting for re-fetch
+      // Immediate local update so the button disables instantly
       bookedSessionIds.value = new Set([...bookedSessionIds.value, sessionId])
-      await refresh()
+      // Sync from server (refreshes both sessions list and booked IDs)
+      await Promise.all([refresh(), loadBookings()])
     } catch (e) {
       const err = e as { status?: number; statusCode?: number; data?: { code?: string; message?: string; statusMessage?: string }; statusMessage?: string }
       const code = err?.data?.code
