@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const coaches = await prisma.user.findMany({
     where: { role: 'COACH' },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, avatarUrl: true },
     orderBy: { name: 'asc' },
   })
 

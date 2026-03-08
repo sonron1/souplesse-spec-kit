@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     where: { clientId: me.sub },
     orderBy: { assignedAt: 'desc' },
     include: {
-      coach: { select: { id: true, name: true, email: true } },
+      coach: { select: { id: true, name: true, email: true, avatarUrl: true } },
     },
   })
 
