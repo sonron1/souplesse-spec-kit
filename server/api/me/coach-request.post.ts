@@ -51,9 +51,11 @@ export default defineEventHandler(async (event) => {
 
   const me_user = await prisma.user.findUnique({ where: { id: me.sub }, select: { name: true } })
 
-  // Create PENDING assignment (client-initiated)
-  const assignment = await prisma.coachClientAssignment.create({
-    data: { coachId, clientId: me.sub, status: 'PENDING', requestedBy: 'client' },
+  // Create or re-use existing (REJECTED) assignment slot — clientId is unique
+  const assignment = await prisma.coachClientAssignment.upsert({
+    where: { clientId: me.sub },
+    update: { coachId, status: 'PENDING', requestedBy: 'client', respondedAt: null },
+    create: { coachId, clientId: me.sub, status: 'PENDING', requestedBy: 'client' },
   })
 
   logger.info({ assignmentId: assignment.id, coachId, clientId: me.sub }, 'Demande de coach créée par le client')
