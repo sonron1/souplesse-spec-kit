@@ -425,6 +425,9 @@
 
   const { data, pending, error: fetchError, refresh } = await useLazyFetch<SessionsResponse>('/api/sessions', {
     query: queryParams,
+    // Disable auto-watch: we control exactly WHEN fetches happen to avoid
+    // race conditions from rapid date-input changes (fromDate then toDate).
+    watch: false,
     default: () => ({ success: true, sessions: [], pagination: { page: 1, limit: LIMIT, total: 0, totalPages: 1 } }),
   })
 
@@ -432,16 +435,18 @@
   const pagination = computed(() => data.value?.pagination ?? null)
   const isLoading = computed(() => pending.value || subPending.value)
 
-  function switchTab(value: 'upcoming' | 'past') {
+  async function switchTab(value: 'upcoming' | 'past') {
     tab.value = value as 'upcoming' | 'past'
     page.value = 1
     fromDate.value = ''
     toDate.value = ''
+    await nextTick()
+    refresh()
   }
 
   function applyFilters() { page.value = 1; refresh() }
   function resetFilters() { fromDate.value = ''; toDate.value = ''; page.value = 1; refresh() }
-  function goToPage(n: number) { page.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  async function goToPage(n: number) { page.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }); await nextTick(); refresh() }
 
   // M005 — track which sessions the user has already booked
   // NOTE: /api/bookings returns Booking[] directly (not { bookings: [] })
