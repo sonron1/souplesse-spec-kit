@@ -135,4 +135,6 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 | Boxe | 10 000 | — | 30 j | 0 |
 
 <!-- MANUAL ADDITIONS START -->
+- **Sessions page fixes**: (1) `/api/bookings` returns `Booking[]` directly — fixed `sessions/index.vue` and `profile.vue` to use `bkData` as array (not `bkData.bookings`); `bookedSessionIds` now correctly persists across page refresh. (2) Date filter end-of-day bug fixed in `server/api/sessions/index.get.ts` — plain `to` date now converts to `T23:59:59.999Z` so sessions throughout the end day are included. (3) Native `confirm()` dialog replaced with a modern in-page confirmation modal (dark card, session details, Confirmer/Annuler).
+
 <!-- MANUAL ADDITIONS END -->

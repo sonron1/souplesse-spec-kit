@@ -377,13 +377,13 @@ if (isClient.value) {
       $fetch<{ subscriptions: { status: string; plan: { name: string } | null; endDate: string }[] }>('/api/subscriptions', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
-      $fetch<{ bookings: { status: string; session: { dateTime: string } }[] }>('/api/bookings', {
+      $fetch<Array<{ status: string; session: { dateTime: string } }>>('/api/bookings', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
     ])
     clientStats.activeSub = subData.subscriptions.find(s => s.status === 'ACTIVE') ?? null
-    clientStats.bookingCount = bkData.bookings.length
-    clientStats.upcomingCount = bkData.bookings.filter(
+    clientStats.bookingCount = bkData.length
+    clientStats.upcomingCount = bkData.filter(
       b => b.status === 'CONFIRMED' && new Date(b.session.dateTime) > new Date()
     ).length
   } catch { /* no stats */ }

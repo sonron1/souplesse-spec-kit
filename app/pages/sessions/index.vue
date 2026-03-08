@@ -223,7 +223,7 @@
                   :disabled="remaining(session) === 0 || !!bookingInProgress || bookedSessionIds.has(session.id)"
                   class="whitespace-nowrap flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   :class="bookedSessionIds.has(session.id) ? 'btn-secondary' : 'btn-primary'"
-                  @click="bookSession(session.id)"
+                  @click="openConfirmModal(session)"
                 >
                   <svg v-if="bookingInProgress === session.id" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -283,6 +283,57 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
           </svg>
           {{ toastMessage }}
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Booking confirmation modal -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="confirmSession"
+          class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          @click.self="confirmSession = null"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-black flex items-center justify-center">
+              <svg class="w-7 h-7 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-extrabold text-gray-900 mb-1 text-center">Confirmer la réservation</h3>
+            <p class="text-sm font-semibold text-gray-700 text-center mb-1 capitalize">
+              {{ formatDateTime(confirmSession.dateTime) }}
+            </p>
+            <div class="flex items-center justify-center gap-3 text-xs text-gray-400 mb-6">
+              <span class="flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {{ confirmSession.duration }} min
+              </span>
+              <span v-if="confirmSession.location" class="flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                {{ confirmSession.location }}
+              </span>
+              <span v-if="confirmSession.coach" class="flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {{ confirmSession.coach.name }}
+              </span>
+            </div>
+            <div class="flex flex-col gap-3">
+              <button
+                class="btn-primary w-full justify-center"
+                :disabled="!!bookingInProgress"
+                @click="confirmBook"
+              >
+                <svg v-if="bookingInProgress === confirmSession.id" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                {{ bookingInProgress === confirmSession.id ? 'Réservation…' : 'Confirmer la réservation' }}
+              </button>
+              <button class="btn-secondary w-full" :disabled="!!bookingInProgress" @click="confirmSession = null">Annuler</button>
+            </div>
+          </div>
         </div>
       </Transition>
     </Teleport>
@@ -393,14 +444,15 @@
   function goToPage(n: number) { page.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   // M005 — track which sessions the user has already booked
+  // NOTE: /api/bookings returns Booking[] directly (not { bookings: [] })
   const bookedSessionIds = ref(new Set<string>())
   if (isClient.value) {
     try {
-      const bkData = await $fetch<{ bookings: { status: string; session: { id: string } }[] }>('/api/bookings', {
+      const bkData = await $fetch<Array<{ status: string; session: { id: string } }>>('/api/bookings', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
       bookedSessionIds.value = new Set(
-        bkData.bookings
+        bkData
           .filter(b => b.status === 'CONFIRMED')
           .map(b => b.session.id)
       )
@@ -411,8 +463,17 @@
   const toastMessage = ref('')
   const showSubscriptionModal = ref(false)
 
-  async function bookSession(sessionId: string) {
-    if (!confirm('Confirmer la reservation de cette seance ?')) return
+  // confirmSession drives the modern booking confirmation modal
+  const confirmSession = ref<Session | null>(null)
+
+  function openConfirmModal(session: Session) {
+    confirmSession.value = session
+  }
+
+  async function confirmBook() {
+    if (!confirmSession.value) return
+    const sessionId = confirmSession.value.id
+    confirmSession.value = null // close modal immediately
     bookingInProgress.value = sessionId
     try {
       await $fetch('/api/bookings', {
@@ -420,7 +481,7 @@
         body: { sessionId },
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
-      showToast('Reservation confirmee !')
+      showToast('Réservation confirmée !')
       // M005: immediately mark as booked without waiting for re-fetch
       bookedSessionIds.value = new Set([...bookedSessionIds.value, sessionId])
       await refresh()
@@ -431,7 +492,7 @@
       if (status === 402 || code === 'subscription_required') {
         showSubscriptionModal.value = true
       } else {
-        showToast('Echec : ' + (err?.data?.message ?? err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'))
+        showToast('Échec : ' + (err?.data?.message ?? err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'))
       }
     } finally {
       bookingInProgress.value = null
