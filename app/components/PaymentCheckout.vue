@@ -21,7 +21,9 @@
 
   interface ConfirmResponse {
     statusCode?: number
-    body?: { ok: boolean; error?: string }
+    ok?: boolean
+    extended?: boolean
+    body?: { ok: boolean; extended?: boolean; error?: string }
   }
 
   const props = defineProps<{
@@ -32,7 +34,7 @@
   }>()
 
   const emit = defineEmits<{
-    (e: 'success'): void
+    (e: 'success', data: { extended: boolean }): void
     (e: 'error', msg: string): void
   }>()
 
@@ -49,7 +51,7 @@
       const transactionId = (data as { transactionId?: string })?.transactionId
       if (!transactionId) throw new Error('transactionId manquant')
 
-      await $fetch<ConfirmResponse>('/api/payments/confirm', {
+      const res = await $fetch<ConfirmResponse>('/api/payments/confirm', {
         method: 'POST',
         body: {
           transactionId,
@@ -58,7 +60,7 @@
         },
         headers: { Authorization: `Bearer ${accessToken.value}` },
       })
-      emit('success')
+      emit('success', { extended: res?.extended ?? false })
     } catch (e) {
       const err = e as { message?: string; statusMessage?: string; data?: { message?: string } }
       const msg = err.statusMessage ?? err.data?.message ?? err.message ?? 'Erreur de confirmation'

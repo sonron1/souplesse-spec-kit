@@ -27,8 +27,15 @@ export default defineEventHandler(async (event) => {
       lockedUntil: true,
       subscriptions: {
         orderBy: { createdAt: 'desc' },
-        include: {
-          subscriptionPlan: { select: { id: true, name: true, planType: true, validityDays: true, price: true } },
+        select: {
+          id: true,
+          status: true,
+          type: true,
+          startsAt: true,
+          expiresAt: true,
+          pauseCount: true,
+          pausedAt: true,
+          subscriptionPlan: { select: { id: true, name: true, planType: true, validityDays: true, price: true, maxPauses: true } },
         },
       },
       bookings: {

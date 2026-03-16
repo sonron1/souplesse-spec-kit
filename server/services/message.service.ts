@@ -20,12 +20,37 @@ export const messageService = {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Returns all messages in a coach↔client conversation,
+   * Returns messages in a coach↔client conversation,
    * and marks all unread messages for `readerId` as read.
+   * Optional pagination: { page, limit } → returns { messages, pagination }
    */
-  async getConversation(coachId: string, clientId: string, readerId: string) {
+  async getConversation(coachId: string, clientId: string, readerId: string, pagination?: { page: number; limit: number }) {
+    const where = { coachId, clientId }
+
+    if (pagination) {
+      const { page, limit } = pagination
+      const skip = (page - 1) * limit
+      const [messages, total]: [MessageWithSender[], number] = await Promise.all([
+        prisma.message.findMany({
+          where,
+          orderBy: { createdAt: 'asc' },
+          include: { sender: { select: { id: true, name: true, role: true } } },
+          skip,
+          take: limit,
+        }) as Promise<MessageWithSender[]>,
+        prisma.message.count({ where }),
+      ])
+
+      const unreadIds = messages.filter((m) => m.recipientId === readerId && !m.readAt).map((m) => m.id)
+      if (unreadIds.length > 0) {
+        await prisma.message.updateMany({ where: { id: { in: unreadIds } }, data: { readAt: new Date() } })
+      }
+
+      return { messages, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }
+    }
+
     const messages: MessageWithSender[] = await prisma.message.findMany({
-      where: { coachId, clientId },
+      where,
       orderBy: { createdAt: 'asc' },
       include: { sender: { select: { id: true, name: true, role: true } } },
     })
@@ -143,10 +168,35 @@ export const messageService = {
   /**
    * Returns messages between admin and a specific coach (direct thread).
    * Marks unread messages for readerId as read.
+   * Optional pagination: { page, limit } → returns { messages, pagination }
    */
-  async getDirectThread(coachId: string, readerId: string) {
+  async getDirectThread(coachId: string, readerId: string, pagination?: { page: number; limit: number }) {
+    const where = { coachId, clientId: null }
+
+    if (pagination) {
+      const { page, limit } = pagination
+      const skip = (page - 1) * limit
+      const [messages, total]: [MessageWithSender[], number] = await Promise.all([
+        prisma.message.findMany({
+          where,
+          orderBy: { createdAt: 'asc' },
+          include: { sender: { select: { id: true, name: true, role: true } } },
+          skip,
+          take: limit,
+        }) as Promise<MessageWithSender[]>,
+        prisma.message.count({ where }),
+      ])
+
+      const unreadIds = messages.filter((m) => m.recipientId === readerId && !m.readAt).map((m) => m.id)
+      if (unreadIds.length > 0) {
+        await prisma.message.updateMany({ where: { id: { in: unreadIds } }, data: { readAt: new Date() } })
+      }
+
+      return { messages, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } }
+    }
+
     const messages: MessageWithSender[] = await prisma.message.findMany({
-      where: { coachId, clientId: null },
+      where,
       orderBy: { createdAt: 'asc' },
       include: { sender: { select: { id: true, name: true, role: true } } },
     })

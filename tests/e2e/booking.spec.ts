@@ -71,6 +71,7 @@ describe('US2 E2E: booking flow', () => {
             sessionId: 'sess-e2e',
             status: 'BOOKED',
           }),
+          findUnique: vi.fn().mockResolvedValue(null), // no cancelled booking
         },
         businessHours: { findFirst: vi.fn().mockResolvedValue(null) },
       } as never)

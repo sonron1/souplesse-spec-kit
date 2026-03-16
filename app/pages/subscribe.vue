@@ -11,7 +11,7 @@ interface Plan {
   maxReports?: number | null
 }
 
-const { accessToken } = useAuth()
+const { accessToken, user } = useAuth()
 
 // ── Load plans ──────────────────────────────────────────────────────────────
 const pending = ref(true)
@@ -37,6 +37,7 @@ const partnerModal = reactive({
   planAmount: 0,
   firstName: '',
   lastName: '',
+  phone: '',
   searching: false,
   found: false,
   partnerName: '',
@@ -46,12 +47,18 @@ const partnerModal = reactive({
 })
 
 function openPartnerModal(plan: Plan) {
+  // L001: Check user has gender set before couple subscription
+  if (!user.value?.gender) {
+    showToast('Veuillez renseigner votre genre dans votre profil avant de souscrire à une formule couple.', 'error')
+    return
+  }
   partnerModal.open = true
   partnerModal.planId = plan.id
   partnerModal.planName = plan.name
   partnerModal.planAmount = plan.priceCouples ?? plan.priceSingle
   partnerModal.firstName = ''
   partnerModal.lastName = ''
+  partnerModal.phone = ''
   partnerModal.searching = false
   partnerModal.found = false
   partnerModal.partnerName = ''
@@ -67,8 +74,9 @@ function closePartnerModal() {
 async function searchPartner() {
   const fn = partnerModal.firstName.trim()
   const ln = partnerModal.lastName.trim()
-  if (!fn && !ln) {
-    partnerModal.searchError = 'Entrez le prénom et/ou le nom du partenaire.'
+  const ph = partnerModal.phone.trim()
+  if (!fn && !ln && !ph) {
+    partnerModal.searchError = 'Entrez le téléphone, ou le prénom et/ou le nom du partenaire.'
     return
   }
   partnerModal.searching = true
@@ -78,8 +86,12 @@ async function searchPartner() {
   partnerModal.searchError = ''
   try {
     const params = new URLSearchParams()
-    if (fn) params.set('firstName', fn)
-    if (ln) params.set('lastName', ln)
+    if (ph) {
+      params.set('phone', ph)
+    } else {
+      if (fn) params.set('firstName', fn)
+      if (ln) params.set('lastName', ln)
+    }
     const res = await $fetch<{ found: boolean; name: string; gender: string | null; email: string }>(
       `/api/users/lookup?${params.toString()}`,
       { headers: { Authorization: `Bearer ${accessToken.value}` } }
@@ -90,7 +102,7 @@ async function searchPartner() {
     partnerModal.partnerEmail = res.email ?? ''
   } catch (e) {
     const err = e as { data?: { message?: string }; message?: string }
-    partnerModal.searchError = err?.data?.message ?? err?.message ?? 'Aucun compte trouvé pour ce nom.'
+    partnerModal.searchError = err?.data?.message ?? err?.message ?? 'Aucun compte trouvé.'
   } finally {
     partnerModal.searching = false
   }
@@ -104,11 +116,11 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => { toast.message = '' }, 4000)
 }
 
-async function onPaymentSuccess() {
+async function onPaymentSuccess(data?: { extended?: boolean }) {
   partnerModal.open = false
-  showToast('Paiement réussi ! Redirection…', 'success')
+  showToast(data?.extended ? 'Abonnement prolongé ! Redirection…' : 'Paiement réussi ! Redirection…', 'success')
   await new Promise(r => setTimeout(r, 1500))
-  await navigateTo('/dashboard/subscriptions?payment=success')
+  await navigateTo('/dashboard')
 }
 function onPaymentError(planId: string, msg: string) {
   planErrors[planId] = `Paiement échoué : ${msg}`
@@ -132,6 +144,14 @@ function validityLabel(days: number) {
 
 const sessionPlan = computed(() => plans.value.find(p => p.planType === 'SESSION' || p.validityDays === 1))
 const mainPlans = computed(() => plans.value.filter(p => p !== sessionPlan.value))
+
+// L001: true when partner's gender is the same as the current user's (blocks couple payment)
+const sameGenderError = computed(() =>
+  partnerModal.found &&
+  partnerModal.partnerGender != null &&
+  user.value?.gender != null &&
+  partnerModal.partnerGender === user.value.gender
+)
 </script>
 
 <template>
@@ -331,8 +351,27 @@ const mainPlans = computed(() => plans.value.filter(p => p !== sessionPlan.value
                 <svg class="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <p class="text-xs text-yellow-700 leading-relaxed">
                   Votre partenaire doit avoir un compte actif sur Souplesse Fitness.
-                  Entrez son prénom et son nom pour le retrouver.
+                  Recherchez-le par téléphone, ou par prénom / nom.
                 </p>
+              </div>
+
+              <!-- Phone search (priority) -->
+              <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5">Téléphone du partenaire</label>
+                <input
+                  v-model="partnerModal.phone"
+                  type="tel"
+                  placeholder="Ex : +22501234567"
+                  class="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-yellow-400 transition"
+                  @keydown.enter="searchPartner"
+                />
+              </div>
+
+              <!-- Separator -->
+              <div class="flex items-center gap-3 text-xs text-gray-400">
+                <div class="flex-1 h-px bg-gray-200" />
+                <span>ou par nom</span>
+                <div class="flex-1 h-px bg-gray-200" />
               </div>
 
               <!-- Name inputs -->
@@ -412,7 +451,13 @@ const mainPlans = computed(() => plans.value.filter(p => p !== sessionPlan.value
 
               <!-- Payment CTA (shows only when partner confirmed) -->
               <div v-if="partnerModal.found">
+                <!-- L001: Block payment if same gender -->
+                <div v-if="sameGenderError" class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
+                  <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <p class="text-sm text-red-600">L'abonnement couple est réservé aux partenaires de genres opposés.</p>
+                </div>
                 <PaymentCheckout
+                  v-if="!sameGenderError"
                   :subscription-plan-id="partnerModal.planId"
                   :amount="partnerModal.planAmount"
                   :amount-label="fmt(partnerModal.planAmount)"

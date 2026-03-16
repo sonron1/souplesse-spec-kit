@@ -23,6 +23,26 @@
       "isActive": true
     },
     {
+      "name": "Carnet 10 séances",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "maxPauses": 0,
+      "isActive": true
+    },
+    {
+      "name": "Carnet 15 séances",
+      "planType": "MONTHLY",
+      "priceSingle": 20000,
+      "priceCouple": null,
+      "validityDays": 90,
+      "maxReports": 0,
+      "maxPauses": 0,
+      "isActive": true
+    },
+    {
       "name": "Abonnement 1 mois",
       "planType": "MONTHLY",
       "priceSingle": 15000,
@@ -70,6 +90,36 @@
       "validityDays": 365,
       "maxReports": 3,
       "maxPauses": 3,
+      "isActive": true
+    },
+    {
+      "name": "Fit Dance",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "maxPauses": 0,
+      "isActive": true
+    },
+    {
+      "name": "Taekwondo",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "maxPauses": 0,
+      "isActive": true
+    },
+    {
+      "name": "Boxe",
+      "planType": "MONTHLY",
+      "priceSingle": 10000,
+      "priceCouple": null,
+      "validityDays": 30,
+      "maxReports": 0,
+      "maxPauses": 0,
       "isActive": true
     }
   ],

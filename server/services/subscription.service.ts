@@ -168,6 +168,35 @@ export const subscriptionService = {
       },
     })
     logger.info({ subscriptionId, userId }, 'Subscription paused')
+
+    // J005: Notify admins by email; J006: Create in-app Notification for each admin
+    try {
+      const pausingUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } })
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true, email: true } })
+      const planName = sub.subscriptionPlan?.name ?? 'Abonnement'
+      const userLabel = pausingUser?.name ?? pausingUser?.email ?? userId
+
+      await Promise.all(admins.map(async (admin) => {
+        // J006: in-app notification
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'SUBSCRIPTION_PAUSED',
+            title: 'Abonnement mis en pause',
+            body: `${userLabel} a mis en pause son abonnement "${planName}". Pauses utilisées : ${updated.pauseCount}/${sub.subscriptionPlan?.maxPauses ?? 0}.`,
+          },
+        })
+      }))
+
+      // J005: admin emails via Resend
+      const { sendAdminPauseNotification } = await import('../utils/email').catch(() => ({ sendAdminPauseNotification: null }))
+      if (sendAdminPauseNotification) {
+        await sendAdminPauseNotification({ adminEmails: admins.map(a => a.email), userLabel, planName, pauseCount: updated.pauseCount, maxPauses: sub.subscriptionPlan?.maxPauses ?? 0 })
+      }
+    } catch (notifyErr) {
+      logger.error({ notifyErr }, 'Failed to send pause notifications to admins (non-fatal)')
+    }
+
     return updated
   },
 

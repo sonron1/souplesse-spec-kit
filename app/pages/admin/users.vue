@@ -7,7 +7,8 @@ interface UsersResponse { success: boolean; users: SafeUser[]; total: number; pa
 
 interface Subscription {
   id: string; status: string; type: string; startsAt: string | null; expiresAt: string | null
-  subscriptionPlan?: { name: string; planType: string; price: number } | null
+  pauseCount?: number; pausedAt?: string | null
+  subscriptionPlan?: { name: string; planType: string; price: number; maxPauses?: number } | null
 }
 interface DetailResponse {
   user: SafeUser & { lockedUntil?: string | null }
@@ -33,6 +34,7 @@ const { data, pending, error, refresh } = await useLazyFetch<UsersResponse>('/ap
 const users = computed(() => data.value?.users ?? [])
 const total = computed(() => data.value?.total ?? 0)
 const hasNextPage = computed(() => page.value * limit < total.value)
+const totalPages = computed(() => Math.ceil(total.value / limit))
 
 const filteredUsers = computed(() => {
   let list = users.value
@@ -332,15 +334,7 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
           <!-- Pagination -->
           <div class="flex items-center justify-between px-4 py-3 border-t border-gray-50 bg-gray-50/50">
             <span class="text-xs text-gray-400">{{ filteredUsers.length }} affiche(s) / {{ total }} total</span>
-            <div class="flex gap-2">
-              <button :disabled="page <= 1"
-                class="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                @click="changePage(-1)">Precedente</button>
-              <span class="px-3 py-1.5 text-xs font-bold bg-black text-yellow-400 rounded-lg">{{ page }}</span>
-              <button :disabled="!hasNextPage"
-                class="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                @click="changePage(1)">Suivante</button>
-            </div>
+            <AppPagination v-model="page" :total-pages="totalPages" :total="total" />
           </div>
         </div>
       </div>
@@ -436,6 +430,17 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
                   <span :class="daysLeft(detail.activeSubscription.expiresAt) <= 7 ? 'text-orange-600 font-bold' : 'text-gray-600 font-medium'">
                     {{ daysLeft(detail.activeSubscription.expiresAt) }}j restants
                   </span>
+                </div>
+                <!-- J009: Pause info -->
+                <div v-if="(detail.activeSubscription.subscriptionPlan?.maxPauses ?? 0) > 0" class="mt-2 pt-2 border-t border-green-100 text-xs">
+                  <div v-if="detail.activeSubscription.pausedAt" class="flex items-center gap-1.5 text-amber-700 font-semibold">
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    En pause depuis le {{ formatDate(detail.activeSubscription.pausedAt) }}
+                  </div>
+                  <div class="flex items-center justify-between text-gray-500 mt-0.5">
+                    <span>Pauses utilisées</span>
+                    <span class="font-bold text-gray-700">{{ detail.activeSubscription.pauseCount ?? 0 }} / {{ detail.activeSubscription.subscriptionPlan?.maxPauses }}</span>
+                  </div>
                 </div>
               </div>
               <div v-else class="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center text-xs text-gray-400">

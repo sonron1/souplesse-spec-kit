@@ -33,8 +33,8 @@
             </svg>
           </div>
           <div>
-            <p class="font-bold text-green-800 text-sm">Paiement effectué avec succès !</p>
-            <p class="text-xs text-green-600 mt-0.5">Votre abonnement est en cours d'activation. Actualisez si nécessaire.</p>
+            <p class="font-bold text-green-800 text-sm">{{ isExtended ? 'Abonnement prolongé avec succès !' : 'Paiement effectué avec succès !' }}</p>
+            <p class="text-xs text-green-600 mt-0.5">{{ isExtended && activeSub?.expiresAt ? `Votre abonnement a été prolongé jusqu'au ${formatDate(activeSub.expiresAt)}.` : isExtended ? 'La durée de votre abonnement a été prolongée.' : 'Votre abonnement est en cours d\'activation. Actualisez si nécessaire.' }}</p>
           </div>
         </div>
         <button class="text-green-500 hover:text-green-700 shrink-0" @click="dismissBanner">
@@ -42,6 +42,48 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
+      </div>
+    </Transition>
+
+    <!-- ── H003: Abonnement expiré banner ─────────────────────── -->
+    <Transition name="fade-up">
+      <div v-if="!pending && !activeSub && pastSubs.length && !showSuccessBanner && !isPostPayment" class="mb-6 flex items-center justify-between gap-4 bg-red-50 border border-red-200 rounded-2xl px-5 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-red-800 text-sm">Votre abonnement a expiré</p>
+            <p class="text-xs text-red-600 mt-0.5">Renouvelez dès maintenant pour continuer à réserver vos séances.</p>
+          </div>
+        </div>
+        <NuxtLink to="/subscribe" class="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-100 hover:bg-red-200 transition-colors px-3 py-1.5 rounded-lg">
+          Renouveler
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </NuxtLink>
+      </div>
+    </Transition>
+
+    <!-- ── I005: J-3 expiration warning banner ─────────────────── -->
+    <Transition name="fade-up">
+      <div v-if="!pending && activeSub && daysLeft(activeSub.expiresAt) <= 3 && !activeSub.pausedAt" class="mb-6 flex items-center justify-between gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-amber-800 text-sm">Votre abonnement expire bientôt</p>
+            <p class="text-xs text-amber-700 mt-0.5">Il vous reste <strong>{{ daysLeft(activeSub.expiresAt) }} jour(s)</strong> — pensez à renouveler pour ne pas perdre l'accès.</p>
+          </div>
+        </div>
+        <NuxtLink to="/subscribe" class="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 transition-colors px-3 py-1.5 rounded-lg">
+          Renouveler
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </NuxtLink>
       </div>
     </Transition>
 
@@ -275,6 +317,7 @@
 
   // Banner shown when redirected from successful payment
   const isPostPayment = ref(route.query.payment === 'success')
+  const isExtended = ref(route.query.extended === 'true')
   const bannerDismissed = ref(false)
   const showSuccessBanner = computed(() => isPostPayment.value && !bannerDismissed.value)
 

@@ -14,14 +14,22 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   requireRole(user, 'CLIENT')
 
-  const { email, firstName, lastName } = getQuery(event) as {
+  const { email, phone, firstName, lastName } = getQuery(event) as {
     email?: string
+    phone?: string
     firstName?: string
     lastName?: string
   }
 
   let found
-  if (firstName || lastName) {
+  if (phone) {
+    // Phone-based lookup (L003)
+    const normalised = phone.trim()
+    found = await prisma.user.findUnique({
+      where: { phone: normalised },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, gender: true, role: true },
+    })
+  } else if (firstName || lastName) {
     // Name-based lookup (case-insensitive, trimmed)
     const first = (firstName ?? '').trim()
     const last = (lastName ?? '').trim()
@@ -37,17 +45,17 @@ export default defineEventHandler(async (event) => {
             ? { firstName: { equals: first, mode: 'insensitive' } }
             : { lastName: { equals: last, mode: 'insensitive' } }),
       },
-      select: { id: true, firstName: true, lastName: true, email: true, gender: true, role: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, gender: true, role: true },
     })
   } else if (email) {
-    // Email-based lookup (legacy)
+    // Email-based lookup
     const normalised = email.toLowerCase().trim()
     found = await prisma.user.findUnique({
       where: { email: normalised },
-      select: { id: true, firstName: true, lastName: true, email: true, gender: true, role: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, gender: true, role: true },
     })
   } else {
-    throw createError({ statusCode: 400, message: 'Email, prénom ou nom requis' })
+    throw createError({ statusCode: 400, message: 'Email, téléphone, prénom ou nom requis' })
   }
 
   if (!found || found.role !== 'CLIENT') {

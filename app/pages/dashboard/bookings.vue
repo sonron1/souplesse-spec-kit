@@ -83,6 +83,15 @@ const cancelError = ref('')
 const cancelling = ref<string | null>(null)
 const confirmId = ref<string | null>(null)
 
+// Q002/Q004: Poll bookings every 30s
+const pollingActive = ref(false)
+const { isPolling } = usePolling(async () => {
+  if (pending.value) return
+  pollingActive.value = true
+  await refresh()
+  pollingActive.value = false
+}, 30000, false)
+
 function askCancel(id: string) { confirmId.value = id }
 function dismissCancel() { confirmId.value = null }
 
@@ -127,7 +136,18 @@ async function cancelBooking(id: string) {
 
     <SkeletonLoader v-if="pending || subLoading" :count="3" :height="88" />
 
-    <SubscriptionGate v-else :active="subActive" message="Souscrivez à une formule pour pouvoir réserver des séances du club.">
+    <!-- Q004: Polling indicator -->
+    <Transition name="fade">
+      <div v-if="pollingActive" class="flex items-center justify-end gap-1.5 text-xs text-gray-400 mb-2">
+        <svg class="w-3.5 h-3.5 animate-spin text-yellow-400" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+        Actualisation en cours…
+      </div>
+    </Transition>
+
+    <SubscriptionGate v-if="!pending && !subLoading" :active="subActive" message="Souscrivez à une formule pour pouvoir réserver des séances du club.">
 
       <!-- Empty state -->
       <div v-if="!totalCount" class="flex flex-col items-center justify-center py-20 text-center">
@@ -190,16 +210,8 @@ async function cancelBooking(id: string) {
               </div>
             </div>
           </div>
-          <!-- Upcoming pagination -->
-          <div v-if="upcomingTotalPages > 1" class="flex items-center justify-center gap-2 mt-4">
-            <button :disabled="upcomingPage === 1" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="upcomingPage--">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <span class="text-xs font-semibold text-gray-500">{{ upcomingPage }} / {{ upcomingTotalPages }}</span>
-            <button :disabled="upcomingPage === upcomingTotalPages" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="upcomingPage++">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
-          </div>
+          <!-- Upcoming pagination (O008: AppPagination) -->
+          <AppPagination v-model="upcomingPage" :total-pages="upcomingTotalPages" :total="upcoming.length" class="mt-4" />
         </section>
 
         <!-- ── Past ─────────────────────────────────────────── -->
@@ -227,16 +239,8 @@ async function cancelBooking(id: string) {
               </span>
             </div>
           </div>
-          <!-- Past pagination -->
-          <div v-if="pastTotalPages > 1" class="flex items-center justify-center gap-2 mt-4">
-            <button :disabled="pastPage === 1" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="pastPage--">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            </button>
-            <span class="text-xs font-semibold text-gray-500">{{ pastPage }} / {{ pastTotalPages }}</span>
-            <button :disabled="pastPage === pastTotalPages" class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all" @click="pastPage++">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
-          </div>
+          <!-- Past pagination (O008: AppPagination) -->
+          <AppPagination v-model="pastPage" :total-pages="pastTotalPages" :total="past.length" class="mt-4" />
         </section>
       </template>
 

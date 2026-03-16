@@ -93,6 +93,11 @@
           <span class="w-2 h-2 rounded-full bg-green-400 ring-2 ring-white shrink-0" title="En ligne" />
         </div>
 
+          <!-- Pagination (visible only when more than one page of messages) -->
+          <div v-if="msgTotalDisplayPages > 1" class="flex items-center justify-center py-1.5 border-b border-gray-100 shrink-0 bg-white">
+            <AppPagination v-model="msgDisplayPage" :total-pages="msgTotalDisplayPages" :total="messages.length" />
+          </div>
+
         <!-- Messages area -->
         <div ref="scrollEl" class="flex-1 overflow-y-auto px-5 py-5 space-y-3 bg-gray-50/50">
 
@@ -111,7 +116,7 @@
 
           <!-- Bubbles -->
           <div
-            v-for="msg in messages"
+            v-for="msg in displayedMessages"
             :key="msg.id"
             class="flex"
             :class="msg.sender.id === me?.id ? 'justify-end' : 'justify-start'"
@@ -230,6 +235,15 @@
   const messages = ref<Message[]>([])
   const scrollEl = ref<HTMLElement | null>(null)
 
+  // O009 — client-side message pagination
+  const MSG_PAGE_SIZE = 30
+  const msgDisplayPage = ref(1)
+  const msgTotalDisplayPages = computed(() => Math.max(1, Math.ceil(messages.value.length / MSG_PAGE_SIZE)))
+  const displayedMessages = computed(() => {
+    const s = (msgDisplayPage.value - 1) * MSG_PAGE_SIZE
+    return messages.value.slice(s, s + MSG_PAGE_SIZE)
+  })
+
   function authHeader() {
     return { Authorization: `Bearer ${accessToken.value}` }
   }
@@ -264,6 +278,7 @@
       const hadNew = data.messages.length > messages.value.length
       messages.value = data.messages
       if (scrollToBottom || hadNew) {
+        msgDisplayPage.value = msgTotalDisplayPages.value
         nextTick(() => {
           if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
         })
@@ -301,6 +316,7 @@
         body: { toUserId: coachId.value, body: draft.value.trim() },
       })
       messages.value.push(res.message)
+      msgDisplayPage.value = msgTotalDisplayPages.value
       draft.value = ''
       nextTick(() => {
         if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight

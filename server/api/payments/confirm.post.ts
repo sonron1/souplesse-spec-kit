@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
       subscriptionPlanId: parse.data.subscriptionPlanId,
       partnerUserId,
     })
-    return { ok: true, subscriptionId: result.subscriptionId }
+    return { ok: true, subscriptionId: result.subscriptionId, extended: result.extended ?? false }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'confirm_failed'
     console.error('[confirm.post] confirmPayment error:', message)

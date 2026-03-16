@@ -65,6 +65,7 @@ describe('bookingService.bookSession', () => {
         booking: {
           count: vi.fn().mockResolvedValue(3),
           create: vi.fn().mockResolvedValue(MOCK_BOOKING),
+          findUnique: vi.fn().mockResolvedValue(null), // no cancelled booking
         },
         businessHours: { findFirst: vi.fn().mockResolvedValue(null) },
       } as never)

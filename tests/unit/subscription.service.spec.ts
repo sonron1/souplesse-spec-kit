@@ -14,7 +14,18 @@ vi.mock('../../server/utils/prisma', () => ({
       findFirst: vi.fn(),
       findMany: vi.fn(),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]), // J006: admin list for pause notifications
+    },
+    notification: {
+      create: vi.fn().mockResolvedValue({}),   // J006: admin notification on pause
+    },
   },
+}))
+
+vi.mock('../../server/utils/email', () => ({
+  sendAdminPauseNotification: vi.fn().mockResolvedValue(undefined),
+  sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../server/utils/logger', () => ({

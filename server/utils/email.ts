@@ -182,3 +182,75 @@ export async function sendSubscriptionReminderEmail(
     logger.error({ to, err }, 'Resend: unexpected error sending reminder email')
   }
 }
+
+/**
+ * J005: Notify admin(s) by email when a subscription is paused.
+ * Silently skipped when RESEND_API_KEY is not configured.
+ */
+export async function sendAdminPauseNotification(opts: {
+  adminEmails: string[]
+  userLabel: string
+  planName: string
+  pauseCount: number
+  maxPauses: number
+}): Promise<void> {
+  const apiKey = (process.env.RESEND_API_KEY ?? '').trim()
+  if (!apiKey || !opts.adminEmails.length) {
+    logger.warn('RESEND_API_KEY not set or no admins — skipping pause notification email')
+    return
+  }
+
+  const dashboardUrl = `${getAppUrl()}/admin/users`
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><title>Abonnement mis en pause</title></head>
+<body style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#f5f5f5;margin:0;padding:0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+        <tr><td style="background:#000000;padding:28px 40px;text-align:center;">
+          <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Souplesse<span style="color:#EAB308;">·</span>Fitness</span>
+        </td></tr>
+        <tr><td style="padding:40px;color:#1a1a1a;">
+          <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;">Abonnement mis en pause</h2>
+          <p style="margin:0 0 16px;color:#555;line-height:1.6;">
+            <strong>${opts.userLabel}</strong> a mis en pause son abonnement <strong>${opts.planName}</strong>.
+          </p>
+          <p style="margin:0 0 24px;color:#555;line-height:1.6;">
+            Pauses utilisées : <strong>${opts.pauseCount} / ${opts.maxPauses}</strong>
+          </p>
+          <p style="text-align:center;margin:0 0 32px;">
+            <a href="${dashboardUrl}" style="display:inline-block;background:#EAB308;color:#000000;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;text-decoration:none;">
+              Voir les utilisateurs
+            </a>
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;border-top:1px solid #eee;text-align:center;">
+          <span style="color:#aaa;font-size:12px;">© ${new Date().getFullYear()} Souplesse Fitness — Cotonou, Bénin</span>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+
+  const resend = getResend()
+  try {
+    await Promise.all(opts.adminEmails.map(async (adminEmail) => {
+      const { data, error } = await resend.emails.send({
+        from: getFrom(),
+        to: adminEmail,
+        subject: `Pause abonnement — ${opts.userLabel} — ${opts.planName}`,
+        html,
+        text: `${opts.userLabel} a mis en pause son abonnement ${opts.planName}. Pauses : ${opts.pauseCount}/${opts.maxPauses}. Voir : ${dashboardUrl}`,
+      })
+      if (error) {
+        logger.error({ adminEmail, error }, 'Resend: failed to send pause notification to admin')
+      } else {
+        logger.info({ adminEmail, emailId: data?.id }, 'Pause notification email sent to admin')
+      }
+    }))
+  } catch (err) {
+    logger.error({ err }, 'Resend: unexpected error sending admin pause notifications')
+  }
+}

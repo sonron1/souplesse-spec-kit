@@ -14,7 +14,7 @@ const dateOrDatetime = z.string().refine(
 export const listSessionsQuerySchema = paginationSchema.extend({
   from: dateOrDatetime.optional(),
   to: dateOrDatetime.optional(),
-  order: z.enum(['asc', 'desc']).default('asc'),
+  order: z.enum(['asc', 'desc']).default('desc'),
 }).refine(
   (d) => !(d.from && d.to) || new Date(d.to) >= new Date(d.from),
   { message: 'La date de fin doit être postérieure à la date de début', path: ['to'] }

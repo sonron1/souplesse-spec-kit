@@ -113,6 +113,17 @@
       </Transition>
     </div>
 
+    <!-- Q004: Polling indicator -->
+    <Transition name="fade">
+      <div v-if="pollingActive" class="flex items-center justify-end gap-1.5 text-xs text-gray-400 mb-2">
+        <svg class="w-3.5 h-3.5 animate-spin text-primary-400" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+        </svg>
+        Actualisation en cours…
+      </div>
+    </Transition>
+
     <!-- Loading -->
     <SkeletonLoader v-if="isLoading" :count="5" :height="100" />
 
@@ -247,29 +258,14 @@
         </div>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="pagination && pagination.totalPages > 1" class="mt-6 flex items-center justify-center gap-3">
-        <button
-          class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          :disabled="page === 1"
-          @click="goToPage(page - 1)"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          Précédent
-        </button>
-        <span class="text-sm text-gray-500 font-medium px-2">
-          Page {{ page }} / {{ pagination.totalPages }}
-          <span class="text-gray-400 font-normal ml-1">({{ pagination.total }} séance{{ pagination.total > 1 ? 's' : '' }})</span>
-        </span>
-        <button
-          class="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          :disabled="page >= pagination.totalPages"
-          @click="goToPage(page + 1)"
-        >
-          Suivant
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        </button>
-      </div>
+      <!-- Pagination (O007: using shared AppPagination) -->
+      <AppPagination
+        v-if="pagination"
+        :model-value="page"
+        :total-pages="pagination.totalPages"
+        :total="pagination.total"
+        @update:model-value="goToPage($event)"
+      />
     </SubscriptionGate>
 
     <!-- Toast -->
@@ -469,6 +465,15 @@
   }
 
   onMounted(loadBookings)
+
+  // Q001/Q004: Poll sessions every 30s, skip when a refresh is already running
+  const pollingActive = ref(false)
+  const { isPolling } = usePolling(async () => {
+    if (pending.value) return
+    pollingActive.value = true
+    await Promise.all([refresh(), loadBookings()])
+    pollingActive.value = false
+  }, 30000, false) // immediate=false, we already fetch on mount via useLazyFetch
 
   const bookingInProgress = ref<string | null>(null)
   const toastMessage = ref('')

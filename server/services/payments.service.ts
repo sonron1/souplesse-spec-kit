@@ -257,45 +257,78 @@ export async function confirmPayment(opts: {
     },
   })
 
-  // Activate subscription
+  // K001-K002: Check for existing ACTIVE subscription for same plan → extend instead of duplicate
   const now = new Date()
-  const expiresAt = new Date(now)
-  expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
-
-  const subscription = await prisma.subscription.create({
-    data: {
-      userId,
-      subscriptionPlanId,
-      type: 'MONTHLY',
-      status: 'ACTIVE',
-      isActive: true,
-      activationDate: now,
-      startsAt: now,
-      expiresAt,
-      payments: { connect: { id: payment.id } },
-    },
+  const existingActive = await prisma.subscription.findFirst({
+    where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
+    orderBy: { expiresAt: 'desc' },
   })
+
+  let subscription: { id: string }
+  let extended = false
+
+  if (existingActive) {
+    // Extension: add validityDays from the current expiresAt
+    const newExpiresAt = new Date(existingActive.expiresAt)
+    newExpiresAt.setDate(newExpiresAt.getDate() + plan.validityDays)
+    subscription = await prisma.subscription.update({
+      where: { id: existingActive.id },
+      data: { expiresAt: newExpiresAt, payments: { connect: { id: payment.id } } },
+    })
+    extended = true
+  } else {
+    const expiresAt = new Date(now)
+    expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
+    subscription = await prisma.subscription.create({
+      data: {
+        userId,
+        subscriptionPlanId,
+        type: 'MONTHLY',
+        status: 'ACTIVE',
+        isActive: true,
+        activationDate: now,
+        startsAt: now,
+        expiresAt,
+        payments: { connect: { id: payment.id } },
+      },
+    })
+  }
+
+  const expiresAt = (await prisma.subscription.findUnique({ where: { id: subscription.id }, select: { expiresAt: true } }))!.expiresAt
 
   // FR-016: activate partner subscription for couple plans
   if (partnerUserId) {
     try {
-      await prisma.subscription.create({
-        data: {
-          userId: partnerUserId,
-          subscriptionPlanId,
-          partnerUserId: userId, // back-reference to primary subscriber
-          type: 'MONTHLY',
-          status: 'ACTIVE',
-          isActive: true,
-          activationDate: now,
-          startsAt: now,
-          expiresAt,
-        },
+      const existingPartnerActive = await prisma.subscription.findFirst({
+        where: { userId: partnerUserId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
+        orderBy: { expiresAt: 'desc' },
       })
+      if (existingPartnerActive) {
+        const newPartnerExpiresAt = new Date(existingPartnerActive.expiresAt)
+        newPartnerExpiresAt.setDate(newPartnerExpiresAt.getDate() + plan.validityDays)
+        await prisma.subscription.update({
+          where: { id: existingPartnerActive.id },
+          data: { expiresAt: newPartnerExpiresAt },
+        })
+      } else {
+        await prisma.subscription.create({
+          data: {
+            userId: partnerUserId,
+            subscriptionPlanId,
+            partnerUserId: userId,
+            type: 'MONTHLY',
+            status: 'ACTIVE',
+            isActive: true,
+            activationDate: now,
+            startsAt: now,
+            expiresAt,
+          },
+        })
+      }
     } catch (e) {
-      console.error('Failed to create partner subscription (confirmPayment)', e)
+      console.error('Failed to create/extend partner subscription (confirmPayment)', e)
     }
   }
 
-  return { subscriptionId: subscription.id }
+  return { subscriptionId: subscription.id, extended }
 }
