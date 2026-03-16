@@ -26,16 +26,23 @@ export default defineEventHandler(async (event) => {
   const other = await prisma.user.findUnique({ where: { id: withUserId } })
   if (!other) throw createError({ statusCode: 404, message: 'Utilisateur introuvable.' })
 
+  function unpack(result: Awaited<ReturnType<typeof messageService.getConversation>>) {
+    if ('messages' in result) return { messages: result.messages, pagination: result.pagination }
+    return { messages: result, pagination: undefined }
+  }
+
   // Admin ↔ Coach direct thread
   if (me.role === 'ADMIN' && other.role === 'COACH') {
-    const result = await messageService.getDirectThread(withUserId, me.sub, paginationOpts)
-    return { messages: paginationOpts ? result.messages : result, coachId: withUserId, clientId: null, ...(paginationOpts ? { pagination: result.pagination } : {}) }
+    const raw = await messageService.getDirectThread(withUserId, me.sub, paginationOpts)
+    const { messages, pagination } = unpack(raw)
+    return { messages, coachId: withUserId, clientId: null, ...(pagination ? { pagination } : {}) }
   }
 
   // Coach ↔ Admin direct thread
   if (me.role === 'COACH' && other.role === 'ADMIN') {
-    const result = await messageService.getDirectThread(me.sub, me.sub, paginationOpts)
-    return { messages: paginationOpts ? result.messages : result, coachId: me.sub, clientId: null, ...(paginationOpts ? { pagination: result.pagination } : {}) }
+    const raw = await messageService.getDirectThread(me.sub, me.sub, paginationOpts)
+    const { messages, pagination } = unpack(raw)
+    return { messages, coachId: me.sub, clientId: null, ...(pagination ? { pagination } : {}) }
   }
 
   // Coach ↔ Client standard thread
@@ -46,8 +53,9 @@ export default defineEventHandler(async (event) => {
     if (!assignment) {
       throw createError({ statusCode: 404, message: 'Ce client ne vous est pas assigné.' })
     }
-    const result = await messageService.getConversation(me.sub, withUserId, me.sub, paginationOpts)
-    return { messages: paginationOpts ? result.messages : result, coachId: me.sub, clientId: withUserId, ...(paginationOpts ? { pagination: result.pagination } : {}) }
+    const raw = await messageService.getConversation(me.sub, withUserId, me.sub, paginationOpts)
+    const { messages, pagination } = unpack(raw)
+    return { messages, coachId: me.sub, clientId: withUserId, ...(pagination ? { pagination } : {}) }
   }
 
   // Client ↔ Coach thread
@@ -57,7 +65,8 @@ export default defineEventHandler(async (event) => {
   if (!assignment) {
     throw createError({ statusCode: 404, message: 'Vous n\'avez pas de coach assigné accepté.' })
   }
-  const result = await messageService.getConversation(withUserId, me.sub, me.sub, paginationOpts)
-  return { messages: paginationOpts ? result.messages : result, coachId: withUserId, clientId: me.sub, ...(paginationOpts ? { pagination: result.pagination } : {}) }
+  const raw = await messageService.getConversation(withUserId, me.sub, me.sub, paginationOpts)
+  const { messages, pagination } = unpack(raw)
+  return { messages, coachId: withUserId, clientId: me.sub, ...(pagination ? { pagination } : {}) }
 })
 

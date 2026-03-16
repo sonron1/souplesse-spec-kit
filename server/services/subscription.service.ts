@@ -176,7 +176,7 @@ export const subscriptionService = {
       const planName = sub.subscriptionPlan?.name ?? 'Abonnement'
       const userLabel = pausingUser?.name ?? pausingUser?.email ?? userId
 
-      await Promise.all(admins.map(async (admin) => {
+      await Promise.all(admins.map(async (admin: { id: string; email: string }) => {
         // J006: in-app notification
         await prisma.notification.create({
           data: {
@@ -191,7 +191,7 @@ export const subscriptionService = {
       // J005: admin emails via Resend
       const { sendAdminPauseNotification } = await import('../utils/email').catch(() => ({ sendAdminPauseNotification: null }))
       if (sendAdminPauseNotification) {
-        await sendAdminPauseNotification({ adminEmails: admins.map(a => a.email), userLabel, planName, pauseCount: updated.pauseCount, maxPauses: sub.subscriptionPlan?.maxPauses ?? 0 })
+        await sendAdminPauseNotification({ adminEmails: admins.map((a: { id: string; email: string }) => a.email), userLabel, planName, pauseCount: updated.pauseCount, maxPauses: sub.subscriptionPlan?.maxPauses ?? 0 })
       }
     } catch (notifyErr) {
       logger.error({ notifyErr }, 'Failed to send pause notifications to admins (non-fatal)')
