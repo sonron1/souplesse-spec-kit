@@ -209,6 +209,9 @@ model Subscription {
   @@index([userId])
   @@index([userId, status])       // hot path: hasActiveSubscription(), getUserSubscriptions() filtered by status
   @@index([expiresAt, status])    // cron expiry query
+  // NOTE: a partial unique index exists in DB (not representable in Prisma schema):
+  //   CREATE UNIQUE INDEX "Subscription_userId_isActive_unique" ON "Subscription"("userId") WHERE "isActive" = true
+  // See migration 20260317000003_subscription_single_active_constraint
 }
 
 model Payment {
