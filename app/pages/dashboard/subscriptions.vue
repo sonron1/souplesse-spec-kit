@@ -132,6 +132,8 @@
         <div class="h-1.5 w-full bg-primary-400" />
 
         <div class="p-6">
+
+          <!-- Header: icon + name + badges + status -->
           <div class="flex items-start justify-between gap-4 mb-5">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 rounded-xl bg-black flex items-center justify-center shrink-0">
@@ -142,15 +144,15 @@
               <div>
                 <p class="text-xs font-bold text-primary-600 uppercase tracking-widest mb-0.5">Formule active</p>
                 <h3 class="text-xl font-extrabold text-gray-900">{{ activeSub.subscriptionPlan?.name ?? activeSub.type }}</h3>
+                <!-- Type badge: always shown -->
                 <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                   <span v-if="activeSub.partnerUserId" class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     Couple
                   </span>
-                  <span v-if="activeSub.subscriptionPlan?.priceSingle" class="text-[11px] text-gray-400 font-semibold">
-                    {{ activeSub.partnerUserId && activeSub.subscriptionPlan?.priceCouple
-                      ? fmt(activeSub.subscriptionPlan.priceCouple)
-                      : fmt(activeSub.subscriptionPlan.priceSingle) }}
+                  <span v-else class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Solo
                   </span>
                 </div>
               </div>
@@ -165,6 +167,28 @@
               </svg>
               Actif
             </span>
+          </div>
+
+          <!-- Price + plan features row -->
+          <div class="flex flex-wrap items-center gap-3 mb-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-0.5">Tarif</p>
+              <p class="text-2xl font-extrabold text-gray-900">
+                {{ activeSub.subscriptionPlan?.priceSingle
+                  ? (activeSub.partnerUserId && activeSub.subscriptionPlan?.priceCouple
+                      ? fmt(activeSub.subscriptionPlan.priceCouple)
+                      : fmt(activeSub.subscriptionPlan.priceSingle))
+                  : '—' }}
+              </p>
+            </div>
+            <div v-if="activeSub.subscriptionPlan?.maxPauses" class="text-center px-3 border-l border-gray-200">
+              <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Pauses</p>
+              <p class="text-lg font-extrabold text-gray-700">{{ activeSub.subscriptionPlan.maxPauses }}</p>
+            </div>
+            <div v-if="activeSub.subscriptionPlan && activeSub.subscriptionPlan.maxPauses === 0" class="text-center px-3 border-l border-gray-200">
+              <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Pauses</p>
+              <p class="text-lg font-extrabold text-gray-400">—</p>
+            </div>
           </div>
 
           <!-- Couple partner info -->
@@ -298,6 +322,10 @@
                   <span v-if="sub.partnerUserId" class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full shrink-0">
                     <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     Couple
+                  </span>
+                  <span v-else class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full shrink-0">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Solo
                   </span>
                 </div>
                 <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(sub.startsAt) }} — {{ formatDate(sub.expiresAt) }}</p>
