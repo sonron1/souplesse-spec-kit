@@ -155,6 +155,11 @@ export async function handleWebhook(
         expiresAt.setDate(expiresAt.getDate() + 30)
       }
 
+      // Deactivate all existing active subs before creating new (single-active invariant)
+      await prisma.subscription.updateMany({
+        where: { userId: paymentOrder.userId, status: 'ACTIVE', isActive: true },
+        data: { status: 'EXPIRED', isActive: false },
+      })
       await prisma.subscription.create({
         data: {
           userId: paymentOrder.userId,
@@ -170,6 +175,10 @@ export async function handleWebhook(
       // FR-016: If couple plan has a partner, activate a subscription for them too
       if (paymentOrder.partnerUserId) {
         try {
+          await prisma.subscription.updateMany({
+            where: { userId: paymentOrder.partnerUserId, status: 'ACTIVE', isActive: true },
+            data: { status: 'EXPIRED', isActive: false },
+          })
           await prisma.subscription.create({
             data: {
               userId: paymentOrder.partnerUserId,
@@ -257,74 +266,79 @@ export async function confirmPayment(opts: {
     },
   })
 
-  // K001-K002: Check for existing ACTIVE subscription for same plan → extend instead of duplicate
+  // K001-K002: Cumulation — if user already has an active sub for this SAME plan,
+  // start the new period from the old expiry date (extends). Otherwise start from now.
+  // In ALL cases: deactivate every current ACTIVE sub first, then create ONE new record.
+  // This guarantees a user never has more than 1 ACTIVE subscription simultaneously,
+  // which fixes the /profile vs /dashboard/subscriptions inconsistency.
   const now = new Date()
+
+  // Detect same-plan renewal for cumulated expiry
   const existingActive = await prisma.subscription.findFirst({
     where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
     orderBy: { expiresAt: 'desc' },
   })
 
-  let subscription: { id: string }
-  let extended = false
+  // Deactivate ALL current active subs (any plan) — ensures single-active invariant
+  await prisma.subscription.updateMany({
+    where: { userId, status: 'ACTIVE', isActive: true },
+    data: { status: 'EXPIRED', isActive: false },
+  })
 
-  if (existingActive) {
-    // Extension: add validityDays from the current expiresAt
-    const newExpiresAt = new Date(existingActive.expiresAt)
-    newExpiresAt.setDate(newExpiresAt.getDate() + plan.validityDays)
-    subscription = await prisma.subscription.update({
-      where: { id: existingActive.id },
-      data: { expiresAt: newExpiresAt, payments: { connect: { id: payment.id } } },
-    })
-    extended = true
-  } else {
-    const expiresAt = new Date(now)
-    expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
-    subscription = await prisma.subscription.create({
-      data: {
-        userId,
-        subscriptionPlanId,
-        type: 'MONTHLY',
-        status: 'ACTIVE',
-        isActive: true,
-        activationDate: now,
-        startsAt: now,
-        expiresAt,
-        payments: { connect: { id: payment.id } },
-      },
-    })
-  }
+  // Cumulate: if renewing same plan, start from old expiry (if still in the future)
+  const baseDate = (existingActive?.expiresAt && existingActive.expiresAt > now)
+    ? existingActive.expiresAt
+    : now
+  const expiresAt = new Date(baseDate)
+  expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
 
-  const expiresAt = (await prisma.subscription.findUnique({ where: { id: subscription.id }, select: { expiresAt: true } }))!.expiresAt
+  const subscription = await prisma.subscription.create({
+    data: {
+      userId,
+      subscriptionPlanId,
+      type: 'MONTHLY',
+      status: 'ACTIVE',
+      isActive: true,
+      activationDate: now,
+      startsAt: now,
+      expiresAt,
+      payments: { connect: { id: payment.id } },
+    },
+  })
 
-  // FR-016: activate partner subscription for couple plans
+  const extended = !!existingActive
+
+  // FR-016: activate partner subscription for couple plans (same single-active invariant)
   if (partnerUserId) {
     try {
       const existingPartnerActive = await prisma.subscription.findFirst({
         where: { userId: partnerUserId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
         orderBy: { expiresAt: 'desc' },
       })
-      if (existingPartnerActive) {
-        const newPartnerExpiresAt = new Date(existingPartnerActive.expiresAt)
-        newPartnerExpiresAt.setDate(newPartnerExpiresAt.getDate() + plan.validityDays)
-        await prisma.subscription.update({
-          where: { id: existingPartnerActive.id },
-          data: { expiresAt: newPartnerExpiresAt },
-        })
-      } else {
-        await prisma.subscription.create({
-          data: {
-            userId: partnerUserId,
-            subscriptionPlanId,
-            partnerUserId: userId,
-            type: 'MONTHLY',
-            status: 'ACTIVE',
-            isActive: true,
-            activationDate: now,
-            startsAt: now,
-            expiresAt,
-          },
-        })
-      }
+      // Deactivate all partner's current active subs
+      await prisma.subscription.updateMany({
+        where: { userId: partnerUserId, status: 'ACTIVE', isActive: true },
+        data: { status: 'EXPIRED', isActive: false },
+      })
+      // Cumulate partner expiry from their old same-plan sub if applicable
+      const partnerBaseDate = (existingPartnerActive?.expiresAt && existingPartnerActive.expiresAt > now)
+        ? existingPartnerActive.expiresAt
+        : now
+      const partnerExpiresAt = new Date(partnerBaseDate)
+      partnerExpiresAt.setDate(partnerExpiresAt.getDate() + plan.validityDays)
+      await prisma.subscription.create({
+        data: {
+          userId: partnerUserId,
+          subscriptionPlanId,
+          partnerUserId: userId,
+          type: 'MONTHLY',
+          status: 'ACTIVE',
+          isActive: true,
+          activationDate: now,
+          startsAt: now,
+          expiresAt: partnerExpiresAt,
+        },
+      })
     } catch (e) {
       console.error('Failed to create/extend partner subscription (confirmPayment)', e)
     }

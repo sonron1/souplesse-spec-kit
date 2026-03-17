@@ -376,7 +376,12 @@
     default: () => [],
   })
 
-  const activeSub = computed(() => subscriptions.value?.find((s) => s.status === 'ACTIVE') ?? null)
+  const activeSub = computed(() => {
+    const now = new Date()
+    return subscriptions.value?.find(
+      (s) => s.status === 'ACTIVE' && (!s.expiresAt || new Date(s.expiresAt) >= now)
+    ) ?? null
+  })
   const pendingSubs = computed(() => subscriptions.value?.filter((s) => s.status === 'PENDING') ?? [])
   const pastSubs = computed(() => subscriptions.value?.filter((s) => !['ACTIVE', 'PENDING'].includes(s.status)) ?? [])
 
@@ -406,8 +411,10 @@
       ACTIVE: 'text-green-700 bg-green-100',
       PENDING: 'text-yellow-700 bg-yellow-100',
       FAILED: 'text-red-700 bg-red-100',
+      EXPIRED: 'text-gray-500 bg-gray-100',
+      CANCELLED: 'text-red-400 bg-red-50',
     }
-    return map[status] ?? 'text-gray-500 bg-gray-100'
+    return map[status] ?? 'text-gray-400 bg-gray-50'
   }
 
   function formatDate(d: string | null) {
