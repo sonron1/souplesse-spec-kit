@@ -163,11 +163,11 @@ describe('bookingService.bookSession', () => {
   })
 
   it('throws 422 if session is outside business hours (FR-013)', async () => {
-    // Session at 05:00 UTC — before business opens at 08:00 (any timezone up to UTC+3)
-    const earlySession = {
-      ...MOCK_SESSION,
-      dateTime: new Date('2026-03-02T05:00:00.000Z'), // Monday 05:00 UTC
-    }
+    // Session at 05:00 local on a future Monday — before business opens at 08:00
+    const nextMonday2 = new Date()
+    nextMonday2.setDate(nextMonday2.getDate() + (8 - nextMonday2.getDay()) % 7 || 7)
+    nextMonday2.setHours(5, 0, 0, 0) // 05:00 local time
+    const earlySession = { ...MOCK_SESSION, dateTime: nextMonday2 }
     mockSubscription.hasActiveSubscription.mockResolvedValue(true)
     mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
@@ -187,5 +187,34 @@ describe('bookingService.bookSession', () => {
     await expect(bookingService.bookSession('user-1', 'sess-1')).rejects.toMatchObject({
       statusCode: 422,
     })
+  })
+
+  it('succeeds when session is within business hours (hits hours block, no error)', async () => {
+    // Session at 10:00 on a Monday in the future — within 08:00-20:00
+    const nextMonday = new Date()
+    nextMonday.setDate(nextMonday.getDate() + (8 - nextMonday.getDay()) % 7 || 7)
+    nextMonday.setHours(10, 0, 0, 0)
+    const withinHoursSession = { ...MOCK_SESSION, dateTime: nextMonday }
+    mockSubscription.hasActiveSubscription.mockResolvedValue(true)
+    mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
+      fn({
+        session: { findUnique: vi.fn().mockResolvedValue(withinHoursSession) },
+        booking: {
+          count: vi.fn().mockResolvedValue(0),
+          create: vi.fn().mockResolvedValue(MOCK_BOOKING),
+          findUnique: vi.fn().mockResolvedValue(null),
+        },
+        businessHours: {
+          findFirst: vi.fn().mockResolvedValue({
+            dayOfWeek: 'MONDAY',
+            openTime: '08:00',
+            closeTime: '20:00',
+          }),
+        },
+      } as never)
+    )
+    const result = await bookingService.bookSession('user-1', 'sess-1')
+    expect(result.status).toBe('CONFIRMED')
   })
 })

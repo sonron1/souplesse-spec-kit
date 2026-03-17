@@ -198,3 +198,51 @@ describe('handleWebhook — missing fields', () => {
     await expect(handleWebhook(envelope as any, envelope)).rejects.toThrow(/reference/)
   })
 })
+
+describe('handleWebhook — error catch paths', () => {
+  const ORDER = {
+    id: 'order-catch',
+    userId: 'user-1',
+    subscriptionPlanId: 'plan-1',
+    partnerUserId: null,
+    status: 'pending',
+  }
+  const PLAN = { id: 'plan-1', validityDays: 30 }
+
+  beforeEach(() => {
+    mockPrisma.transaction.findUnique.mockResolvedValue(null)
+    mockPrisma.paymentOrder.findUnique.mockResolvedValue(ORDER)
+    mockPrisma.transaction.create = vi.fn().mockResolvedValue({ id: 'tx-catch' })
+    mockPrisma.paymentOrder.update = vi.fn().mockResolvedValue({ ...ORDER, status: 'paid' })
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(PLAN)
+  })
+
+  it('silently catches subscription creation failure (logs, does not throw)', async () => {
+    mockPrisma.subscription.create = vi.fn().mockRejectedValue(new Error('DB constraint error'))
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_sub_fail', reference: 'order-catch', amount: 15000, currency: 'XOF', status: 'success' },
+    }
+
+    // Should not throw — the outer catch swallows the error
+    const result = await handleWebhook(envelope as any, envelope)
+    expect(result).toMatchObject({ processed: true })
+  })
+
+  it('silently catches partner subscription failure (logs, does not throw)', async () => {
+    const orderWithPartner = { ...ORDER, partnerUserId: 'partner-x' }
+    mockPrisma.paymentOrder.findUnique.mockResolvedValue(orderWithPartner)
+    mockPrisma.subscription.create = vi.fn()
+      .mockResolvedValueOnce({ id: 'sub-main' })           // main sub succeeds
+      .mockRejectedValueOnce(new Error('Partner DB error')) // partner sub fails
+
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_partner_fail', reference: 'order-catch', amount: 25000, currency: 'XOF', status: 'success' },
+    }
+
+    // Should not throw — partner failure is caught silently
+    const result = await handleWebhook(envelope as any, envelope)
+    expect(result).toMatchObject({ processed: true })
+  })
+})

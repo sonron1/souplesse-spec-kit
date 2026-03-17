@@ -271,3 +271,66 @@ describe('subscriptionService.resumeSubscription', () => {
     await expect(subscriptionService.resumeSubscription('sub-1', 'user-1')).rejects.toMatchObject({ statusCode: 404 })
   })
 })
+
+describe('subscriptionService.getUserSubscriptions', () => {
+  it('returns all subscriptions for a user ordered by createdAt desc', async () => {
+    const subs = [
+      { ...MOCK_SUB, id: 'sub-2', createdAt: new Date('2026-02-01') },
+      { ...MOCK_SUB, id: 'sub-1', createdAt: new Date('2026-01-01') },
+    ]
+    mockPrisma.subscription.findMany.mockResolvedValue(subs as never)
+
+    const result = await subscriptionService.getUserSubscriptions('user-1')
+    expect(result).toHaveLength(2)
+    expect(mockPrisma.subscription.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'user-1' } })
+    )
+  })
+
+  it('returns empty array when user has no subscriptions', async () => {
+    mockPrisma.subscription.findMany.mockResolvedValue([] as never)
+    const result = await subscriptionService.getUserSubscriptions('user-1')
+    expect(result).toEqual([])
+  })
+})
+
+describe('subscriptionService.activateSubscription — cumulative path', () => {
+  it('extends from activeForPlan expiresAt and deactivates the old sub', async () => {
+    const existingActive = {
+      id: 'sub-old',
+      userId: 'user-1',
+      subscriptionPlanId: 'plan-1',
+      status: 'ACTIVE',
+      isActive: true,
+      expiresAt: new Date(Date.now() + 10 * 86400000),
+    }
+    const pendingSub = { ...MOCK_SUB, status: 'PENDING', subscriptionPlanId: 'plan-1' }
+
+    mockPrisma.subscription.findUnique.mockResolvedValue(pendingSub as never)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue({ ...MOCK_PLAN, maxReports: 0 } as never)
+    // findFirst returns existing active sub → cumulative path
+    mockPrisma.subscription.findFirst.mockResolvedValue(existingActive as never)
+    const activated = { ...pendingSub, status: 'ACTIVE', isActive: true }
+    mockPrisma.subscription.update.mockResolvedValue(activated as never)
+
+    const result = await subscriptionService.activateSubscription('sub-1')
+    expect(result.status).toBe('ACTIVE')
+    // Should have called update twice: once to activate new, once to expire old
+    expect(mockPrisma.subscription.update).toHaveBeenCalledTimes(2)
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'sub-old' }, data: expect.objectContaining({ status: 'EXPIRED' }) })
+    )
+  })
+
+  it('uses default 30 days and skips plan lookup when subscriptionPlanId is null', async () => {
+    const subNoplan = { ...MOCK_SUB, status: 'PENDING', subscriptionPlanId: null }
+    mockPrisma.subscription.findUnique.mockResolvedValue(subNoplan as never)
+    const activated = { ...subNoplan, status: 'ACTIVE', isActive: true }
+    mockPrisma.subscription.update.mockResolvedValue(activated as never)
+
+    const result = await subscriptionService.activateSubscription('sub-1')
+    expect(result.status).toBe('ACTIVE')
+    // planDays defaults to 30, activeForPlan skipped (null plan id)
+    expect(mockPrisma.subscriptionPlan.findUnique).not.toHaveBeenCalled()
+  })
+})

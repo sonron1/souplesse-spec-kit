@@ -370,3 +370,31 @@ describe('authService.updateProfile', () => {
     ).resolves.toBeDefined()
   })
 })
+
+// ─── resendVerification() ─────────────────────────────────────────────────────
+describe('authService.resendVerification', () => {
+  it('silently returns when email is not found (prevents enumeration)', async () => {
+    mockUserRepo.findByEmail.mockResolvedValue(null)
+    await expect(authService.resendVerification('ghost@example.com')).resolves.toBeUndefined()
+    expect(mockUserRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('silently returns when user is already verified', async () => {
+    mockUserRepo.findByEmail.mockResolvedValue({ ...MOCK_USER, emailVerified: true })
+    await expect(authService.resendVerification('test@example.com')).resolves.toBeUndefined()
+    expect(mockUserRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('generates a fresh token and calls update + sendVerificationEmail', async () => {
+    const unverifiedUser = { ...MOCK_USER, emailVerified: false }
+    mockUserRepo.findByEmail.mockResolvedValue(unverifiedUser)
+    mockUserRepo.update.mockResolvedValue(unverifiedUser)
+
+    await authService.resendVerification('test@example.com')
+
+    expect(mockUserRepo.update).toHaveBeenCalledWith(
+      MOCK_USER.id,
+      expect.objectContaining({ emailVerificationToken: expect.any(String) })
+    )
+  })
+})

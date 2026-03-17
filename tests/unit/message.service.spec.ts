@@ -201,6 +201,19 @@ describe('messageService.getConversation — paginated', () => {
     expect(pagination.page).toBe(1)
     expect(pagination.totalPages).toBe(1)
   })
+
+  it('marks unread paginated messages for the reader as read', async () => {
+    const unreadMsg = { ...MOCK_MESSAGE, recipientId: READER_ID, readAt: null }
+    mockPrisma.message.findMany.mockResolvedValue([unreadMsg] as never)
+    mockPrisma.message.count.mockResolvedValue(1 as never)
+    mockPrisma.message.updateMany.mockResolvedValue({ count: 1 } as never)
+
+    await messageService.getConversation(COACH_ID, CLIENT_ID, READER_ID, { page: 1, limit: 20 })
+
+    expect(mockPrisma.message.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { readAt: expect.any(Date) } })
+    )
+  })
 })
 
 // ─── getDirectThread() ────────────────────────────────────────────────────────
@@ -242,6 +255,19 @@ describe('messageService.getDirectThread', () => {
     expect('messages' in result).toBe(true)
     const { pagination } = result as { messages: unknown[]; pagination: { total: number } }
     expect(pagination.total).toBe(5)
+  })
+
+  it('marks unread messages as read in paginated getDirectThread', async () => {
+    const unreadDirectMsg = { ...DIRECT_MSG, recipientId: COACH_ID, readAt: null }
+    mockPrisma.message.findMany.mockResolvedValue([unreadDirectMsg] as never)
+    mockPrisma.message.count.mockResolvedValue(1 as never)
+    mockPrisma.message.updateMany.mockResolvedValue({ count: 1 } as never)
+
+    await messageService.getDirectThread(COACH_ID, COACH_ID, { page: 1, limit: 10 })
+
+    expect(mockPrisma.message.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { readAt: expect.any(Date) } })
+    )
   })
 })
 
