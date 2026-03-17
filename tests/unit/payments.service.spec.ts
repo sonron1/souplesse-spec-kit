@@ -135,6 +135,57 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     expect(mockPrisma.subscription.update).not.toHaveBeenCalled()
   })
 
+  it('activates a partner subscription when partnerUserId is provided', async () => {
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
+    mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
+    mockPrisma.subscription.findFirst
+      .mockResolvedValueOnce(null)  // no existing active sub for buyer
+      .mockResolvedValueOnce(null)  // no existing active sub for partner
+    const newSub = { id: 'sub-main', expiresAt: new Date(Date.now() + 30 * 86400000) }
+    mockPrisma.subscription.create.mockResolvedValue(newSub)
+    mockPrisma.subscription.findUnique.mockResolvedValue(newSub)
+
+    await confirmPayment({
+      userId: 'user-1',
+      transactionId: 'tx-couple',
+      subscriptionPlanId: 'plan-1',
+      partnerUserId: 'partner-1',
+    })
+
+    // 2 subscription.create calls: one for buyer, one for partner
+    expect(mockPrisma.subscription.create).toHaveBeenCalledTimes(2)
+    expect(mockPrisma.subscription.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: 'partner-1' }) })
+    )
+  })
+
+  it('extends partner subscription if partner already has an active sub', async () => {
+    const partnerSub = { id: 'partner-sub', expiresAt: new Date(Date.now() + 5 * 86400000) }
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
+    mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
+    mockPrisma.subscription.findFirst
+      .mockResolvedValueOnce(null)      // no existing active for buyer
+      .mockResolvedValueOnce(partnerSub) // partner has active sub
+    const newSub = { id: 'sub-main', expiresAt: new Date(Date.now() + 30 * 86400000) }
+    mockPrisma.subscription.create.mockResolvedValue(newSub)
+    mockPrisma.subscription.update.mockResolvedValue(partnerSub)
+    mockPrisma.subscription.findUnique.mockResolvedValue(newSub)
+
+    await confirmPayment({
+      userId: 'user-1',
+      transactionId: 'tx-couple2',
+      subscriptionPlanId: 'plan-1',
+      partnerUserId: 'partner-1',
+    })
+
+    // partner sub was extended, not created
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'partner-sub' } })
+    )
+  })
+
   it('extends expiresAt by plan.validityDays from current expiresAt', async () => {
     const currentExpiry = new Date(Date.now() + 10 * 86400000)
     const subWithExpiry = { ...EXISTING_ACTIVE_SUB, expiresAt: currentExpiry }

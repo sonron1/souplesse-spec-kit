@@ -188,3 +188,185 @@ describe('authService.logout', () => {
     expect(mockUserRepo.clearRefreshToken).toHaveBeenCalledWith('user-1')
   })
 })
+
+// ─── refreshToken() — C003 session_revoked ────────────────────────────────────
+describe('authService.refreshToken — session_revoked', () => {
+  it('throws 401 session_revoked when sessionToken in token mismatches DB', async () => {
+    mockJwt.verifyRefreshToken.mockReturnValue({
+      sub: 'user-1',
+      email: 'test@example.com',
+      role: 'CLIENT',
+      type: 'refresh',
+      sessionToken: 'old-session-token',
+    } as any)
+    mockUserRepo.findById.mockResolvedValue({
+      ...MOCK_USER,
+      refreshToken: 'valid-token',
+      sessionToken: 'new-session-token', // different from JWT
+    })
+
+    await expect(authService.refreshToken('valid-token')).rejects.toMatchObject({
+      statusCode: 401,
+      data: { code: 'session_revoked' },
+    })
+  })
+
+  it('passes when sessionToken matches DB', async () => {
+    mockJwt.verifyRefreshToken.mockReturnValue({
+      sub: 'user-1',
+      email: 'test@example.com',
+      role: 'CLIENT',
+      type: 'refresh',
+      sessionToken: 'same-token',
+    } as any)
+    mockUserRepo.findById.mockResolvedValue({
+      ...MOCK_USER,
+      refreshToken: 'valid-token',
+      sessionToken: 'same-token',
+    })
+
+    const tokens = await authService.refreshToken('valid-token')
+    expect(tokens.accessToken).toBe('mock-access-token')
+  })
+})
+
+// ─── login() — account lockout (T0217) ───────────────────────────────────────
+describe('authService.login — account lockout', () => {
+  it('throws 403 when email not yet verified', async () => {
+    const hash = await bcrypt.hash('Password1!', 1)
+    mockUserRepo.findByEmail.mockResolvedValue({
+      ...MOCK_USER,
+      passwordHash: hash,
+      emailVerified: false,
+    })
+
+    await expect(
+      authService.login({ email: 'test@example.com', password: 'Password1!' })
+    ).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('throws 423 when account is locked', async () => {
+    const hash = await bcrypt.hash('Password1!', 1)
+    mockUserRepo.findByEmail.mockResolvedValue({
+      ...MOCK_USER,
+      passwordHash: hash,
+      emailVerified: true,
+      lockedUntil: new Date(Date.now() + 10 * 60 * 1000), // locked for 10 more min
+    })
+
+    await expect(
+      authService.login({ email: 'test@example.com', password: 'Password1!' })
+    ).rejects.toMatchObject({ statusCode: 423 })
+  })
+})
+
+// ─── verifyEmail() ────────────────────────────────────────────────────────────
+describe('authService.verifyEmail', () => {
+  it('marks user as verified and clears token', async () => {
+    mockUserRepo.findByVerificationToken = vi.fn().mockResolvedValue(MOCK_USER)
+    mockUserRepo.update.mockResolvedValue({ ...MOCK_USER, emailVerified: true })
+
+    const result = await authService.verifyEmail('valid-token-123')
+
+    expect(result.email).toBe(MOCK_USER.email)
+    expect(mockUserRepo.update).toHaveBeenCalledWith(
+      MOCK_USER.id,
+      expect.objectContaining({ emailVerified: true, emailVerificationToken: null })
+    )
+  })
+
+  it('throws 404 for invalid/already-used token', async () => {
+    mockUserRepo.findByVerificationToken = vi.fn().mockResolvedValue(null)
+
+    await expect(authService.verifyEmail('bad-token')).rejects.toMatchObject({ statusCode: 404 })
+  })
+})
+
+// ─── getProfile() ─────────────────────────────────────────────────────────────
+describe('authService.getProfile', () => {
+  it('returns the safe user profile', async () => {
+    const fullUser = {
+      ...MOCK_USER,
+      firstName: 'Test',
+      lastName: 'User',
+      phone: '+22900000001',
+      gender: 'MALE',
+      birthDay: 5,
+      birthMonth: 3,
+      avatarUrl: null,
+    }
+    mockUserRepo.findById.mockResolvedValue(fullUser)
+
+    const result = await authService.getProfile('user-1')
+    expect(result.id).toBe('user-1')
+    expect(result.firstName).toBe('Test')
+    expect(result.phone).toBe('+22900000001')
+  })
+
+  it('throws 404 when user not found', async () => {
+    mockUserRepo.findById.mockResolvedValue(null)
+
+    await expect(authService.getProfile('ghost-id')).rejects.toMatchObject({ statusCode: 404 })
+  })
+})
+
+// ─── updateProfile() ─────────────────────────────────────────────────────────
+describe('authService.updateProfile', () => {
+  const FULL_USER = {
+    ...MOCK_USER,
+    firstName: 'Old',
+    lastName: 'Name',
+    phone: '+22900000001',
+    gender: 'MALE',
+    birthDay: null,
+    birthMonth: null,
+    avatarUrl: null,
+  }
+
+  it('updates the user profile fields', async () => {
+    mockUserRepo.findByPhone = vi.fn().mockResolvedValue(null)
+    mockUserRepo.findById.mockResolvedValue(FULL_USER)
+    mockUserRepo.update.mockResolvedValue({ ...FULL_USER, firstName: 'New', phone: '+22900000099' })
+
+    const result = await authService.updateProfile('user-1', {
+      firstName: 'New',
+      phone: '+22900000099',
+    })
+
+    expect(result.firstName).toBe('New')
+    expect(mockUserRepo.update).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ firstName: 'New' })
+    )
+  })
+
+  it('throws 409 phone_taken if phone belongs to another user', async () => {
+    const otherUser = { ...MOCK_USER, id: 'other-user' }
+    mockUserRepo.findByPhone = vi.fn().mockResolvedValue(otherUser)
+    mockUserRepo.findById.mockResolvedValue(FULL_USER)
+
+    await expect(
+      authService.updateProfile('user-1', { phone: '+22900000099' })
+    ).rejects.toMatchObject({ statusCode: 409, data: { code: 'phone_taken' } })
+  })
+
+  it('throws 404 when user not found', async () => {
+    mockUserRepo.findByPhone = vi.fn().mockResolvedValue(null)
+    mockUserRepo.findById.mockResolvedValue(null)
+
+    await expect(
+      authService.updateProfile('ghost-id', { firstName: 'X' })
+    ).rejects.toMatchObject({ statusCode: 404 })
+  })
+
+  it('allows same phone number update for the same user (no conflict)', async () => {
+    // phone finds the same user — should be allowed
+    mockUserRepo.findByPhone = vi.fn().mockResolvedValue(FULL_USER)
+    mockUserRepo.findById.mockResolvedValue(FULL_USER)
+    mockUserRepo.update.mockResolvedValue(FULL_USER)
+
+    await expect(
+      authService.updateProfile('user-1', { phone: '+22900000001' })
+    ).resolves.toBeDefined()
+  })
+})
