@@ -17,6 +17,15 @@ function getKkiapayClient() {
   })
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Map a PlanType string to the correct SubscriptionType enum value. */
+function planTypeToSubscriptionType(planType: string): 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' {
+  if (planType.includes('QUARTERLY')) return 'QUARTERLY'
+  if (planType.includes('ANNUAL')) return 'ANNUAL'
+  return 'MONTHLY'
+}
+
 // ─── Shared activation helper ─────────────────────────────────────────────────
 
 /**
@@ -66,7 +75,7 @@ async function _activateForUserTx(
       userId,
       subscriptionPlanId,
       partnerUserId: partnerUserId ?? null,
-      type: 'MONTHLY',
+      type: planTypeToSubscriptionType(plan.planType ?? ''),
       status: 'ACTIVE',
       isActive: true,
       activationDate: now,
