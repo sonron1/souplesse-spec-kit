@@ -106,7 +106,8 @@ async function cancelBooking(id: string) {
     })
     await refresh()
   } catch (e) {
-    cancelError.value = 'Impossible d\'annuler : ' + ((e as { statusMessage?: string })?.statusMessage ?? 'Erreur')
+    const err = e as { data?: { message?: string }; statusMessage?: string; message?: string }
+    cancelError.value = 'Impossible d\'annuler : ' + (err?.data?.message ?? err?.statusMessage ?? err?.message ?? 'Erreur')
     setTimeout(() => { cancelError.value = '' }, 4000)
   } finally {
     cancelling.value = null

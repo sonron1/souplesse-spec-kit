@@ -512,6 +512,11 @@
       const status = err?.status ?? err?.statusCode
       if (status === 402 || code === 'subscription_required') {
         showSubscriptionModal.value = true
+      } else if (status === 409) {
+        // Already booked or session full — sync local state then show message
+        bookedSessionIds.value = new Set([...bookedSessionIds.value, sessionId])
+        await Promise.all([refresh(), loadBookings()])
+        showToast(err?.data?.message ?? 'Cette séance ne peut plus être réservée')
       } else {
         showToast('Échec : ' + (err?.data?.message ?? err?.data?.statusMessage ?? err?.statusMessage ?? 'Erreur'))
       }
