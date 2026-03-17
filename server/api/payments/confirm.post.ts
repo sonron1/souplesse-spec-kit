@@ -62,6 +62,18 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Ensure partner is not already in an active couple subscription
+    const partnerActiveSub = await prisma.subscription.findFirst({
+      where: { userId: partnerUser.id, isActive: true, partnerUserId: { not: null } },
+    })
+    if (partnerActiveSub) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'partner_already_in_couple',
+        message: 'Ce partenaire a déjà un abonnement couple actif.',
+      })
+    }
+
     partnerUserId = partnerUser.id
   }
 

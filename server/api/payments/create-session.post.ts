@@ -42,16 +42,27 @@ export default defineEventHandler(async (event) => {
   }
 
   // L001: For couple plans, validate opposite genders (MALE ↔ FEMALE)
+  // and ensure neither user is already in an active couple subscription
   if (partnerUserId) {
-    const [requester, partner] = await Promise.all([
+    const [requester, partner, partnerActiveSub] = await Promise.all([
       prisma.user.findUnique({ where: { id: user.sub }, select: { gender: true } }),
       prisma.user.findUnique({ where: { id: partnerUserId }, select: { gender: true } }),
+      prisma.subscription.findFirst({
+        where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
+      }),
     ])
     if (!requester?.gender || !partner?.gender || requester.gender === partner.gender) {
       throw createError({
         statusCode: 400,
         statusMessage: 'incompatible_genders',
         message: 'Les abonnements couple nécessitent un homme et une femme.',
+      })
+    }
+    if (partnerActiveSub) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'partner_already_in_couple',
+        message: 'Ce partenaire a déjà un abonnement couple actif.',
       })
     }
   }
