@@ -1,6 +1,6 @@
 ﻿# souplesse-speckit Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-06
+Auto-generated from all feature plans. Last updated: 2026-03-17
 
 ## Active Technologies
 
@@ -9,7 +9,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-06
 - **Backend**: Nitro server routes, Prisma 5.22 / PostgreSQL, Zod (server schemas)
 - **Payments**: KKiaPay (HMAC-SHA256 webhook verification) — NOT Stripe
 - **Auth**: JWT (15m access token) + HTTP-only refresh token cookie + `user_info` cookie for SSR hydration
-- **Testing**: Vitest (67 tests, 17 test files), coverage ≥ 80%
+- **Testing**: Vitest (267 tests, 32 test files), services ≥ 94%, utils/jwt/email 100%
 
 ## Project Structure
 
@@ -53,7 +53,7 @@ specs/                 # Feature specs and task checklists
 ## Commands
 
 ```bash
-npm test          # Vitest run (all 67 tests)
+npm test          # Vitest run (all 267 tests)
 npm run lint      # ESLint
 npm run build     # Nuxt build
 npm run dev       # Dev server (port 3000)
@@ -95,28 +95,28 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 - **Payment flow fixed**: KKiaPay sandbox verify now uses `POST https://api-sandbox.kkiapay.me/api/v1/transactions/status` via `@kkiapay-org/nodejs-sdk`; `confirm.post.ts` now throws `createError()` so `$fetch` catches real failures.
 - **Error page**: `app/error.vue` global error boundary — styled 404 / 403 / 500 pages.
 
-## Planned (v3) — specs/2-supplements-fonctionnels/tasks.md
+## Completed (v3) — specs/2-supplements-fonctionnels/tasks.md
 
 | Bloc | Périmètre | Tâches | Statut |
 |------|-----------|--------|--------|
-| A | User model étendu (firstName, lastName, phone, gender, birthDay, birthMonth, avatarUrl) — vérif unicité email + phone | A001–A012 | 🔴 todo |
-| B | Formulaire inscription amélioré + indicateur force mot de passe + validation temps réel | B001–B006 | 🔴 todo |
-| C | Session unique (sessionToken en base, révocation multi-device) | C001–C006 | 🔴 todo |
-| D | Idle timeout 30 min + avertissement J-2min + reset sur interaction | D001–D003 | 🔴 todo |
-| E | Page profil `/profile` (tous rôles, sections adaptées, upload avatar, nav link) | E001–E011 | 🔴 todo |
-| F | Catalogue abonnements officiel (tarifs FCFA, maxPauses, label FCFA) | F001–F005 | 🔴 todo |
-| G | Réservation conditionnée à abonnement actif (HTTP 402, modale, redirect dashboard) | G001–G004 | 🔴 todo |
-| H | Expiration auto abonnements (Vercel Cron, bandeau in-app, désactiver Réserver) | H001–H004 | 🔴 todo |
-| I | Rappel J-3 expiration : email + notification in-app + message interne | I001–I007 | 🔴 todo |
-| J | Report / Pause abonnement + notif email admin + notif in-app admin + statut liste | J001–J009 | 🔴 todo |
-| K | Cumul abonnements (prolongation au lieu de doublon) | K001–K003 | 🔴 todo |
-| L | Validation genre opposé pour abonnement couple + sélecteur partenaire amélioré | L001–L003 | 🔴 todo |
-| M | Sessions : tri récent, fix annulation, désactiver si déjà réservé, popup calendrier, permissions admin/coach | M001–M007 | 🔴 todo |
-| N | Filtres dates sessions (dateFin ≥ dateDébut, multi-jours, params API from/to) | N001–N003 | 🔴 todo |
-| O | Pagination (users, sessions, bookings, messages) + composant réutilisable | O001–O009 | 🔴 todo |
-| P | Messagerie : scroll + édition messages (PATCH /api/messages/:id) | P001–P003 | 🔴 todo |
-| Q | Mise à jour dynamique polling 30s + composable usePolling + indicateur visuel | Q001–Q004 | 🔴 todo |
-| R | Tests couvrant tous les nouveaux blocs | R001–R005 | 🔴 todo |
+| A | User model étendu (firstName, lastName, phone, gender, birthDay, birthMonth, avatarUrl) — vérif unicité email + phone | A001–A012 | ✅ done |
+| B | Formulaire inscription amélioré + indicateur force mot de passe + validation temps réel | B001–B006 | ✅ done |
+| C | Session unique (sessionToken en base, révocation multi-device) | C001–C006 | ✅ done |
+| D | Idle timeout 30 min + avertissement J-2min + reset sur interaction | D001–D003 | ✅ done |
+| E | Page profil `/profile` (tous rôles, sections adaptées, upload avatar, nav link) | E001–E011 | ✅ done |
+| F | Catalogue abonnements officiel (tarifs FCFA, maxPauses, label FCFA) | F001–F005 | ✅ done |
+| G | Réservation conditionnée à abonnement actif (HTTP 402, modale, redirect dashboard) | G001–G004 | ✅ done |
+| H | Expiration auto abonnements (Vercel Cron, bandeau in-app, désactiver Réserver) | H001–H004 | ✅ done |
+| I | Rappel J-3 expiration : email + notification in-app + message interne | I001–I007 | ✅ done |
+| J | Report / Pause abonnement + notif email admin + notif in-app admin + statut liste | J001–J009 | ✅ done |
+| K | Cumul abonnements (prolongation au lieu de doublon) | K001–K003 | ✅ done |
+| L | Validation genre opposé pour abonnement couple + sélecteur partenaire amélioré | L001–L003 | ✅ done |
+| M | Sessions : tri récent, fix annulation, désactiver si déjà réservé, popup calendrier, permissions admin/coach | M001–M007 | ✅ done |
+| N | Filtres dates sessions (dateFin ≥ dateDébut, multi-jours, params API from/to) | N001–N003 | ✅ done |
+| O | Pagination (users, sessions, bookings, messages) + composant réutilisable | O001–O009 | ✅ done |
+| P | Messagerie : scroll + édition messages (PATCH /api/messages/:id) | P001–P003 | ✅ done |
+| Q | Mise à jour dynamique polling 30s + composable usePolling + indicateur visuel | Q001–Q004 | ✅ done |
+| R | Tests couvrant tous les nouveaux blocs | R001–R005 | ✅ done |
 
 ## Subscription Plans (official — FCFA)
 
@@ -136,5 +136,7 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 
 <!-- MANUAL ADDITIONS START -->
 - **Sessions page fixes**: (1) `/api/bookings` returns `Booking[]` directly — fixed `sessions/index.vue` and `profile.vue` to use `bkData` as array (not `bkData.bookings`); `bookedSessionIds` now correctly persists across page refresh. (2) Date filter end-of-day bug fixed in `server/api/sessions/index.get.ts` — plain `to` date now converts to `T23:59:59.999Z` so sessions throughout the end day are included. (3) Native `confirm()` dialog replaced with a modern in-page confirmation modal (dark card, session details, Confirmer/Annuler).
+- **v3 specs complete (Blocs A–R)**: All 104 tasks implemented — user model extended, profile page, session unique, idle timeout, subscription catalogue, booking guard, expiration cron, J-3 reminder, pause/resume subscriptions, couple validation, session permissions, date filters, pagination, messaging scroll+edit, polling, full test coverage.
+- **Coverage phase 3** (2026-03-17): 267 tests / 32 files — services 94.9%, `utils/email` 100%, `utils/jwt` 100%, `api/bookings` 100%, `api/sessions` 100%, `api/subscriptions` 100%. New test files: `email.util.spec.ts`, `jwt.util.spec.ts`, `auth.middleware.spec.ts`, `profile.routes.spec.ts`, `sessions.routes.spec.ts`, `bookings.routes.spec.ts`, `subscription-handlers.routes.spec.ts`.
 
 <!-- MANUAL ADDITIONS END -->
