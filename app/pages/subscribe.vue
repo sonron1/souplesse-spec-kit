@@ -6,7 +6,7 @@ interface Plan {
   name: string
   planType?: string
   priceSingle: number
-  priceCouples?: number | null
+  priceCouple?: number | null
   validityDays: number
   maxReports?: number | null
 }
@@ -55,7 +55,7 @@ function openPartnerModal(plan: Plan) {
   partnerModal.open = true
   partnerModal.planId = plan.id
   partnerModal.planName = plan.name
-  partnerModal.planAmount = plan.priceCouples ?? plan.priceSingle
+  partnerModal.planAmount = plan.priceCouple ?? plan.priceSingle
   partnerModal.firstName = ''
   partnerModal.lastName = ''
   partnerModal.phone = ''
@@ -231,7 +231,7 @@ const sameGenderError = computed(() =>
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                       {{ plan.maxReports }} report{{ plan.maxReports > 1 ? 's' : '' }}
                     </span>
-                    <span v-if="plan.priceCouples" class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                    <span v-if="plan.priceCouple" class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                       Couple disponible
                     </span>
@@ -239,7 +239,7 @@ const sameGenderError = computed(() =>
                 </div>
 
                 <!-- Solo/Couple toggle -->
-                <div v-if="plan.priceCouples" class="flex p-0.5 bg-gray-100 rounded-xl shrink-0">
+                <div v-if="plan.priceCouple" class="flex p-0.5 bg-gray-100 rounded-xl shrink-0">
                   <button
                     :class="!coupleMode[plan.id] ? 'bg-white shadow-sm text-gray-900 font-bold' : 'text-gray-400'"
                     class="px-3 py-1.5 rounded-[10px] text-xs transition-all"
@@ -259,14 +259,14 @@ const sameGenderError = computed(() =>
                   <!-- Current mode price (big) -->
                   <div class="flex items-baseline gap-1">
                     <span class="text-3xl font-extrabold text-gray-900">
-                      {{ coupleMode[plan.id] && plan.priceCouples ? fmt(plan.priceCouples) : fmt(plan.priceSingle) }}
+                      {{ coupleMode[plan.id] && plan.priceCouple ? fmt(plan.priceCouple) : fmt(plan.priceSingle) }}
                     </span>
                     <span v-if="plan.validityDays >= 30 && plan.validityDays <= 31" class="text-xs text-gray-400">/mois</span>
                   </div>
                   <!-- Secondary price hint -->
                   <div class="flex items-center gap-3 mt-1">
-                    <span v-if="!coupleMode[plan.id] && plan.priceCouples" class="text-xs text-gray-400">
-                      Couple : {{ fmt(plan.priceCouples) }}
+                    <span v-if="!coupleMode[plan.id] && plan.priceCouple" class="text-xs text-gray-400">
+                      Couple : {{ fmt(plan.priceCouple) }}
                     </span>
                     <span v-else-if="coupleMode[plan.id]" class="text-xs text-gray-400">
                       Solo : {{ fmt(plan.priceSingle) }}

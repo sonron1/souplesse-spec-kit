@@ -140,8 +140,8 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm font-bold text-gray-900">{{ clientStats.activeSub.plan?.name ?? 'Abonnement actif' }}</p>
-              <p class="text-xs text-gray-500">Expire {{ formatDate(clientStats.activeSub.endDate) }}</p>
+              <p class="text-sm font-bold text-gray-900">{{ clientStats.activeSub.planName ?? 'Abonnement actif' }}</p>
+              <p class="text-xs text-gray-500">Expire {{ formatDate(clientStats.activeSub.expiresAt ?? '') }} <span v-if="clientStats.activeSub.daysLeft !== null" class="text-yellow-600 font-semibold">({{ clientStats.activeSub.daysLeft }}j restants)</span></p>
             </div>
           </div>
           <div v-else class="flex items-center gap-3">
@@ -566,7 +566,7 @@ const isFormValid = computed(() => Object.keys(errors.value).length === 0)
 
 // ── Role-specific stats ────────────────────────────────────
 const clientStats = reactive({
-  activeSub: null as { plan: { name: string } | null; endDate: string } | null,
+  activeSub: null as { planName: string | null; expiresAt: string | null; daysLeft: number | null } | null,
   bookingCount: 0,
   upcomingCount: 0,
 })
@@ -576,14 +576,14 @@ const coachStats = reactive({ sessionCount: 0, clientCount: 0 })
 if (isClient.value) {
   try {
     const [subData, bkData] = await Promise.all([
-      $fetch<{ subscriptions: { status: string; plan: { name: string } | null; endDate: string }[] }>('/api/subscriptions', {
+      $fetch<{ active: boolean; planName: string | null; expiresAt: string | null; daysLeft: number | null }>('/api/me/subscription', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
       $fetch<Array<{ status: string; session: { dateTime: string } }>>('/api/bookings', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
     ])
-    clientStats.activeSub = subData.subscriptions.find(s => s.status === 'ACTIVE') ?? null
+    clientStats.activeSub = subData.active ? subData : null
     clientStats.bookingCount = bkData.length
     clientStats.upcomingCount = bkData.filter(
       b => b.status === 'CONFIRMED' && new Date(b.session.dateTime) > new Date()
