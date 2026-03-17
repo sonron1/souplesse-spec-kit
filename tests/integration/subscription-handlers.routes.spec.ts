@@ -19,6 +19,9 @@ vi.mock('../../server/utils/role', () => ({
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
+vi.mock('../../server/middleware/rateLimit.middleware', () => ({
+  rateLimitMiddleware: () => () => Promise.resolve(),
+}))
 
 // ── Subscription service mock ─────────────────────────────────────────────────
 const mockPause = vi.fn()

@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
       data: {
         userId,
         subscriptionPlanId,
-        type: plan.planType === 'SESSIONS' ? 'MONTHLY' : 'MONTHLY',
+        type: (plan.planType?.includes('QUARTERLY') ? 'QUARTERLY' : plan.planType?.includes('ANNUAL') ? 'ANNUAL' : 'MONTHLY') as 'MONTHLY' | 'QUARTERLY' | 'ANNUAL',
         status: 'ACTIVE',
         isActive: true,
         activationDate: now,
