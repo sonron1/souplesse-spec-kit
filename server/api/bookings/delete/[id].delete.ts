@@ -29,6 +29,9 @@ export default defineEventHandler(async (event) => {
   if (booking.status === 'CANCELLED') {
     throw createError({ statusCode: 409, message: 'Cette réservation est déjà annulée' })
   }
+  if (booking.status === 'ATTENDED') {
+    throw createError({ statusCode: 400, message: 'Une séance déjà effectuée ne peut pas être annulée' })
+  }
 
   // Cannot cancel a session that has already started
   if (booking.session && new Date(booking.session.dateTime) < new Date()) {
