@@ -59,6 +59,8 @@ vi.mock('h3', async (importOriginal) => {
     defineEventHandler: (fn: (e: any) => any) => fn,
     getQuery: (event: any) => event._query ?? {},
     getRouterParam: (event: any, name: string) => event._params?.[name],
+    // Stub getRequestIP so rate-limited handlers don't crash on missing event.node.req
+    getRequestIP: () => '127.0.0.1',
     createError: (opts: { statusCode: number; message: string; statusMessage?: string; data?: any }) => {
       const e = new Error(opts.message) as any
       e.statusCode = opts.statusCode

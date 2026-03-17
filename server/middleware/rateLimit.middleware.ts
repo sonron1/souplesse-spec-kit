@@ -8,6 +8,15 @@ interface RateLimitEntry {
 // In-memory store — replace with Redis in production
 const store = new Map<string, RateLimitEntry>()
 
+// Purge expired entries every 5 minutes to prevent unbounded memory growth
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of store) {
+    if (entry.resetAt <= now) store.delete(key)
+  }
+}, CLEANUP_INTERVAL_MS).unref() // .unref() so the interval never blocks process exit
+
 interface RateLimitOptions {
   /** Max requests per window. Default: 60 */
   max?: number

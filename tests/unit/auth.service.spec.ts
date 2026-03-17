@@ -23,6 +23,7 @@ const MOCK_USER = {
   email: 'test@example.com',
   passwordHash: '$2a$12$hashedpassword',
   role: 'CLIENT' as const,
+  emailVerified: true,
   refreshToken: null,
   createdAt: new Date(),
   updatedAt: new Date(),

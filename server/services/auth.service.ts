@@ -13,6 +13,8 @@ const BCRYPT_ROUNDS = 12
 const MAX_LOGIN_ATTEMPTS = 5
 /** Lockout duration: 15 minutes. */
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000
+/** Email verification token validity: 24 hours. */
+const EMAIL_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
 export interface AuthTokens {
   accessToken: string
@@ -77,6 +79,7 @@ export const authService = {
       passwordHash,
       role: 'CLIENT',
       emailVerificationToken,
+      emailVerificationTokenCreatedAt: new Date(),
     })
 
     logger.info({ userId: user.id }, 'User registered — awaiting email verification')
@@ -96,9 +99,12 @@ export const authService = {
     // Silently ignore if email unknown or already verified
     if (!user || user.emailVerified) return
 
-    // Generate a fresh token
+    // Generate a fresh token and reset the TTL clock
     const emailVerificationToken = crypto.randomBytes(32).toString('hex')
-    await userRepository.update(user.id, { emailVerificationToken })
+    await userRepository.update(user.id, {
+      emailVerificationToken,
+      emailVerificationTokenCreatedAt: new Date(),
+    })
     void sendVerificationEmail(user.email, emailVerificationToken)
     logger.info({ userId: user.id }, 'Verification email resent')
   },
@@ -117,9 +123,9 @@ export const authService = {
       throw createError({ statusCode: 401, message: 'Identifiants invalides' })
     }
 
-    // Email verification check (T0218) — only block if emailVerified field is false
+    // Email verification check (T0218) — block when emailVerified is false OR null
     // (users created by seed/admin have emailVerified=true and are exempt)
-    if (user.emailVerified === false) {
+    if (!user.emailVerified) {
       throw createError({
         statusCode: 403,
         message: 'Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte mail.',
@@ -209,9 +215,27 @@ export const authService = {
     if (!user) {
       throw createError({ statusCode: 404, message: 'Token de vérification invalide ou déjà utilisé.' })
     }
+
+    // Enforce 24-hour TTL on verification tokens
+    if (user.emailVerificationTokenCreatedAt) {
+      const age = Date.now() - user.emailVerificationTokenCreatedAt.getTime()
+      if (age > EMAIL_TOKEN_TTL_MS) {
+        // Invalidate the expired token so it cannot be retried
+        await userRepository.update(user.id, {
+          emailVerificationToken: null,
+          emailVerificationTokenCreatedAt: null,
+        })
+        throw createError({
+          statusCode: 410,
+          message: 'Ce lien de vérification a expiré. Veuillez en demander un nouveau.',
+        })
+      }
+    }
+
     await userRepository.update(user.id, {
       emailVerified: true,
       emailVerificationToken: null,
+      emailVerificationTokenCreatedAt: null,
     })
     logger.info({ userId: user.id }, 'Email verified')
     return { email: user.email }

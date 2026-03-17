@@ -68,8 +68,17 @@
 </template>
 
 <script setup lang="ts">
-  // No auth middleware — dev page accessible unauthenticated
-  definePageMeta({ layout: false })
+  // Guard: block this page in production at the router level
+  definePageMeta({
+    layout: false,
+    middleware: [
+      () => {
+        if (!import.meta.dev) {
+          return abortNavigation(createError({ statusCode: 404, statusMessage: 'Not Found' }))
+        }
+      },
+    ],
+  })
 
   const { logout, user: currentUser, accessToken } = useAuth()
 

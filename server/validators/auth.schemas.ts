@@ -10,7 +10,10 @@ export const registerSchema = z.object({
     .string()
     .min(8, 'Le numéro de téléphone doit comporter au moins 8 chiffres')
     .max(20)
-    .regex(/^[+\d\s\-().]+$/, 'Numéro de téléphone invalide')
+    .regex(
+      /^\+?[0-9][0-9\s\-().]*[0-9]$/,
+      'Numéro de téléphone invalide (ex. : +229 97 00 00 00)',
+    )
     .trim(),
   gender: z.enum(['MALE', 'FEMALE'], {
     required_error: 'Le sexe est requis',
@@ -20,6 +23,14 @@ export const registerSchema = z.object({
   birthMonth: z.number().int().min(1).max(12).optional().nullish(),
   password: passwordSchema,
   confirmPassword: z.string().min(1, 'La confirmation du mot de passe est requise'),
+}).refine((d) => {
+  // Cross-field date validation: reject impossible day/month combos (e.g. Feb 30)
+  if (d.birthDay == null || d.birthMonth == null) return true
+  const maxDays = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return d.birthDay <= maxDays[d.birthMonth]
+}, {
+  message: 'Date de naissance invalide (jour incompatible avec le mois)',
+  path: ['birthDay'],
 }).refine((d) => d.password === d.confirmPassword, {
   message: 'Les mots de passe ne correspondent pas',
   path: ['confirmPassword'],
@@ -53,13 +64,20 @@ export const updateProfileSchema = z.object({
     .string()
     .min(8)
     .max(20)
-    .regex(/^[+\d\s\-().]+$/)
+    .regex(/^\+?[0-9][0-9\s\-().]*[0-9]$/, 'Numéro de téléphone invalide (ex. : +229 97 00 00 00)')
     .trim()
     .optional(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
   birthDay: z.number().int().min(1).max(31).optional().nullish(),
   birthMonth: z.number().int().min(1).max(12).optional().nullish(),
   avatarUrl: z.string().url().optional().nullish(),
+}).refine((d) => {
+  if (d.birthDay == null || d.birthMonth == null) return true
+  const maxDays = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return d.birthDay <= maxDays[d.birthMonth]
+}, {
+  message: 'Date de naissance invalide (jour incompatible avec le mois)',
+  path: ['birthDay'],
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>

@@ -106,10 +106,11 @@ model User {
   avatarUrl    String?
 
   // Security fields (T0217 account lockout, T0218 email verification)
-  loginAttempts          Int       @default(0)
-  lockedUntil            DateTime?
-  emailVerified          Boolean   @default(false)
-  emailVerificationToken String?   @unique
+  loginAttempts                   Int       @default(0)
+  lockedUntil                     DateTime?
+  emailVerified                   Boolean   @default(false)
+  emailVerificationToken          String?   @unique
+  emailVerificationTokenCreatedAt DateTime? // TTL anchor — tokens older than 24h are rejected
 
   // Session token (v3 — single session, multi-device revocation)
   sessionToken          String?   @unique
@@ -206,6 +207,8 @@ model Subscription {
   payments         Payment[]
 
   @@index([userId])
+  @@index([userId, status])       // hot path: hasActiveSubscription(), getUserSubscriptions() filtered by status
+  @@index([expiresAt, status])    // cron expiry query
 }
 
 model Payment {
@@ -364,7 +367,7 @@ model Message {
   recipientId String
   coachId     String    // coach in a coach↔client or admin↔coach thread
   clientId    String?   // null = admin↔coach direct thread
-  body        String
+  body        String    @db.VarChar(2000) // mirrors frontend max(2000) validation
   readAt      DateTime?
   editedAt    DateTime? // v3 — message editing (Bloc P)
   createdAt   DateTime  @default(now())
@@ -375,6 +378,7 @@ model Message {
   @@index([coachId, createdAt])
   @@index([coachId, clientId, createdAt])
   @@index([recipientId, readAt])
+  @@index([senderId, createdAt])  // thread lookup by sender
 }
 
 // ---------------------------------------------------------------------------

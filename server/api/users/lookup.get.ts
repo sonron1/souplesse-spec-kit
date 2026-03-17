@@ -2,6 +2,7 @@ import { defineEventHandler, getQuery, createError } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { requireRole } from '../../utils/role'
 import { prisma } from '../../utils/prisma'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
 
 /**
  * GET /api/users/lookup?email=xxx
@@ -10,9 +11,12 @@ import { prisma } from '../../utils/prisma'
  * Returns minimal info (name, gender, email) for a CLIENT user to display in partner selectors.
  * Only accessible to authenticated CLIENTs.
  */
+const lookupRateLimit = rateLimitMiddleware({ max: 20, windowMs: 60_000, keyPrefix: 'lookup' })
+
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   requireRole(user, 'CLIENT')
+  await lookupRateLimit(event)
 
   const { email, phone, firstName, lastName } = getQuery(event) as {
     email?: string
@@ -74,4 +78,3 @@ export default defineEventHandler(async (event) => {
     email: found.email,
   }
 })
-
