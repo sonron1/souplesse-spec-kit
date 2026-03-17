@@ -14,7 +14,7 @@ vi.mock('h3', () => {
 })
 
 import { getRequestIP } from 'h3'
-import { rateLimitMiddleware } from '../../server/middleware/rateLimit.middleware'
+import defaultRateLimiter, { rateLimitMiddleware } from '../../server/middleware/rateLimit.middleware'
 
 const mockGetRequestIP = vi.mocked(getRequestIP)
 
@@ -77,5 +77,36 @@ describe('rateLimitMiddleware', () => {
     mockGetRequestIP.mockReturnValue(undefined)
     const handler = rateLimitMiddleware({ max: 1, windowMs: 60_000, keyPrefix: 'test-unknown' })
     expect(() => handler({} as any)).not.toThrow()
+  })
+})
+
+// ─── default export (global rate limiter — 200 req/min) ───────────────────────
+describe('default export — global rate limiter', () => {
+  it('allows first request for a new IP', () => {
+    mockGetRequestIP.mockReturnValue('200.201.202.1')
+    expect(() => (defaultRateLimiter as any)({})).not.toThrow()
+  })
+
+  it('throws 429 when the 200-req/min global limit is exceeded', () => {
+    mockGetRequestIP.mockReturnValue('200.201.202.2')
+    for (let i = 0; i < 200; i++) (defaultRateLimiter as any)({})
+    let err: any
+    try { (defaultRateLimiter as any)({}) } catch (e) { err = e }
+    expect(err?.statusCode).toBe(429)
+  })
+
+  it('resets global counter when the rate-limit window expires', () => {
+    vi.useFakeTimers()
+    mockGetRequestIP.mockReturnValue('200.201.202.3')
+    for (let i = 0; i < 200; i++) (defaultRateLimiter as any)({})
+    expect(() => (defaultRateLimiter as any)({})).toThrowError()
+    vi.advanceTimersByTime(61_000)
+    expect(() => (defaultRateLimiter as any)({})).not.toThrow()
+    vi.useRealTimers()
+  })
+
+  it('uses "unknown" key for global handler when IP cannot be determined', () => {
+    mockGetRequestIP.mockReturnValue(undefined)
+    expect(() => (defaultRateLimiter as any)({})).not.toThrow()
   })
 })

@@ -104,6 +104,16 @@ describe('auth middleware handler', () => {
     expect(mockLogger.warn).toHaveBeenCalled()
     expect(mockLogger.debug).not.toHaveBeenCalled()
   })
+
+  it('handles non-Error thrown by verifyJwt (logs warn, empty message)', async () => {
+    const handler = (await import('../../server/middleware/auth.middleware')).default as any
+    mockGetHeader.mockReturnValue('Bearer some.token')
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    mockVerifyJwt.mockImplementation(() => { throw 'raw-string-error' })
+    const event = makeEvent()
+    await expect(handler(event)).resolves.not.toThrow()
+    expect(mockLogger.warn).toHaveBeenCalled()
+  })
 })
 
 // ─── requireAuth helper ───────────────────────────────────────────────────────
