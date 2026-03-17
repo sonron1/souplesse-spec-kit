@@ -15,7 +15,8 @@ vi.mock('../../server/utils/prisma', () => ({
       findMany: vi.fn(),
     },
     user: {
-      findMany: vi.fn().mockResolvedValue([]), // J006: admin list for pause notifications
+      findUnique: vi.fn().mockResolvedValue(null), // pausingUser lookup
+      findMany: vi.fn().mockResolvedValue([]),     // J006: admin list for pause notifications
     },
     notification: {
       create: vi.fn().mockResolvedValue({}),   // J006: admin notification on pause
@@ -179,6 +180,55 @@ describe('subscriptionService.pauseSubscription', () => {
   it('throws 404 if subscription not found', async () => {
     mockPrisma.subscription.findUnique.mockResolvedValue(null)
     await expect(subscriptionService.pauseSubscription('sub-1', 'user-1')).rejects.toMatchObject({ statusCode: 404 })
+  })
+
+  it('creates admin notifications when admins exist (J006)', async () => {
+    const activeSub = {
+      ...MOCK_SUB,
+      userId: 'user-1',
+      status: 'ACTIVE' as const,
+      isActive: true,
+      pausedAt: null,
+      pauseCount: 0,
+      subscriptionPlan: { maxPauses: 2, name: 'Monthly' },
+    }
+    mockPrisma.subscription.findUnique.mockResolvedValue(activeSub as never)
+    const paused = { ...activeSub, pausedAt: new Date(), pauseCount: 1 }
+    mockPrisma.subscription.update.mockResolvedValue(paused as never)
+    mockPrisma.user.findUnique.mockResolvedValue({ email: 'user@test.com', name: 'Alice' } as never)
+    mockPrisma.user.findMany.mockResolvedValue([
+      { id: 'admin-1', email: 'admin@test.com' },
+    ] as never)
+
+    await subscriptionService.pauseSubscription('sub-1', 'user-1')
+
+    expect(mockPrisma.notification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: 'admin-1', type: 'SUBSCRIPTION_PAUSED' }),
+      })
+    )
+  })
+
+  it('logs error but does not throw when admin notification fails (non-fatal)', async () => {
+    const activeSub = {
+      ...MOCK_SUB,
+      userId: 'user-1',
+      status: 'ACTIVE' as const,
+      isActive: true,
+      pausedAt: null,
+      pauseCount: 0,
+      subscriptionPlan: { maxPauses: 2, name: 'Monthly' },
+    }
+    mockPrisma.subscription.findUnique.mockResolvedValue(activeSub as never)
+    const paused = { ...activeSub, pausedAt: new Date(), pauseCount: 1 }
+    mockPrisma.subscription.update.mockResolvedValue(paused as never)
+    // Force notification block to throw
+    mockPrisma.user.findMany.mockRejectedValue(new Error('DB connection lost'))
+
+    // Should NOT throw — error is caught and logged
+    await expect(
+      subscriptionService.pauseSubscription('sub-1', 'user-1')
+    ).resolves.toBeDefined()
   })
 })
 

@@ -106,6 +106,62 @@ describe('bookingService.bookSession', () => {
     })
   })
 
+  it('throws 404 if session is not found', async () => {
+    mockSubscription.hasActiveSubscription.mockResolvedValue(true)
+    mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
+      fn({
+        session: { findUnique: vi.fn().mockResolvedValue(null) }, // session not found
+        booking: { count: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
+        businessHours: { findFirst: vi.fn() },
+      } as never)
+    )
+    await expect(bookingService.bookSession('user-1', 'missing-sess')).rejects.toMatchObject({
+      statusCode: 404,
+    })
+  })
+
+  it('throws 422 if session dateTime is in the past', async () => {
+    const pastSession = { ...MOCK_SESSION, dateTime: new Date(Date.now() - 3600000) }
+    mockSubscription.hasActiveSubscription.mockResolvedValue(true)
+    mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
+      fn({
+        session: { findUnique: vi.fn().mockResolvedValue(pastSession) },
+        booking: { count: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
+        businessHours: { findFirst: vi.fn() },
+      } as never)
+    )
+    await expect(bookingService.bookSession('user-1', 'sess-1')).rejects.toMatchObject({
+      statusCode: 422,
+    })
+  })
+
+  it('reactivates a CANCELLED booking instead of creating a new one', async () => {
+    const cancelledBooking = { ...MOCK_BOOKING, status: 'CANCELLED' as const }
+    const reactivated = { ...MOCK_BOOKING, status: 'CONFIRMED' as const }
+    mockSubscription.hasActiveSubscription.mockResolvedValue(true)
+    mockBookingRepo.findByUserAndSession.mockResolvedValue(null)
+    const mockUpdate = vi.fn().mockResolvedValue(reactivated)
+    mockPrisma.$transaction.mockImplementation(async (fn: (tx: any) => any) =>
+      fn({
+        session: { findUnique: vi.fn().mockResolvedValue(MOCK_SESSION) },
+        booking: {
+          count: vi.fn().mockResolvedValue(0),
+          create: vi.fn(),
+          findUnique: vi.fn().mockResolvedValue(cancelledBooking), // cancelled exists
+          update: mockUpdate,
+        },
+        businessHours: { findFirst: vi.fn().mockResolvedValue(null) },
+      } as never)
+    )
+    const result = await bookingService.bookSession('user-1', 'sess-1')
+    expect(result.status).toBe('CONFIRMED')
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'CONFIRMED' } })
+    )
+  })
+
   it('throws 422 if session is outside business hours (FR-013)', async () => {
     // Session at 05:00 UTC — before business opens at 08:00 (any timezone up to UTC+3)
     const earlySession = {

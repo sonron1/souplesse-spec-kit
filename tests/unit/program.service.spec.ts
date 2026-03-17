@@ -41,6 +41,7 @@ describe('programService.createProgram', () => {
       coachId: 'coach-1',
       clientId: 'client-1',
     } as never)
+    mockPrisma.program.findUnique.mockResolvedValue(null) // no existing program
     mockPrisma.program.create.mockResolvedValue(MOCK_PROGRAM)
 
     const result = await programService.createProgram('coach-1', {
@@ -50,6 +51,23 @@ describe('programService.createProgram', () => {
     })
     expect(result.coachId).toBe('coach-1')
     expect(result.clientId).toBe('client-1')
+  })
+
+  it('throws 403 when coach is not assigned to the client', async () => {
+    mockPrisma.coachClientAssignment.findFirst.mockResolvedValue(null) // no assignment
+
+    await expect(
+      programService.createProgram('coach-1', { clientId: 'client-1', type: 'CARDIO', content: {} })
+    ).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('throws 409 when client already has a program', async () => {
+    mockPrisma.coachClientAssignment.findFirst.mockResolvedValue({ coachId: 'coach-1', clientId: 'client-1' } as never)
+    mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM) // existing program
+
+    await expect(
+      programService.createProgram('coach-1', { clientId: 'client-1', type: 'CARDIO', content: {} })
+    ).rejects.toMatchObject({ statusCode: 409 })
   })
 })
 
@@ -72,6 +90,15 @@ describe('programService.updateProgram', () => {
 
     await expect(
       programService.updateProgram('prog-1', 'other-coach', { type: 'LOWER_BODY' })
+    ).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('throws 403 if assignment has been revoked', async () => {
+    mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM)
+    mockPrisma.coachClientAssignment.findFirst.mockResolvedValue(null) // revoked
+
+    await expect(
+      programService.updateProgram('prog-1', 'coach-1', { type: 'LOWER_BODY' })
     ).rejects.toMatchObject({ statusCode: 403 })
   })
 
@@ -107,10 +134,23 @@ describe('programService.getProgramById', () => {
     expect(result.id).toBe('prog-1')
   })
 
+  it('allows ADMIN to view any program', async () => {
+    mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM)
+    const result = await programService.getProgramById('prog-1', 'admin-user', 'ADMIN')
+    expect(result.id).toBe('prog-1')
+  })
+
   it('throws 403 for unauthorized access', async () => {
     mockPrisma.program.findUnique.mockResolvedValue(MOCK_PROGRAM)
     await expect(
       programService.getProgramById('prog-1', 'random-user', 'CLIENT')
     ).rejects.toMatchObject({ statusCode: 403 })
+  })
+
+  it('throws 404 when program not found', async () => {
+    mockPrisma.program.findUnique.mockResolvedValue(null)
+    await expect(
+      programService.getProgramById('missing-prog', 'client-1', 'CLIENT')
+    ).rejects.toMatchObject({ statusCode: 404 })
   })
 })
