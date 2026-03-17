@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   // Staff roles bypass the subscription gate entirely
   if (user.role !== 'CLIENT') {
-    return { active: true, planName: null as string | null, expiresAt: null as string | null, daysLeft: null as number | null }
+    return { active: true, planName: null as string | null, expiresAt: null as string | null, daysLeft: null as number | null, isCouple: false, partnerName: null as string | null }
   }
 
   const sub = await prisma.subscription.findFirst({
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!sub) {
-    return { active: false, planName: null, expiresAt: null, daysLeft: null }
+    return { active: false, planName: null, expiresAt: null, daysLeft: null, isCouple: false, partnerName: null }
   }
 
   const daysLeft = Math.max(
@@ -34,10 +34,24 @@ export default defineEventHandler(async (event) => {
     Math.ceil((new Date(sub.expiresAt!).getTime() - Date.now()) / 86_400_000)
   )
 
+  // Resolve partner name when it's a couple subscription
+  let partnerName: string | null = null
+  if (sub.partnerUserId) {
+    const partner = await prisma.user.findUnique({
+      where: { id: sub.partnerUserId },
+      select: { name: true, firstName: true, lastName: true },
+    })
+    if (partner) {
+      partnerName = [partner.firstName, partner.lastName].filter(Boolean).join(' ') || partner.name
+    }
+  }
+
   return {
     active: true,
     planName: sub.subscriptionPlan?.name ?? sub.type,
     expiresAt: sub.expiresAt?.toISOString() ?? null,
     daysLeft,
+    isCouple: !!sub.partnerUserId,
+    partnerName,
   }
 })

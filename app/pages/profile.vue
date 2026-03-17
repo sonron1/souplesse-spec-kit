@@ -140,8 +140,15 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm font-bold text-gray-900">{{ clientStats.activeSub.planName ?? 'Abonnement actif' }}</p>
-              <p class="text-xs text-gray-500">Expire {{ formatDate(clientStats.activeSub.expiresAt ?? '') }} <span v-if="clientStats.activeSub.daysLeft !== null" class="text-yellow-600 font-semibold">({{ clientStats.activeSub.daysLeft }}j restants)</span></p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-sm font-bold text-gray-900">{{ clientStats.activeSub.planName ?? 'Abonnement actif' }}</p>
+                <span v-if="clientStats.activeSub.isCouple" class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full">
+                  <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  Couple
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 mt-0.5">Expire {{ formatDate(clientStats.activeSub.expiresAt ?? '') }} <span v-if="clientStats.activeSub.daysLeft !== null" class="text-yellow-600 font-semibold">({{ clientStats.activeSub.daysLeft }}j restants)</span></p>
+              <p v-if="clientStats.activeSub.partnerName" class="text-xs text-purple-500 mt-0.5">Avec {{ clientStats.activeSub.partnerName }}</p>
             </div>
           </div>
           <div v-else class="flex items-center gap-3">
@@ -566,7 +573,7 @@ const isFormValid = computed(() => Object.keys(errors.value).length === 0)
 
 // ── Role-specific stats ────────────────────────────────────
 const clientStats = reactive({
-  activeSub: null as { planName: string | null; expiresAt: string | null; daysLeft: number | null } | null,
+  activeSub: null as { planName: string | null; expiresAt: string | null; daysLeft: number | null; isCouple: boolean; partnerName: string | null } | null,
   bookingCount: 0,
   upcomingCount: 0,
 })
@@ -576,7 +583,7 @@ const coachStats = reactive({ sessionCount: 0, clientCount: 0 })
 if (isClient.value) {
   try {
     const [subData, bkData] = await Promise.all([
-      $fetch<{ active: boolean; planName: string | null; expiresAt: string | null; daysLeft: number | null }>('/api/me/subscription', {
+      $fetch<{ active: boolean; planName: string | null; expiresAt: string | null; daysLeft: number | null; isCouple: boolean; partnerName: string | null }>('/api/me/subscription', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
       $fetch<Array<{ status: string; session: { dateTime: string } }>>('/api/bookings', {

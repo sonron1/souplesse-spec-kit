@@ -142,6 +142,17 @@
               <div>
                 <p class="text-xs font-bold text-primary-600 uppercase tracking-widest mb-0.5">Formule active</p>
                 <h3 class="text-xl font-extrabold text-gray-900">{{ activeSub.subscriptionPlan?.name ?? activeSub.type }}</h3>
+                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span v-if="activeSub.partnerUserId" class="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Couple
+                  </span>
+                  <span v-if="activeSub.subscriptionPlan?.priceSingle" class="text-[11px] text-gray-400 font-semibold">
+                    {{ activeSub.partnerUserId && activeSub.subscriptionPlan?.priceCouple
+                      ? fmt(activeSub.subscriptionPlan.priceCouple)
+                      : fmt(activeSub.subscriptionPlan.priceSingle) }}
+                  </span>
+                </div>
               </div>
             </div>
             <span v-if="activeSub.pausedAt" class="inline-flex items-center gap-1.5 bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1.5 rounded-xl shrink-0">
@@ -154,6 +165,18 @@
               </svg>
               Actif
             </span>
+          </div>
+
+          <!-- Couple partner info -->
+          <div v-if="activeSub.partnerInfo" class="mb-5 flex items-center gap-3 bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
+            <div class="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm shrink-0">
+              {{ (activeSub.partnerInfo.name || '?')[0].toUpperCase() }}
+            </div>
+            <div class="min-w-0">
+              <p class="text-[10px] text-purple-500 font-bold uppercase tracking-wide">Partenaire</p>
+              <p class="text-sm font-bold text-gray-900 truncate">{{ activeSub.partnerInfo.name }}</p>
+              <p class="text-xs text-gray-400 truncate">{{ activeSub.partnerInfo.email }}</p>
+            </div>
           </div>
 
           <!-- Dates row -->
@@ -263,20 +286,32 @@
             :key="sub.id"
             class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-4 hover:border-gray-200 transition-colors"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 min-w-0">
               <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                 <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
               </div>
-              <div>
-                <p class="font-semibold text-gray-800 text-sm">{{ sub.subscriptionPlan?.name ?? sub.type }}</p>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="font-semibold text-gray-800 text-sm">{{ sub.subscriptionPlan?.name ?? sub.type }}</p>
+                  <span v-if="sub.partnerUserId" class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded-full shrink-0">
+                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Couple
+                  </span>
+                </div>
                 <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(sub.startsAt) }} — {{ formatDate(sub.expiresAt) }}</p>
+                <p v-if="sub.partnerInfo" class="text-xs text-purple-500 mt-0.5 truncate">Avec {{ sub.partnerInfo.name }}</p>
+                <p v-if="sub.subscriptionPlan?.priceSingle" class="text-xs font-semibold text-gray-500 mt-0.5">
+                  {{ sub.partnerUserId && sub.subscriptionPlan?.priceCouple
+                    ? fmt(sub.subscriptionPlan.priceCouple)
+                    : fmt(sub.subscriptionPlan.priceSingle) }}
+                </p>
               </div>
             </div>
             <span
               :class="statusClass(sub.status)"
-              class="px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap"
+              class="px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap shrink-0"
             >
               {{ statusLabel(sub.status) }}
             </span>
@@ -303,7 +338,9 @@
     expiresAt: string | null
     pausedAt: string | null
     pauseCount: number
-    subscriptionPlan?: { name: string; planType: string; maxPauses: number } | null
+    partnerUserId: string | null
+    partnerInfo: { name: string; email: string } | null
+    subscriptionPlan?: { name: string; planType: string; maxPauses: number; priceSingle: number; priceCouple: number | null } | null
   }
 
   const { data: subscriptions, pending, refresh } = await useLazyFetch<Subscription[]>('/api/subscriptions', {
@@ -348,6 +385,10 @@
   function formatDate(d: string | null) {
     if (!d) return '—'
     return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  function fmt(xof: number) {
+    return new Intl.NumberFormat('fr-FR').format(xof) + ' FCFA'
   }
 
   function daysLeft(end: string | null) {
