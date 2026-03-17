@@ -4,11 +4,20 @@
     <!-- ── Left decorative panel (desktop only) ───────────── -->
     <div class="hidden lg:flex lg:w-[52%] bg-black relative overflow-hidden flex-col justify-between px-14 py-12">
 
+      <!-- Background gym photo (subtle) -->
+      <div class="absolute inset-0">
+        <img
+          src="https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=1200&h=1600&dpr=1"
+          alt=""
+          class="w-full h-full object-cover opacity-20"
+        />
+        <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+      </div>
+
       <!-- Decorative rings -->
       <div class="absolute top-0 right-0 w-[520px] h-[520px] rounded-full border border-primary-400/10 -translate-y-1/3 translate-x-1/3 pointer-events-none" />
       <div class="absolute top-0 right-0 w-[320px] h-[320px] rounded-full border border-primary-400/20 -translate-y-1/3 translate-x-1/3 pointer-events-none" />
       <div class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-primary-400/5 translate-y-1/2 -translate-x-1/4 pointer-events-none" />
-      <div class="absolute bottom-24 right-8 w-32 h-32 rounded-full bg-primary-400/10 pointer-events-none" />
 
       <!-- Brand -->
       <NuxtLink to="/" class="relative z-10 inline-block">
@@ -65,22 +74,26 @@
     </div>
 
     <!-- ── Right form panel ────────────────────────────────── -->
-    <div class="flex-1 flex items-center justify-center px-4 py-12 bg-gray-50" style="color-scheme: light">
+    <div class="flex-1 flex items-center justify-center px-4 py-10 sm:py-12 bg-gray-50" style="color-scheme: light">
       <div class="w-full max-w-md">
 
         <!-- Mobile brand -->
         <div class="text-center mb-8 lg:hidden">
-          <NuxtLink to="/" class="inline-block">
+          <NuxtLink to="/" class="inline-flex flex-col items-center gap-1">
             <span class="text-3xl font-extrabold tracking-tight text-gray-900">
               Souplesse<span class="text-primary-500">·</span>
             </span>
+            <span class="text-xs text-gray-400 font-medium uppercase tracking-widest">Centre de fitness</span>
           </NuxtLink>
-          <p class="text-gray-500 text-sm mt-1">Centre de fitness &amp; bien-être</p>
         </div>
 
         <!-- Card -->
-        <div class="bg-white rounded-2xl shadow-lg shadow-gray-200/80 border border-gray-100 p-8">
-          <slot />
+        <div class="bg-white rounded-2xl shadow-lg shadow-gray-200/80 border border-gray-100 overflow-hidden">
+          <!-- Yellow accent top bar -->
+          <div class="h-1 bg-gradient-to-r from-primary-400 to-primary-500" />
+          <div class="p-7 sm:p-8">
+            <slot />
+          </div>
         </div>
 
         <p class="text-center text-gray-400 text-xs mt-6 lg:hidden">

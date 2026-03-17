@@ -95,3 +95,36 @@
   opacity: 0;
   transform: translateY(12px);
 }
+
+/* collapse (expandable panels) */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+  overflow: hidden;
+}
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0 !important;
+  opacity: 0;
+}
+.collapse-enter-to,
+.collapse-leave-from {
+  max-height: 600px;
+  opacity: 1;
+}
+
+/* page-section reveal (landing page) */
+.reveal {
+  animation: reveal-up 0.65s ease both;
+  animation-delay: var(--delay, 0ms);
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* smooth scrolling globally */
+html { scroll-behavior: smooth; }
+
+/* iOS safe-area bottom padding */
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem); }

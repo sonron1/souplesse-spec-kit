@@ -81,20 +81,20 @@
       <!-- Collapsible body -->
       <Transition name="collapse">
         <div v-if="showFilters" class="border-t border-gray-100 px-5 py-4">
-          <div class="flex flex-wrap gap-3 items-end">
-            <div>
+          <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
+            <div class="w-full sm:w-auto">
               <label class="label">À partir du</label>
               <div class="relative">
-                <input v-model="fromDate" type="date" class="input w-44 pr-8" :min="todayStr" />
+                <input v-model="fromDate" type="date" class="input w-full sm:w-44 pr-8" :min="todayStr" />
                 <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
               </div>
             </div>
-            <div>
+            <div class="w-full sm:w-auto">
               <label class="label">Jusqu'au</label>
               <div class="relative">
-                <input v-model="toDate" type="date" class="input w-44 pr-8" :min="fromDate || todayStr" />
+                <input v-model="toDate" type="date" class="input w-full sm:w-44 pr-8" :min="fromDate || todayStr" />
                 <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>

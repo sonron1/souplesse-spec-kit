@@ -6,14 +6,14 @@
 
     <div v-else>
       <!-- Welcome banner with image -->
-      <div class="relative rounded-2xl overflow-hidden mb-6 min-h-[140px]">
+      <div class="relative rounded-2xl overflow-hidden mb-6 min-h-[160px] sm:min-h-[150px]">
         <img
           src="https://images.pexels.com/photos/3838937/pexels-photo-3838937.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400&dpr=1"
           alt="Souplesse Fitness"
           class="absolute inset-0 w-full h-full object-cover"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
-        <div class="relative z-10 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="relative z-10 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p class="text-primary-400 text-xs font-bold uppercase tracking-widest mb-1">Espace personnel</p>
             <h1 class="text-2xl font-bold text-white">

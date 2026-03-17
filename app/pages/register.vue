@@ -222,24 +222,45 @@ async function handleResend() {
             placeholder="••••••••" @blur="touch('password')" @input="touch('password')"
           />
           <p v-if="errors.password" class="text-xs text-red-500 mt-1">{{ errors.password }}</p>
-          <!-- Indicateur de force -->
-          <div v-if="form.password" class="mt-2">
-            <div class="flex gap-1 h-1.5 mb-1">
+          <!-- Indicateur de force mot de passe -->
+          <div v-if="form.password" class="mt-3 space-y-2">
+            <!-- Barre de force -->
+            <div class="flex gap-1.5 h-2">
               <div
                 v-for="i in 4" :key="i"
                 class="flex-1 rounded-full transition-all duration-300"
-                :class="i <= passwordStrength ? strengthColor : 'bg-gray-200'"
+                :class="i <= passwordStrength ? strengthColor : 'bg-gray-100'"
               />
             </div>
-            <p class="text-xs" :class="{
-              'text-red-500': passwordStrength <= 1,
-              'text-orange-500': passwordStrength === 2,
-              'text-yellow-600': passwordStrength === 3,
-              'text-green-600': passwordStrength === 4,
-            }">
-              Force&nbsp;: {{ strengthLabel }}
-            </p>
-            <p class="text-xs text-gray-400 mt-0.5">Doit contenir : ≥8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial</p>
+            <!-- Label -->
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold" :class="{
+                'text-red-500': passwordStrength <= 1,
+                'text-orange-500': passwordStrength === 2,
+                'text-yellow-600': passwordStrength === 3,
+                'text-green-600': passwordStrength === 4,
+              }">{{ strengthLabel || 'Trop faible' }}</span>
+              <span class="text-xs text-gray-400">{{ passwordStrength }}/4 critères</span>
+            </div>
+            <!-- Critères visuels -->
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0 transition-colors" :class="form.password.length >= 8 ? 'text-green-500' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span class="text-[11px]" :class="form.password.length >= 8 ? 'text-gray-700' : 'text-gray-400'">8 caractères min.</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0 transition-colors" :class="/[A-Z]/.test(form.password) ? 'text-green-500' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span class="text-[11px]" :class="/[A-Z]/.test(form.password) ? 'text-gray-700' : 'text-gray-400'">Majuscule (A–Z)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0 transition-colors" :class="/[0-9]/.test(form.password) ? 'text-green-500' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span class="text-[11px]" :class="/[0-9]/.test(form.password) ? 'text-gray-700' : 'text-gray-400'">Chiffre (0–9)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0 transition-colors" :class="/[^A-Za-z0-9]/.test(form.password) ? 'text-green-500' : 'text-gray-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span class="text-[11px]" :class="/[^A-Za-z0-9]/.test(form.password) ? 'text-gray-700' : 'text-gray-400'">Caractère spécial</span>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -2,7 +2,7 @@
   <div class="text-gray-900 bg-white">
 
     <!-- ═══════════════════════════════════════════════════════ HERO -->
-    <section class="relative min-h-screen flex items-center overflow-hidden bg-white">
+    <section class="relative min-h-[92svh] lg:min-h-screen flex items-center overflow-hidden bg-white">
       <!-- Yellow blob accent -->
       <div class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-primary-100/50 blur-3xl -translate-y-1/3 translate-x-1/4 pointer-events-none" />
 
@@ -79,9 +79,26 @@
     </section>
 
     <!-- ═══════════════════════════════════════════════════════ GALERIE PHOTOS -->
-    <section class="bg-white py-12 px-6 border-t border-gray-100">
+    <section class="bg-white py-10 sm:py-12 px-6 border-t border-gray-100">
       <div class="max-w-7xl mx-auto">
-        <div class="grid grid-cols-3 gap-3 h-72">
+
+        <!-- Mobile: single featured photo (hidden on sm+) -->
+        <div class="sm:hidden relative rounded-2xl overflow-hidden h-56 mb-3">
+          <img
+            src="https://images.pexels.com/photos/3763873/pexels-photo-3763873.jpeg?auto=compress&cs=tinysrgb&w=800&h=560&dpr=1"
+            alt="Souplesse Fitness — salle de musculation"
+            class="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div class="absolute bottom-4 left-4">
+            <p class="text-white font-bold text-sm drop-shadow">Souplesse Fitness</p>
+            <p class="text-white/70 text-xs">Cotonou, Bénin · Ouvert 7j/7</p>
+          </div>
+        </div>
+
+        <!-- Tablet/Desktop: 3-column grid (hidden on xs) -->
+        <div class="hidden sm:grid sm:grid-cols-3 sm:gap-3 sm:h-72">
           <div class="relative rounded-2xl overflow-hidden group">
             <img
               src="https://images.pexels.com/photos/3763873/pexels-photo-3763873.jpeg?auto=compress&cs=tinysrgb&w=600&h=600&dpr=1"

@@ -433,14 +433,83 @@
     <!-- ══════════════════════════════════════════════════════════
          PAGE CONTENT
     ══════════════════════════════════════════════════════════ -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-28 lg:pb-8">
       <slot />
     </main>
 
     <!-- Footer -->
-    <footer class="bg-black text-gray-500 text-center text-xs py-4">
+    <footer class="bg-black text-gray-500 text-center text-xs py-4" :class="user && (isClient || isCoach) ? 'hidden lg:block' : ''">
       © {{ new Date().getFullYear() }} Souplesse — Centre de fitness &amp; bien-être
     </footer>
+
+    <!-- ══════════════════════════════════════════════════════════
+         MOBILE BOTTOM NAVIGATION (CLIENT + COACH, visible < lg)
+    ══════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <nav
+        v-if="user && (isClient || isCoach)"
+        class="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-gray-950/97 backdrop-blur-md border-t border-gray-800/70"
+        style="padding-bottom: env(safe-area-inset-bottom, 0px)"
+      >
+        <div class="flex items-stretch h-14">
+
+          <!-- ── CLIENT ─────────────────────────────────────────── -->
+          <template v-if="isClient">
+            <NuxtLink to="/dashboard" class="bottom-nav-item" active-class="bottom-nav-item-active" exact>
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span>Accueil</span>
+            </NuxtLink>
+            <NuxtLink to="/sessions" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Séances</span>
+            </NuxtLink>
+            <NuxtLink to="/dashboard/subscriptions" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              <span>Abonnement</span>
+            </NuxtLink>
+            <NuxtLink to="/dashboard/messages" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <div class="relative">
+                <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                <span v-if="unreadMessages > 0" class="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{{ unreadMessages > 9 ? '9+' : unreadMessages }}</span>
+              </div>
+              <span>Messages</span>
+            </NuxtLink>
+            <NuxtLink to="/profile" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span>Profil</span>
+            </NuxtLink>
+          </template>
+
+          <!-- ── COACH ─────────────────────────────────────────── -->
+          <template v-if="isCoach">
+            <NuxtLink to="/coach" class="bottom-nav-item" active-class="bottom-nav-item-active" exact>
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span>Accueil</span>
+            </NuxtLink>
+            <NuxtLink to="/coach/sessions" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Séances</span>
+            </NuxtLink>
+            <NuxtLink to="/coach/programs" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+              <span>Programmes</span>
+            </NuxtLink>
+            <NuxtLink to="/coach/messages" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <div class="relative">
+                <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                <span v-if="unreadMessages > 0" class="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{{ unreadMessages > 9 ? '9+' : unreadMessages }}</span>
+              </div>
+              <span>Messages</span>
+            </NuxtLink>
+            <NuxtLink to="/profile" class="bottom-nav-item" active-class="bottom-nav-item-active">
+              <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span>Profil</span>
+            </NuxtLink>
+          </template>
+
+        </div>
+      </nav>
+    </Teleport>
 
     <!-- ── Idle warning modal (D003) ── -->
     <Teleport to="body">
@@ -642,5 +711,19 @@
 
   .slide-enter-active, .slide-leave-active { transition: transform .25s cubic-bezier(.4,0,.2,1); }
   .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+
+  /* ── Mobile bottom navigation ──────────────────────────── */
+  .bottom-nav-item {
+    @apply flex-1 flex flex-col items-center justify-center gap-[3px] py-2
+           text-[10px] font-semibold text-gray-500 transition-colors cursor-pointer
+           select-none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bottom-nav-item:active {
+    @apply scale-95;
+  }
+  .bottom-nav-item-active {
+    @apply text-primary-400;
+  }
 </style>
 
