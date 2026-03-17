@@ -5,6 +5,9 @@ import { validateBody } from '../../validators/index'
 import { createPaymentOrder } from '../../services/payments.service'
 import { prisma } from '../../utils/prisma'
 import { z } from 'zod'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const paymentRateLimit = rateLimitMiddleware({ max: 10, windowMs: 60_000, keyPrefix: 'payment-create' })
 
 const createSessionSchema = z.object({
   subscriptionPlanId: z.string().uuid(),
@@ -22,6 +25,7 @@ const createSessionSchema = z.object({
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   requireRole(user, 'CLIENT') // Only clients can purchase subscriptions
+  await paymentRateLimit(event)
   const body = await validateBody(event, createSessionSchema)
 
   // Resolve partnerEmail to a userId (FR-016)

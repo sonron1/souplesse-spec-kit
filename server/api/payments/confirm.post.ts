@@ -4,6 +4,9 @@ import { confirmPayment } from '../../services/payments.service'
 import { prisma } from '../../utils/prisma'
 import logger from '../../utils/logger'
 import { z } from 'zod'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const confirmRateLimit = rateLimitMiddleware({ max: 10, windowMs: 60_000, keyPrefix: 'payment-confirm' })
 
 const ConfirmBody = z.object({
   transactionId: z.string().min(1),
@@ -14,6 +17,7 @@ const ConfirmBody = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  await confirmRateLimit(event)
 
   const body = await readBody(event)
   const parse = ConfirmBody.safeParse(body)

@@ -1,6 +1,9 @@
-import { defineEventHandler, readBody, createError } from 'h3'
+import { defineEventHandler, createError } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { notificationService } from '../../services/notification.service'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const notifRateLimit = rateLimitMiddleware({ max: 60, windowMs: 60_000, keyPrefix: 'notif-read' })
 
 /**
  * PATCH /api/notifications/:id/read
@@ -10,6 +13,8 @@ import { notificationService } from '../../services/notification.service'
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  await notifRateLimit(event)
+
   const id = event.context.params?.id
 
   if (id === 'all') {
