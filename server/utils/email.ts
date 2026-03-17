@@ -105,13 +105,11 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
 
     if (error) {
       logger.error({ to, error }, 'Resend: failed to send verification email')
-      console.error(`[Resend error] ${error.name}: ${error.message}`)
     } else {
       logger.info({ to, emailId: data?.id }, 'Verification email sent via Resend')
     }
   } catch (err) {
     logger.error({ to, err }, 'Resend: unexpected error sending verification email')
-    console.error('[Resend unexpected error]', err)
   }
 }
 /**

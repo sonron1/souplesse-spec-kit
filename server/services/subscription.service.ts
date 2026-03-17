@@ -3,6 +3,9 @@ import { createError } from 'h3'
 import logger from '../utils/logger'
 import type { Subscription } from '.prisma/client'
 
+/** Maximum duration a subscription can stay paused before being auto-expired by the cron. */
+const MAX_PAUSE_DURATION_MS = 90 * 24 * 60 * 60 * 1000 // 90 days
+
 export const subscriptionService = {
   /**
    * Create a PENDING subscription for a user with a selected plan.
@@ -160,10 +163,13 @@ export const subscriptionService = {
       throw createError({ statusCode: 400, message: `Nombre de pauses maximum atteint (${maxPauses})` })
     }
 
+    const pausedAt = new Date()
     const updated = await prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
-        pausedAt: new Date(),
+        pausedAt,
+        // Set a hard deadline: if the user never resumes within 90 days, the cron expires the sub
+        pausedUntil: new Date(pausedAt.getTime() + MAX_PAUSE_DURATION_MS),
         pauseCount: { increment: 1 },
       },
     })
@@ -207,17 +213,23 @@ export const subscriptionService = {
     const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
     if (!sub) throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
     if (sub.userId !== userId) throw createError({ statusCode: 403, message: 'Accès refusé' })
+    if (sub.status !== 'ACTIVE') throw createError({ statusCode: 400, message: 'L\'abonnement n\'est pas actif' })
     if (!sub.pausedAt) throw createError({ statusCode: 400, message: 'L\'abonnement n\'est pas en pause' })
+    if (!sub.expiresAt) {
+      // Data integrity guard — should never happen on a properly created subscription
+      logger.error({ subscriptionId }, 'resumeSubscription: expiresAt is null — cannot compute new expiry')
+      throw createError({ statusCode: 500, message: 'Données d\'abonnement invalides. Contactez le support.' })
+    }
 
     const pausedMs = Date.now() - sub.pausedAt.getTime()
-    const newExpiry = sub.expiresAt ? new Date(sub.expiresAt.getTime() + pausedMs) : null
+    const newExpiry = new Date(sub.expiresAt.getTime() + pausedMs)
 
     const updated = await prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         pausedAt: null,
         pausedUntil: null,
-        ...(newExpiry ? { expiresAt: newExpiry } : {}),
+        expiresAt: newExpiry,
       },
     })
     logger.info({ subscriptionId, userId, pausedMs }, 'Subscription resumed, expiry extended')

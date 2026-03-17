@@ -1,7 +1,10 @@
 import { prisma } from '../utils/prisma'
+import { Prisma } from '@prisma/client'
+import type { Subscription } from '.prisma/client'
 import type { KkiapayWebhookEnvelopeType } from '../validators/payments.schemas'
 import crypto from 'crypto'
 import { kkiapay } from '@kkiapay-org/nodejs-sdk'
+import logger from '../utils/logger'
 
 const _isSandbox = (process.env.NUXT_PUBLIC_KKIAPAY_IS_SANDBOX || '').trim().toLowerCase() === 'true'
 
@@ -14,13 +17,80 @@ function getKkiapayClient() {
   })
 }
 
-export async function createPaymentOrder(opts: { userId: string; subscriptionPlanId: string; partnerUserId?: string }) {
+// ─── Shared activation helper ─────────────────────────────────────────────────
+
+/**
+ * Activate a subscription for a SINGLE user within an already-open Prisma
+ * interactive transaction.
+ *
+ * Guarantees:
+ *   • Single-active invariant: all existing ACTIVE subs are deactivated first.
+ *   • Cumulation (K001-K002): if the user already has an ACTIVE sub for the
+ *     same plan, the new expiry extends from the old one instead of from now.
+ *
+ * The `partnerUserId` arg is stored as a forward reference on the created sub
+ * (bidirectional couple fix) but does NOT trigger partner activation here —
+ * callers handle the partner independently so failures can be caught separately.
+ *
+ * MUST be called inside a prisma.$transaction() callback.
+ */
+async function _activateForUserTx(
+  tx: Prisma.TransactionClient,
+  opts: {
+    userId: string
+    subscriptionPlanId: string
+    plan: { validityDays: number; maxReports: number }
+    partnerUserId?: string    // stored as forward reference on the created sub
+    now: Date
+  },
+): Promise<{ sub: Subscription; extended: boolean }> {
+  const { userId, subscriptionPlanId, plan, partnerUserId, now } = opts
+
+  const existingActive = await tx.subscription.findFirst({
+    where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
+    orderBy: { expiresAt: 'desc' },
+  })
+
+  await tx.subscription.updateMany({
+    where: { userId, status: 'ACTIVE', isActive: true },
+    data: { status: 'EXPIRED', isActive: false },
+  })
+
+  const baseDate = existingActive?.expiresAt && existingActive.expiresAt > now
+    ? existingActive.expiresAt
+    : now
+  const expiresAt = new Date(baseDate.getTime() + plan.validityDays * 86_400_000)
+
+  const sub = await tx.subscription.create({
+    data: {
+      userId,
+      subscriptionPlanId,
+      partnerUserId: partnerUserId ?? null,
+      type: 'MONTHLY',
+      status: 'ACTIVE',
+      isActive: true,
+      activationDate: now,
+      startsAt: now,
+      expiresAt,
+      maxReports: plan.maxReports,
+    },
+  })
+
+  return { sub, extended: !!existingActive }
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export async function createPaymentOrder(opts: {
+  userId: string
+  subscriptionPlanId: string
+  partnerUserId?: string
+}) {
   const { userId, subscriptionPlanId, partnerUserId } = opts
 
   const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } })
   if (!plan) throw new Error('SubscriptionPlan not found')
 
-  // For couple plans, use priceCouple if set; otherwise fall back to priceSingle
   const isCouplePlan = plan.planType?.includes('COUPLE') ?? false
   const amount = (isCouplePlan && plan.priceCouple != null) ? plan.priceCouple : plan.priceSingle
   const currency = 'XOF'
@@ -36,7 +106,6 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
     },
   })
 
-  // If secret key available, call Kkiapay to create an order, otherwise return a mock token (for tests)
   const kkiapaySecretKey = (process.env.KKIAPAY_SECRET_KEY || '').trim()
   const kkiapayApiBase = _isSandbox ? 'https://api-sandbox.kkiapay.me' : 'https://api.kkiapay.me'
   if (kkiapaySecretKey) {
@@ -44,7 +113,6 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
       amount,
       currency,
       reference: order.id,
-      // optional metadata
       metadata: { userId, subscriptionPlanId },
     }
 
@@ -64,22 +132,18 @@ export async function createPaymentOrder(opts: { userId: string; subscriptionPla
 
     const body = await res.json()
     const token = body.data?.token || body.token || null
-
     const updated = await prisma.paymentOrder.update({
       where: { id: order.id },
       data: { kkiapayOrderToken: token },
     })
-
     return { order: updated, kkiapayToken: token }
   }
 
-  // mock token for local/dev/test
   const mockToken = `mock-token-${order.id}`
   await prisma.paymentOrder.update({
     where: { id: order.id },
     data: { kkiapayOrderToken: mockToken },
   })
-
   return { order, kkiapayToken: mockToken }
 }
 
@@ -89,39 +153,35 @@ export async function verifyWebhookSignature(rawBody: string, signatureHeader?: 
   if (!signatureHeader) return false
 
   const computed = crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
-  // constant-time compare
   try {
     return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(signatureHeader))
-  } catch (e) {
+  } catch {
     return false
   }
 }
 
 export async function handleWebhook(
   envelope: KkiapayWebhookEnvelopeType,
-  rawPayload: Record<string, unknown>
+  rawPayload: Record<string, unknown>,
 ) {
   const event = envelope.event
   const data = envelope.data
 
-  // assume data contains paymentId and reference (our order id)
   const paymentId = data.id || data.paymentId || data.payment_id
   const reference =
     data.reference ||
     data.metadata?.reference ||
     data.metadata?.orderReference ||
     data.meta?.reference
-  const amount = typeof data.amount === 'number' ? data.amount : data.amountCents || null
-  const currency = data.currency || null
+  const amount = typeof data.amount === 'number' ? data.amount : (data.amountCents ?? null)
+  const currency = data.currency ?? null
 
   if (!paymentId) throw new Error('Missing paymentId in webhook payload')
   if (!reference) throw new Error('Missing reference/order id in webhook payload')
 
-  // Idempotency: if transaction with this paymentId exists, ignore
   const existingTx = await prisma.transaction.findUnique({ where: { paymentId } })
   if (existingTx) return { ignored: true }
 
-  // find PaymentOrder by reference (assuming reference === PaymentOrder.id)
   const paymentOrder = await prisma.paymentOrder.findUnique({ where: { id: reference } })
 
   const tx = await prisma.transaction.create({
@@ -132,7 +192,7 @@ export async function handleWebhook(
       status: data.status || 'unknown',
       amount: amount ?? 0,
       currency: currency ?? 'XOF',
-      rawPayload: rawPayload,
+      rawPayload,
     },
   })
 
@@ -141,63 +201,51 @@ export async function handleWebhook(
     (data.status === 'success' || data.status === 'paid' || event === 'payment.succeeded')
   ) {
     await prisma.paymentOrder.update({ where: { id: paymentOrder.id }, data: { status: 'paid' } })
-    // activate subscription for user: create Subscription using plan validity
+
     try {
       const plan = await prisma.subscriptionPlan.findUnique({
         where: { id: paymentOrder.subscriptionPlanId },
       })
-      const now = new Date()
-      const expiresAt = new Date(now)
-      if (plan && typeof plan.validityDays === 'number') {
-        expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
-      } else {
-        // default to 30 days
-        expiresAt.setDate(expiresAt.getDate() + 30)
-      }
+      if (!plan) throw new Error(`SubscriptionPlan ${paymentOrder.subscriptionPlanId} not found`)
 
-      // Deactivate all existing active subs before creating new (single-active invariant)
-      await prisma.subscription.updateMany({
-        where: { userId: paymentOrder.userId, status: 'ACTIVE', isActive: true },
-        data: { status: 'EXPIRED', isActive: false },
-      })
-      await prisma.subscription.create({
-        data: {
+      const now = new Date()
+      const partnerUserId = paymentOrder.partnerUserId ?? undefined
+
+      // Buyer activation (atomic)
+      await prisma.$transaction(async (prismaT) => {
+        await _activateForUserTx(prismaT, {
           userId: paymentOrder.userId,
           subscriptionPlanId: paymentOrder.subscriptionPlanId,
-          status: 'ACTIVE',
-          isActive: true,
-          activationDate: now,
-          startsAt: now,
-          expiresAt,
-        },
+          plan,
+          partnerUserId,
+          now,
+        })
       })
 
-      // FR-016: If couple plan has a partner, activate a subscription for them too
-      if (paymentOrder.partnerUserId) {
+      // Partner activation (best-effort — failure must not block webhook ack)
+      if (partnerUserId) {
         try {
-          await prisma.subscription.updateMany({
-            where: { userId: paymentOrder.partnerUserId, status: 'ACTIVE', isActive: true },
-            data: { status: 'EXPIRED', isActive: false },
-          })
-          await prisma.subscription.create({
-            data: {
-              userId: paymentOrder.partnerUserId,
+          await prisma.$transaction(async (prismaT) => {
+            await _activateForUserTx(prismaT, {
+              userId: partnerUserId,
               subscriptionPlanId: paymentOrder.subscriptionPlanId,
-              partnerUserId: paymentOrder.userId, // back-reference
-              status: 'ACTIVE',
-              isActive: true,
-              activationDate: now,
-              startsAt: now,
-              expiresAt,
-            },
+              plan,
+              partnerUserId: paymentOrder.userId,
+              now,
+            })
           })
         } catch (e) {
-          console.error('Failed to create partner subscription', e)
+          logger.error(
+            { err: e, partnerUserId, paymentOrderId: paymentOrder.id },
+            '[handleWebhook] Failed to activate partner subscription (non-fatal)',
+          )
         }
       }
     } catch (e) {
-      // log and continue; subscription creation failure shouldn't crash webhook processing
-      console.error('Failed to create subscription after payment', e)
+      logger.error(
+        { err: e, paymentOrderId: paymentOrder.id },
+        '[handleWebhook] Failed to activate subscription after payment',
+      )
     }
   } else if (paymentOrder && (data.status === 'failed' || event === 'payment.failed')) {
     await prisma.paymentOrder.update({ where: { id: paymentOrder.id }, data: { status: 'failed' } })
@@ -205,8 +253,6 @@ export async function handleWebhook(
 
   return { processed: true, tx }
 }
-
-export default { createPaymentOrder, verifyWebhookSignature, handleWebhook, confirmPayment }
 
 export async function confirmPayment(opts: {
   userId: string
@@ -216,7 +262,7 @@ export async function confirmPayment(opts: {
 }) {
   const { userId, transactionId, subscriptionPlanId, partnerUserId } = opts
 
-  // Idempotency: if Payment with this transactionId already exists, return existing subscription
+  // Idempotency: if this transactionId was already confirmed, return existing sub
   const existing = await prisma.payment.findUnique({
     where: { kkiapayTransactionId: transactionId },
   })
@@ -225,22 +271,25 @@ export async function confirmPayment(opts: {
       where: { userId, subscriptionPlanId, isActive: true },
       orderBy: { createdAt: 'desc' },
     })
-    return { subscriptionId: sub?.id ?? null }
+    return { subscriptionId: sub?.id ?? null, extended: false }
   }
 
-  // Verify transaction with KKiaPay SDK
+  // Verify transaction with KKiaPay SDK — HTTP call OUTSIDE any transaction
   const k = getKkiapayClient()
   let verifyData: Record<string, unknown>
   try {
-    verifyData = await k.verify(transactionId) as Record<string, unknown>
+    verifyData = (await k.verify(transactionId)) as Record<string, unknown>
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    console.error(`[confirmPayment] KKiaPay verify failed — sandbox=${_isSandbox} txId=${transactionId}: ${msg}`)
+    logger.error(
+      { transactionId, sandbox: _isSandbox, err: msg },
+      '[confirmPayment] KKiaPay verify failed',
+    )
     throw new Error(`KKiaPay verification failed: ${msg}`)
   }
 
-  const status: string = (verifyData?.status ?? '').toString().toUpperCase()
-  console.log(`[confirmPayment] KKiaPay status="${status}" txId=${transactionId} sandbox=${_isSandbox}`)
+  const status = (verifyData?.status ?? '').toString().toUpperCase()
+  logger.info({ transactionId, status, sandbox: _isSandbox }, '[confirmPayment] KKiaPay transaction status')
 
   if (!['SUCCESS', 'SUCCESSFUL', 'COMPLETE', 'COMPLETED', 'PAID'].includes(status)) {
     throw new Error(`Transaction not successful: ${status} — ${JSON.stringify(verifyData)}`)
@@ -249,100 +298,84 @@ export async function confirmPayment(opts: {
   const plan = await prisma.subscriptionPlan.findUnique({ where: { id: subscriptionPlanId } })
   if (!plan) throw new Error('SubscriptionPlan not found')
 
-  const amount: number = typeof verifyData?.amount === 'number'
-    ? verifyData.amount
-    : plan.priceSingle
-
-  // Record the payment with raw provider response (FR-007)
-  const payment = await prisma.payment.create({
-    data: {
-      userId,
-      amount,
-      currency: 'XOF',
-      provider: 'kkiapay',
-      kkiapayTransactionId: transactionId,
-      status: 'CONFIRMED',
-      rawPayload: verifyData as object,
-    },
-  })
-
-  // K001-K002: Cumulation — if user already has an active sub for this SAME plan,
-  // start the new period from the old expiry date (extends). Otherwise start from now.
-  // In ALL cases: deactivate every current ACTIVE sub first, then create ONE new record.
-  // This guarantees a user never has more than 1 ACTIVE subscription simultaneously,
-  // which fixes the /profile vs /dashboard/subscriptions inconsistency.
+  const amount: number =
+    typeof verifyData?.amount === 'number' ? verifyData.amount : plan.priceSingle
   const now = new Date()
 
-  // Detect same-plan renewal for cumulated expiry
-  const existingActive = await prisma.subscription.findFirst({
-    where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
-    orderBy: { expiresAt: 'desc' },
-  })
+  // ── Step 1: Atomic — buyer payment record + buyer subscription ────────────
+  let subscriptionId: string
+  let extended: boolean
 
-  // Deactivate ALL current active subs (any plan) — ensures single-active invariant
-  await prisma.subscription.updateMany({
-    where: { userId, status: 'ACTIVE', isActive: true },
-    data: { status: 'EXPIRED', isActive: false },
-  })
-
-  // Cumulate: if renewing same plan, start from old expiry (if still in the future)
-  const baseDate = (existingActive?.expiresAt && existingActive.expiresAt > now)
-    ? existingActive.expiresAt
-    : now
-  const expiresAt = new Date(baseDate)
-  expiresAt.setDate(expiresAt.getDate() + plan.validityDays)
-
-  const subscription = await prisma.subscription.create({
-    data: {
-      userId,
-      subscriptionPlanId,
-      type: 'MONTHLY',
-      status: 'ACTIVE',
-      isActive: true,
-      activationDate: now,
-      startsAt: now,
-      expiresAt,
-      payments: { connect: { id: payment.id } },
-    },
-  })
-
-  const extended = !!existingActive
-
-  // FR-016: activate partner subscription for couple plans (same single-active invariant)
-  if (partnerUserId) {
-    try {
-      const existingPartnerActive = await prisma.subscription.findFirst({
-        where: { userId: partnerUserId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
-        orderBy: { expiresAt: 'desc' },
-      })
-      // Deactivate all partner's current active subs
-      await prisma.subscription.updateMany({
-        where: { userId: partnerUserId, status: 'ACTIVE', isActive: true },
-        data: { status: 'EXPIRED', isActive: false },
-      })
-      // Cumulate partner expiry from their old same-plan sub if applicable
-      const partnerBaseDate = (existingPartnerActive?.expiresAt && existingPartnerActive.expiresAt > now)
-        ? existingPartnerActive.expiresAt
-        : now
-      const partnerExpiresAt = new Date(partnerBaseDate)
-      partnerExpiresAt.setDate(partnerExpiresAt.getDate() + plan.validityDays)
-      await prisma.subscription.create({
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
         data: {
-          userId: partnerUserId,
-          subscriptionPlanId,
-          partnerUserId: userId,
-          type: 'MONTHLY',
-          status: 'ACTIVE',
-          isActive: true,
-          activationDate: now,
-          startsAt: now,
-          expiresAt: partnerExpiresAt,
+          userId,
+          amount,
+          currency: 'XOF',
+          provider: 'kkiapay',
+          kkiapayTransactionId: transactionId,
+          status: 'CONFIRMED',
+          rawPayload: verifyData as object,
         },
       })
+
+      const { sub: main, extended: ext } = await _activateForUserTx(tx, {
+        userId,
+        subscriptionPlanId,
+        plan,
+        partnerUserId,       // stored as forward reference on main sub
+        now,
+      })
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { subscriptionId: main.id },
+      })
+
+      return { subscriptionId: main.id, extended: ext }
+    })
+
+    subscriptionId = result.subscriptionId
+    extended = result.extended
+  } catch (e: unknown) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      logger.warn(
+        { transactionId, userId },
+        '[confirmPayment] Duplicate transactionId — returning existing subscription',
+      )
+      const sub = await prisma.subscription.findFirst({
+        where: { userId, isActive: true },
+        orderBy: { createdAt: 'desc' },
+      })
+      return { subscriptionId: sub?.id ?? null, extended: false }
+    }
+    throw e
+  }
+
+  // ── Step 2: Best-effort — couple partner subscription ────────────────────
+  // Intentionally outside the buyer's transaction: partner failure must never
+  // roll back an already-confirmed buyer payment.
+  if (partnerUserId) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        await _activateForUserTx(tx, {
+          userId: partnerUserId,
+          subscriptionPlanId,
+          plan,
+          partnerUserId: userId,  // back-reference to main subscriber
+          now,
+        })
+      })
     } catch (e) {
-      console.error('Failed to create/extend partner subscription (confirmPayment)', e)
+      logger.error(
+        { err: e, partnerUserId },
+        '[confirmPayment] Failed to create/extend partner subscription (non-fatal)',
+      )
     }
   }
 
-  return { subscriptionId: subscription.id, extended }
+  return { subscriptionId, extended }
 }
+
+export default { createPaymentOrder, verifyWebhookSignature, handleWebhook, confirmPayment }

@@ -8,9 +8,10 @@ const REMINDER_DAYS = 3
 
 export default defineEventHandler(async (event) => {
   // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`
-  const authHeader = getRequestHeader(event, 'authorization')
+  // Fail CLOSED: if CRON_SECRET is not configured the endpoint is locked down
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  const authHeader = getRequestHeader(event, 'authorization')
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     throw createError({ statusCode: 401, message: 'Unauthorized' })
   }
 

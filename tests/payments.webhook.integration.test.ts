@@ -3,14 +3,14 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 process.env.KKIAPAY_WEBHOOK_SECRET = 'test_webhook_secret'
 
 vi.mock('../server/utils/prisma', () => {
-  return {
-    prisma: {
-      subscriptionPlan: { findUnique: vi.fn() },
-      paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
-      transaction: { findUnique: vi.fn(), create: vi.fn() },
-      subscription: { create: vi.fn() },
-    },
+  const inst: Record<string, any> = {
+    subscriptionPlan: { findUnique: vi.fn() },
+    paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
+    transaction: { findUnique: vi.fn(), create: vi.fn() },
+    subscription: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
   }
+  inst.$transaction = vi.fn().mockImplementation((cb: (tx: any) => Promise<any>) => cb(inst))
+  return { prisma: inst }
 })
 
 // Mock h3 before importing the handler so the module uses our mocks
@@ -28,9 +28,14 @@ import handler from '../server/api/payments/kkiapay.webhook'
 import crypto from 'crypto'
 import { prisma } from '../server/utils/prisma'
 
+const mockPrisma = vi.mocked(prisma) as any
+
 describe('payments webhook integration test (mocked h3)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockPrisma.$transaction.mockImplementation((cb: (tx: any) => Promise<any>) => cb(mockPrisma))
+    mockPrisma.subscription.findFirst.mockResolvedValue(null)
+    mockPrisma.subscription.updateMany.mockResolvedValue({ count: 0 })
   })
 
   it('accepts signed webhook and processes payment', async () => {

@@ -1,23 +1,29 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('../server/utils/prisma', () => {
-  return {
-    prisma: {
-      subscriptionPlan: { findUnique: vi.fn() },
-      paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
-      transaction: { findUnique: vi.fn(), create: vi.fn() },
-      subscription: { create: vi.fn(), findFirst: vi.fn() },
-      payment: { findUnique: vi.fn(), create: vi.fn() },
-    },
+  const inst: Record<string, any> = {
+    subscriptionPlan: { findUnique: vi.fn() },
+    paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
+    transaction: { findUnique: vi.fn(), create: vi.fn() },
+    subscription: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
+    payment: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   }
+  inst.$transaction = vi.fn().mockImplementation((cb: (tx: any) => Promise<any>) => cb(inst))
+  return { prisma: inst }
 })
 
 import { handleWebhook, confirmPayment } from '../server/services/payments.service'
 import { prisma } from '../server/utils/prisma'
 
+const mockPrisma = vi.mocked(prisma) as any
+
 describe('payments webhook handler', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockPrisma.$transaction.mockImplementation((cb: (tx: any) => Promise<any>) => cb(mockPrisma))
+    mockPrisma.subscription.findFirst.mockResolvedValue(null)
+    mockPrisma.subscription.updateMany.mockResolvedValue({ count: 0 })
+    mockPrisma.payment.update.mockResolvedValue({})
   })
 
   it('creates subscription when payment succeeded', async () => {
@@ -65,6 +71,10 @@ describe('payments webhook handler', () => {
 describe('confirmPayment idempotency (SC-002)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mockPrisma.$transaction.mockImplementation((cb: (tx: any) => Promise<any>) => cb(mockPrisma))
+    mockPrisma.subscription.findFirst.mockResolvedValue(null)
+    mockPrisma.subscription.updateMany.mockResolvedValue({ count: 0 })
+    mockPrisma.payment.update.mockResolvedValue({})
     process.env.KKIAPAY_SECRET_KEY = 'test-secret'
   })
 

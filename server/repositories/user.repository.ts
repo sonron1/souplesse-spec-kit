@@ -7,6 +7,7 @@ export type CreateUserInput = {
   passwordHash: string
   role?: UserRole
   emailVerificationToken?: string
+  emailVerificationTokenCreatedAt?: Date | null
   // Extended profile (v3)
   firstName?: string
   lastName?: string
@@ -26,6 +27,7 @@ export type UpdateUserInput = Partial<{
   lockedUntil: Date | null
   emailVerified: boolean
   emailVerificationToken: string | null
+  emailVerificationTokenCreatedAt: Date | null
   // Extended profile (v3)
   firstName: string
   lastName: string

@@ -6,14 +6,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { verifyWebhookSignature, handleWebhook } from '../../server/services/payments.service'
 import crypto from 'crypto'
 
-vi.mock('../../server/utils/prisma', () => ({
-  prisma: {
+vi.mock('../../server/utils/prisma', () => {
+  const inst: Record<string, any> = {
     transaction: { findUnique: vi.fn(), create: vi.fn() },
     paymentOrder: { findUnique: vi.fn(), update: vi.fn() },
     subscriptionPlan: { findUnique: vi.fn() },
-    subscription: { create: vi.fn() },
-  },
-}))
+    subscription: { findFirst: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
+  }
+  inst.$transaction = vi.fn().mockImplementation((cb: (tx: any) => Promise<any>) => cb(inst))
+  return { prisma: inst }
+})
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
@@ -30,6 +32,11 @@ function makeSignature(body: string): string {
 beforeEach(() => {
   vi.clearAllMocks()
   process.env.KKIAPAY_WEBHOOK_SECRET = SECRET
+  // Restore $transaction after clearAllMocks wipes its implementation
+  mockPrisma.$transaction.mockImplementation((cb: (tx: any) => Promise<any>) => cb(mockPrisma))
+  // Default helpers used inside _activateForUserTx
+  mockPrisma.subscription.findFirst.mockResolvedValue(null)
+  mockPrisma.subscription.updateMany.mockResolvedValue({ count: 0 })
 })
 
 describe('verifyWebhookSignature', () => {
@@ -94,6 +101,8 @@ describe('handleWebhook — success path', () => {
     mockPrisma.paymentOrder.update = vi.fn().mockResolvedValue({ ...ORDER, status: 'paid' })
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(PLAN)
     mockPrisma.subscription.create = vi.fn().mockResolvedValue(CREATED_SUB)
+    mockPrisma.subscription.findFirst.mockResolvedValue(null)
+    mockPrisma.subscription.updateMany.mockResolvedValue({ count: 0 })
   })
 
   it('creates subscription and marks order paid on payment.succeeded', async () => {
@@ -116,22 +125,19 @@ describe('handleWebhook — success path', () => {
     )
   })
 
-  it('uses default 30-day validity when plan has no validityDays', async () => {
+  it('silently skips activation and still returns processed when plan is not found', async () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(null) // plan not found
     const envelope = {
       event: 'payment.succeeded',
       data: { id: 'pay_ok', reference: 'order-success', amount: 15000, currency: 'XOF', status: 'success' },
     }
 
+    // plan not found → throws inside try/catch → silently caught → still returns processed
     const result = await handleWebhook(envelope as any, envelope)
 
     expect(result).toMatchObject({ processed: true })
-    expect(mockPrisma.subscription.create).toHaveBeenCalledOnce()
-    const subData = mockPrisma.subscription.create.mock.calls[0][0].data
-    // expiresAt should be ~30 days from now
-    const diffDays = (subData.expiresAt.getTime() - Date.now()) / 86400000
-    expect(diffDays).toBeGreaterThan(29)
-    expect(diffDays).toBeLessThan(31)
+    // Subscription was not activated because the plan lookup failed
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
   })
 
   it('creates partner subscription when partnerUserId is set', async () => {
@@ -215,6 +221,8 @@ describe('handleWebhook — error catch paths', () => {
     mockPrisma.transaction.create = vi.fn().mockResolvedValue({ id: 'tx-catch' })
     mockPrisma.paymentOrder.update = vi.fn().mockResolvedValue({ ...ORDER, status: 'paid' })
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(PLAN)
+    mockPrisma.subscription.findFirst.mockResolvedValue(null)
+    mockPrisma.subscription.updateMany.mockResolvedValue({ count: 0 })
   })
 
   it('silently catches subscription creation failure (logs, does not throw)', async () => {
