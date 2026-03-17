@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { messageService } from '../../services/message.service'
 import { prisma } from '../../utils/prisma'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const msgRateLimit = rateLimitMiddleware({ max: 30, windowMs: 60_000, keyPrefix: 'msg-send' })
 
 const bodySchema = z.object({
   toUserId: z.string().uuid('ID destinataire invalide'),
@@ -16,6 +19,7 @@ const bodySchema = z.object({
  */
 export default defineEventHandler(async (event) => {
   const me = await requireAuth(event)
+  await msgRateLimit(event)
 
   const raw = await readBody(event)
   const parsed = bodySchema.safeParse(raw)

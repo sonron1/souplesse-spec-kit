@@ -2,6 +2,9 @@ import { defineEventHandler, getRouterParam, readBody, createError } from 'h3'
 import { z } from 'zod'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { prisma } from '../../utils/prisma'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const editRateLimit = rateLimitMiddleware({ max: 20, windowMs: 60_000, keyPrefix: 'msg-edit' })
 
 const bodySchema = z.object({
   body: z.string().min(1, 'Le message ne peut pas être vide.').max(2000),
@@ -11,6 +14,7 @@ const EDIT_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  await editRateLimit(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'Message id required' })
