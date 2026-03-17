@@ -39,7 +39,5 @@ export default defineEventHandler(async (event) => {
     return authService.getProfile(user.sub)
   }
 
-  // JSON fallback: { avatarUrl: string }
-  const body = await event.$fetch as any
   throw createError({ statusCode: 400, message: 'Envoyez le fichier en multipart/form-data avec le champ "avatar"' })
 })
