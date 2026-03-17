@@ -6,7 +6,7 @@ import { createError } from 'h3'
 import logger from '../utils/logger'
 import { systemLog } from '../utils/systemLog'
 import { sendVerificationEmail } from '../utils/email'
-import type { RegisterInput, LoginInput, UpdateProfileInput } from '../validators/auth.schemas'
+import type { RegisterInput, LoginInput, UpdateProfileInput, ChangePasswordInput } from '../validators/auth.schemas'
 
 const BCRYPT_ROUNDS = 12
 /** Max consecutive failed login attempts before account lockout. */
@@ -31,6 +31,7 @@ export interface AuthUser {
   birthMonth?: number | null
   avatarUrl?: string | null
   role: string
+  createdAt?: Date | null
 }
 
 /**
@@ -258,6 +259,22 @@ export const authService = {
     })
     return _safeUser(updated)
   },
+
+  /**
+   * Change the password of the authenticated user.
+   * Verifies the current password before hashing and storing the new one.
+   */
+  async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
+    const user = await userRepository.findById(userId)
+    if (!user) throw createError({ statusCode: 404, message: 'Utilisateur introuvable' })
+
+    const valid = await bcrypt.compare(input.currentPassword, user.passwordHash)
+    if (!valid) throw createError({ statusCode: 401, data: { code: 'wrong_password' }, message: 'Mot de passe actuel incorrect' })
+
+    const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS)
+    await userRepository.update(userId, { passwordHash })
+    logger.info({ userId }, 'Password changed')
+  },
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -282,6 +299,7 @@ function _safeUser(user: {
   birthMonth?: number | null
   avatarUrl?: string | null
   role: string
+  createdAt?: Date | null
 }): AuthUser {
   return {
     id: user.id,
@@ -295,5 +313,6 @@ function _safeUser(user: {
     birthMonth: user.birthMonth,
     avatarUrl: user.avatarUrl,
     role: user.role,
+    createdAt: user.createdAt,
   }
 }

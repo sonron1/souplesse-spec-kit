@@ -246,9 +246,6 @@ async function cancelBooking(id: string) {
 
     </SubscriptionGate>
 
-    <!-- Calendar -->
-    <Calendar v-if="(bookings?.length ?? 0) > 0" :bookings="bookings!" class="mt-10" />
-
     <!-- Confirm cancel modal -->
     <Teleport to="body">
       <Transition name="fade">

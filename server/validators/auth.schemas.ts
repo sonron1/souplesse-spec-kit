@@ -34,6 +34,18 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Le token de rafraîchissement est requis'),
 })
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Le mot de passe actuel est requis'),
+  newPassword: passwordSchema,
+  confirmPassword: z.string().min(1, 'La confirmation est requise'),
+}).refine((d) => d.newPassword === d.confirmPassword, {
+  message: 'Les mots de passe ne correspondent pas',
+  path: ['confirmPassword'],
+}).refine((d) => d.currentPassword !== d.newPassword, {
+  message: 'Le nouveau mot de passe doit être différent de l\'actuel',
+  path: ['newPassword'],
+})
+
 export const updateProfileSchema = z.object({
   firstName: z.string().min(2).max(100).trim().optional(),
   lastName: z.string().min(2).max(100).trim().optional(),
@@ -54,3 +66,4 @@ export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>

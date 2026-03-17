@@ -383,6 +383,8 @@
   const page = ref(1)
   const LIMIT = 10
   const todayStr = computed(() => new Date().toISOString().split('T')[0])
+  // Reactive timestamp updated on every refresh so "upcoming" always filters from NOW, not midnight
+  const nowTs = ref(Date.now())
   const fromDate = ref('')
   const toDate = ref('')
   const showFilters = ref(false)
@@ -407,13 +409,13 @@
   const queryParams = computed(() => {
     const p: Record<string, string | number> = { page: page.value, limit: LIMIT }
     if (tab.value === 'upcoming') {
-      // upcoming: from today midnight to optional end date, sorted ASC
-      p.from = fromDate.value || todayStr.value
+      // upcoming: from RIGHT NOW (not midnight) so already-past sessions today are excluded
+      p.from = fromDate.value || new Date(nowTs.value).toISOString()
       if (toDate.value) p.to = toDate.value
       p.order = 'asc'
     } else {
-      // past: everything strictly before today, sorted DESC (most recent first)
-      p.to = todayStr.value + 'T00:00:00.000Z'
+      // past: everything strictly before NOW, sorted DESC (most recent first)
+      p.to = new Date(nowTs.value).toISOString()
       p.order = 'desc'
     }
     return p
@@ -436,12 +438,13 @@
     page.value = 1
     fromDate.value = ''
     toDate.value = ''
+    nowTs.value = Date.now()
     await nextTick()
     refresh()
   }
 
-  function applyFilters() { page.value = 1; refresh() }
-  function resetFilters() { fromDate.value = ''; toDate.value = ''; page.value = 1; refresh() }
+  function applyFilters() { nowTs.value = Date.now(); page.value = 1; refresh() }
+  function resetFilters() { fromDate.value = ''; toDate.value = ''; nowTs.value = Date.now(); page.value = 1; refresh() }
   async function goToPage(n: number) { page.value = n; window.scrollTo({ top: 0, behavior: 'smooth' }); await nextTick(); refresh() }
 
   // M005 — track which sessions the user has already booked.
@@ -471,6 +474,7 @@
   const { isPolling } = usePolling(async () => {
     if (pending.value) return
     pollingActive.value = true
+    nowTs.value = Date.now() // invalidate queryParams so `from` uses current time
     await Promise.all([refresh(), loadBookings()])
     pollingActive.value = false
   }, 30000, false) // immediate=false, we already fetch on mount via useLazyFetch
