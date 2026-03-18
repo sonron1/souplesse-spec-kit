@@ -291,6 +291,137 @@ describe('subscriptionService.resumeSubscription', () => {
   })
 })
 
+describe('subscriptionService.pauseSubscription — extra branches', () => {
+  const activeSub = {
+    ...MOCK_SUB,
+    userId: 'user-1',
+    status: 'ACTIVE' as const,
+    isActive: true,
+    pausedAt: null,
+    pauseCount: 0,
+    subscriptionPlan: { maxPauses: 2, name: 'Abonnement 1 mois' },
+  }
+
+  it('throws 400 when subscription status is EXPIRED (not ACTIVE)', async () => {
+    mockPrisma.subscription.findUnique.mockResolvedValue({
+      ...activeSub,
+      status: 'EXPIRED',
+      isActive: false,
+    } as never)
+    await expect(subscriptionService.pauseSubscription('sub-1', 'user-1')).rejects.toMatchObject({
+      statusCode: 400,
+    })
+  })
+
+  it('sends admin pause email via sendAdminPauseNotification (J005)', async () => {
+    const { sendAdminPauseNotification } = await import('../../server/utils/email')
+    const mockSendPauseNotif = vi.mocked(sendAdminPauseNotification)
+
+    mockPrisma.subscription.findUnique.mockResolvedValue(activeSub as never)
+    const paused = { ...activeSub, pausedAt: new Date(), pauseCount: 1 }
+    mockPrisma.subscription.update.mockResolvedValue(paused as never)
+    mockPrisma.user.findUnique.mockResolvedValue({ email: 'user@test.com', name: 'Alice' } as never)
+    mockPrisma.user.findMany.mockResolvedValue([
+      { id: 'admin-1', email: 'admin@test.com' },
+    ] as never)
+
+    await subscriptionService.pauseSubscription('sub-1', 'user-1')
+
+    expect(mockSendPauseNotif).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adminEmails: ['admin@test.com'],
+        planName: 'Abonnement 1 mois',
+        pauseCount: 1,
+        maxPauses: 2,
+      })
+    )
+  })
+
+  it('sets pausedUntil to pausedAt + 90 days (MAX_PAUSE_DURATION_MS)', async () => {
+    mockPrisma.subscription.findUnique.mockResolvedValue(activeSub as never)
+    mockPrisma.subscription.update.mockResolvedValue({ ...activeSub, pausedAt: new Date(), pauseCount: 1 } as never)
+    mockPrisma.user.findMany.mockResolvedValue([] as never)
+
+    const before = Date.now()
+    await subscriptionService.pauseSubscription('sub-1', 'user-1')
+    const after = Date.now()
+
+    const updateCall = mockPrisma.subscription.update.mock.calls[0][0]
+    const { pausedAt, pausedUntil } = updateCall.data
+
+    const diffDays = ((pausedUntil as Date).getTime() - (pausedAt as Date).getTime()) / (24 * 60 * 60 * 1000)
+    expect(diffDays).toBeCloseTo(90, 0) // 90 days ± 1 day tolerance
+
+    const pausedAtMs = (pausedAt as Date).getTime()
+    expect(pausedAtMs).toBeGreaterThanOrEqual(before - 1000)
+    expect(pausedAtMs).toBeLessThanOrEqual(after + 1000)
+  })
+})
+
+describe('subscriptionService.resumeSubscription — expiry extension', () => {
+  it('extends expiresAt by the exact paused duration', async () => {
+    const pausedAtTime = Date.now() - 5 * 24 * 60 * 60 * 1000 // paused 5 days ago
+    const expiresAtTime = Date.now() + 10 * 24 * 60 * 60 * 1000 // expires in 10 days
+    const pausedSub = {
+      ...MOCK_SUB,
+      userId: 'user-1',
+      status: 'ACTIVE' as const,
+      isActive: true,
+      pausedAt: new Date(pausedAtTime),
+      expiresAt: new Date(expiresAtTime),
+      pauseCount: 1,
+    }
+    mockPrisma.subscription.findUnique.mockResolvedValue(pausedSub as never)
+    mockPrisma.subscription.update.mockResolvedValue({ ...pausedSub, pausedAt: null } as never)
+
+    const before = Date.now()
+    await subscriptionService.resumeSubscription('sub-1', 'user-1')
+    const after = Date.now()
+
+    const updateCall = mockPrisma.subscription.update.mock.calls[0][0]
+    const newExpiryMs = (updateCall.data.expiresAt as Date).getTime()
+
+    // newExpiry = expiresAt + pausedMs where pausedMs = now - pausedAt ≈ 5 days
+    const expectedMin = expiresAtTime + (before - pausedAtTime) - 1000
+    const expectedMax = expiresAtTime + (after - pausedAtTime) + 1000
+    expect(newExpiryMs).toBeGreaterThanOrEqual(expectedMin)
+    expect(newExpiryMs).toBeLessThanOrEqual(expectedMax)
+
+    expect(updateCall.data.pausedAt).toBeNull()
+    expect(updateCall.data.pausedUntil).toBeNull()
+  })
+
+  it('throws 500 when expiresAt is null (data integrity guard)', async () => {
+    mockPrisma.subscription.findUnique.mockResolvedValue({
+      ...MOCK_SUB,
+      userId: 'user-1',
+      status: 'ACTIVE' as const,
+      isActive: true,
+      pausedAt: new Date(),
+      expiresAt: null,
+      pauseCount: 1,
+    } as never)
+
+    await expect(subscriptionService.resumeSubscription('sub-1', 'user-1')).rejects.toMatchObject({
+      statusCode: 500,
+    })
+  })
+
+  it('throws 400 when subscription status is EXPIRED', async () => {
+    mockPrisma.subscription.findUnique.mockResolvedValue({
+      ...MOCK_SUB,
+      userId: 'user-1',
+      status: 'EXPIRED' as const,
+      isActive: false,
+      pausedAt: new Date(),
+    } as never)
+
+    await expect(subscriptionService.resumeSubscription('sub-1', 'user-1')).rejects.toMatchObject({
+      statusCode: 400,
+    })
+  })
+})
+
 describe('subscriptionService.getUserSubscriptions', () => {
   it('returns all subscriptions for a user ordered by createdAt desc', async () => {
     const subs = [
