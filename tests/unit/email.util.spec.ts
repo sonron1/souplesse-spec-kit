@@ -182,10 +182,10 @@ describe('sendAdminPauseNotification', () => {
     expect(mockLogger.warn).toHaveBeenCalled()
   })
 
-  it('logs error when Resend returns an error for an admin', async () => {
+  it('logs error when Resend returns a validation error for an admin', async () => {
     mockSend
       .mockResolvedValueOnce({ data: { id: 'ok' }, error: null })
-      .mockResolvedValueOnce({ data: null, error: { name: 'err', message: 'bad' } })
+      .mockResolvedValueOnce({ data: null, error: { name: 'validation_error', message: 'bad address', statusCode: 422 } })
 
     await sendAdminPauseNotification(BASE_OPTS)
 
