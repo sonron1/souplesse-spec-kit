@@ -1,7 +1,12 @@
 import { defineEventHandler, getRequestHeader, createError } from 'h3'
 import { prisma } from '../../utils/prisma'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const cronRateLimit = rateLimitMiddleware({ max: 5, windowMs: 60_000, keyPrefix: 'cron-expire' })
 
 export default defineEventHandler(async (event) => {
+  await cronRateLimit(event)
+
   // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`
   // Fail CLOSED: if CRON_SECRET is not configured the endpoint is locked down
   const cronSecret = process.env.CRON_SECRET

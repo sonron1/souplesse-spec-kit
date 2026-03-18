@@ -3,10 +3,15 @@ import { prisma } from '../../utils/prisma'
 import { notificationService } from '../../services/notification.service'
 import { sendSubscriptionReminderEmail } from '../../utils/email'
 import logger from '../../utils/logger'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const cronRateLimit = rateLimitMiddleware({ max: 5, windowMs: 60_000, keyPrefix: 'cron-reminders' })
 
 const REMINDER_DAYS = 3
 
 export default defineEventHandler(async (event) => {
+  await cronRateLimit(event)
+
   // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`
   // Fail CLOSED: if CRON_SECRET is not configured the endpoint is locked down
   const cronSecret = process.env.CRON_SECRET
