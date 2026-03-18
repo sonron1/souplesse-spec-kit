@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
+  const startedAt = Date.now()
 
   try {
     // 1. Expire ACTIVE subscriptions whose expiresAt has passed (skip paused ones)
@@ -65,6 +66,7 @@ export default defineEventHandler(async (event) => {
       normalExpired,
       pauseExpired,
       ranAt: now.toISOString(),
+      durationMs: Date.now() - startedAt,
     }
   } finally {
     await releaseCronLock(LOCK_KEY)

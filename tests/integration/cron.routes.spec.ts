@@ -5,11 +5,14 @@
  *   – expires normal + paused-overtime subscriptions
  *   – returns { skipped: true } when lock is already held
  *   – returns 401 when CRON_SECRET is wrong
+ *   – includes durationMs in the response
  *
  * POST /api/cron/send-reminders
- *   – sends notifications + emails for subs expiring in 3 days
+ *   – sends notifications + emails for subs expiring within 3 days
+ *   – queries with expiresAt window [now, now+3d)
  *   – returns { skipped: true } when lock is already held
  *   – returns 401 when CRON_SECRET is wrong
+ *   – includes durationMs in the response
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
@@ -116,6 +119,7 @@ describe('POST /api/cron/expire-subscriptions', () => {
     expect(result.normalExpired).toBe(3)
     expect(result.pauseExpired).toBe(1)
     expect(result.skipped).toBeUndefined()
+    expect(result.durationMs).toBeTypeOf('number')
     expect(mockAcquire).toHaveBeenCalledWith('cron:expire-subscriptions', expect.any(Number))
     expect(mockRelease).toHaveBeenCalledWith('cron:expire-subscriptions')
   })
@@ -178,12 +182,35 @@ describe('POST /api/cron/send-reminders', () => {
 
     expect(result.success).toBe(true)
     expect(result.sent).toBe(1)
+    expect(result.durationMs).toBeTypeOf('number')
     expect(mockNotifCreate).toHaveBeenCalledOnce()
     expect(mockCreate).toHaveBeenCalledOnce() // message.create
     expect(mockSubUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'sub-1' }, data: expect.objectContaining({ reminderSentAt: expect.any(Date) }) })
     )
     expect(mockRelease).toHaveBeenCalledWith('cron:send-reminders')
+  })
+
+  it('queries expiresAt window [now, now+3days)', async () => {
+    mockFindMany.mockResolvedValue([])
+    mockFindFirst.mockResolvedValue(null)
+
+    const before = Date.now()
+    const handler = (await import('../../server/api/cron/send-reminders.post')).default as any
+    await handler(makeEvent({ _headers: { authorization: 'Bearer secret123' } }))
+    const after = Date.now()
+
+    const call = mockFindMany.mock.calls[0][0]
+    const { gte: windowStart, lt: windowEnd } = call.where.expiresAt
+
+    // Lower bound ≈ now (within 1 second of test execution)
+    expect(windowStart.getTime()).toBeGreaterThanOrEqual(before - 1000)
+    expect(windowStart.getTime()).toBeLessThanOrEqual(after + 1000)
+
+    // Upper bound ≈ now + 3 days (within 1 second)
+    const expected3days = before + 3 * 24 * 60 * 60 * 1000
+    expect(windowEnd.getTime()).toBeGreaterThanOrEqual(expected3days - 1000)
+    expect(windowEnd.getTime()).toBeLessThanOrEqual(expected3days + 60_000)
   })
 
   it('returns { skipped: true } when lock is already held', async () => {
