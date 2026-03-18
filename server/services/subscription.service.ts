@@ -127,6 +127,8 @@ export const subscriptionService = {
       where: {
         userId,
         status: 'ACTIVE',
+        isActive: true,
+        pausedAt: null, // exclude paused subscriptions — pausedAt set = sub en pause, réservation interdite
         expiresAt: { gte: new Date() },
       },
     })

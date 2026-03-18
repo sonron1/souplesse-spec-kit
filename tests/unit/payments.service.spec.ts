@@ -154,8 +154,9 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
     mockPrisma.subscription.findFirst
-      .mockResolvedValueOnce(null)  // no existing active sub for buyer (inside buyer tx)
-      .mockResolvedValueOnce(null)  // no existing active sub for partner (inside partner tx)
+      .mockResolvedValueOnce(null)  // buyer tx: cumulation check — no existing active for buyer
+      .mockResolvedValueOnce(null)  // partner tx: couple conflict check — partner not already in couple
+      .mockResolvedValueOnce(null)  // partner tx: cumulation check — no existing active for partner
     const newSub = { id: 'sub-main', expiresAt: new Date(Date.now() + 30 * 86400000) }
     mockPrisma.subscription.create.mockResolvedValue(newSub)
 
@@ -179,8 +180,9 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
     mockPrisma.subscription.findFirst
-      .mockResolvedValueOnce(null)       // no existing active for buyer (inside buyer tx)
-      .mockResolvedValueOnce(partnerSub) // partner has active sub (inside partner tx)
+      .mockResolvedValueOnce(null)       // buyer tx: cumulation check — no existing active for buyer
+      .mockResolvedValueOnce(null)       // partner tx: couple conflict check — partner not already in couple
+      .mockResolvedValueOnce(partnerSub) // partner tx: cumulation check — partner has active sub for same plan
     const newSub = { id: 'sub-main', expiresAt: new Date(Date.now() + 30 * 86400000) }
     mockPrisma.subscription.create.mockResolvedValue(newSub)
 
