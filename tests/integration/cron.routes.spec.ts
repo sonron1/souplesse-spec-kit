@@ -51,8 +51,10 @@ vi.mock('../../server/utils/prisma', () => ({
       findMany:   (...a: any[]) => mockFindMany(...a),
       update:     (...a: any[]) => mockSubUpdate(...a),
     },
-    user:    { findFirst: (...a: any[]) => mockFindFirst(...a) },
-    message: { create:    (...a: any[]) => mockCreate(...a) },
+    user:      { findFirst: (...a: any[]) => mockFindFirst(...a) },
+    message:   { create:    (...a: any[]) => mockCreate(...a) },
+    // systemLog.create is called by the systemLog() utility after each cron run
+    systemLog: { create:    vi.fn().mockResolvedValue({}) },
   },
 }))
 

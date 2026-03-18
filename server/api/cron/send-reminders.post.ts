@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { notificationService } from '../../services/notification.service'
 import { sendSubscriptionReminderEmail } from '../../utils/email'
 import logger from '../../utils/logger'
+import { systemLog } from '../../utils/systemLog'
 import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
 import { acquireCronLock, releaseCronLock } from '../../utils/cronLock'
 
@@ -111,6 +112,11 @@ export default defineEventHandler(async (event) => {
 
     const durationMs = Date.now() - startedAt
     logger.info({ sent, ranAt: now.toISOString(), durationMs }, 'Subscription reminders sent')
+    systemLog({
+      action: 'CRON_SEND_REMINDERS',
+      message: `Sent ${sent} reminder(s) in ${durationMs}ms`,
+      meta: { sent, durationMs, ranAt: now.toISOString() },
+    })
     return { success: true, sent, ranAt: now.toISOString(), durationMs }
   } finally {
     await releaseCronLock(LOCK_KEY)
