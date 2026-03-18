@@ -44,60 +44,65 @@ export default defineEventHandler(async (event) => {
 
   const now = new Date()
 
-  // Check if user already has an ACTIVE subscription for this plan → extend it
-  const existing = await prisma.subscription.findFirst({
-    where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
-    orderBy: { expiresAt: 'desc' },
-  })
-
-  const subscription = await prisma.$transaction(async (tx) => {
-    if (existing && existing.expiresAt && existing.expiresAt > now) {
-      // Cumulative: extend from current expiry (millisecond arithmetic — DST safe)
-      const newExpiry = new Date(existing.expiresAt.getTime() + plan.validityDays * 86_400_000)
-
-      // Deactivate any OTHER active subs (preserve the one being extended)
-      await tx.subscription.updateMany({
-        where: { userId, status: 'ACTIVE', isActive: true, id: { not: existing.id } },
-        data: { status: 'EXPIRED', isActive: false },
+  // The findFirst and all writes are inside a Serializable transaction so that a
+  // concurrent admin grant or payment webhook cannot sneak in a second isActive=true row.
+  const { subscription, extended } = await prisma.$transaction(
+    async (tx) => {
+      // Re-read inside the serializable snapshot (TOCTOU guard — prevents stale-read race)
+      const existing = await tx.subscription.findFirst({
+        where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
+        orderBy: { expiresAt: 'desc' },
       })
 
-      const updated = await tx.subscription.update({
-        where: { id: existing.id },
-        data: { expiresAt: newExpiry, updatedAt: now },
-      })
+      if (existing && existing.expiresAt && existing.expiresAt > now) {
+        // Cumulative: extend from current expiry (millisecond arithmetic — DST safe)
+        const newExpiry = new Date(existing.expiresAt.getTime() + plan.validityDays * 86_400_000)
 
-      logger.info(
-        { subscriptionId: existing.id, userId, adminId: user.sub, addedDays: plan.validityDays },
-        'Admin extended active subscription (cumulative)'
-      )
-      return updated
-    } else {
-      // Create new subscription — deactivate ALL existing active subs first (single-active invariant)
-      await tx.subscription.updateMany({
-        where: { userId, status: 'ACTIVE', isActive: true },
-        data: { status: 'EXPIRED', isActive: false },
-      })
+        // Deactivate any OTHER active subs (preserve the one being extended)
+        await tx.subscription.updateMany({
+          where: { userId, status: 'ACTIVE', isActive: true, id: { not: existing.id } },
+          data: { status: 'EXPIRED', isActive: false },
+        })
 
-      const expiresAt = new Date(now.getTime() + plan.validityDays * 86_400_000)
+        const updated = await tx.subscription.update({
+          where: { id: existing.id },
+          data: { expiresAt: newExpiry, updatedAt: now },
+        })
 
-      const created = await tx.subscription.create({
-        data: {
-          userId,
-          subscriptionPlanId,
-          type: (plan.planType?.includes('QUARTERLY') ? 'QUARTERLY' : plan.planType?.includes('ANNUAL') ? 'ANNUAL' : 'MONTHLY') as 'MONTHLY' | 'QUARTERLY' | 'ANNUAL',
-          status: 'ACTIVE',
-          isActive: true,
-          activationDate: now,
-          startsAt: now,
-          expiresAt,
-          maxReports: plan.maxReports,
-        },
-      })
+        logger.info(
+          { subscriptionId: existing.id, userId, adminId: user.sub, addedDays: plan.validityDays },
+          'Admin extended active subscription (cumulative)'
+        )
+        return { subscription: updated, extended: true }
+      } else {
+        // Create new subscription — deactivate ALL existing active subs first (single-active invariant)
+        await tx.subscription.updateMany({
+          where: { userId, status: 'ACTIVE', isActive: true },
+          data: { status: 'EXPIRED', isActive: false },
+        })
 
-      logger.info({ subscriptionId: created.id, userId, adminId: user.sub }, 'Admin manually granted subscription')
-      return created
-    }
-  })
+        const expiresAt = new Date(now.getTime() + plan.validityDays * 86_400_000)
+
+        const created = await tx.subscription.create({
+          data: {
+            userId,
+            subscriptionPlanId,
+            type: (plan.planType?.includes('QUARTERLY') ? 'QUARTERLY' : plan.planType?.includes('ANNUAL') ? 'ANNUAL' : 'MONTHLY') as 'MONTHLY' | 'QUARTERLY' | 'ANNUAL',
+            status: 'ACTIVE',
+            isActive: true,
+            activationDate: now,
+            startsAt: now,
+            expiresAt,
+            maxReports: plan.maxReports,
+          },
+        })
+
+        logger.info({ subscriptionId: created.id, userId, adminId: user.sub }, 'Admin manually granted subscription')
+        return { subscription: created, extended: false }
+      }
+    },
+    { isolationLevel: 'Serializable' },
+  )
 
   // Log to system logs
   await prisma.systemLog.create({
@@ -111,5 +116,5 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  return { ok: true, subscription, extended: !!existing }
+  return { ok: true, subscription, extended }
 })

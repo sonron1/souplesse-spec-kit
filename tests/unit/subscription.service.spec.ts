@@ -3,6 +3,9 @@ import { subscriptionService } from '../../server/services/subscription.service'
 
 vi.mock('../../server/utils/prisma', () => ({
   prisma: {
+    // $transaction routes the callback to the same mock instance so that tx.subscription.* calls
+    // are intercepted by the same vi.fn() spies used in assertions.
+    $transaction: vi.fn(),
     subscriptionPlan: {
       findUnique: vi.fn(),
     },
@@ -54,6 +57,10 @@ const MOCK_SUB = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Re-bind $transaction to pass the same mock instance as the tx client.
+  // clearAllMocks() wipes call history but not implementations; this is set
+  // explicitly for clarity and in case resetAllMocks() is ever used.
+  mockPrisma.$transaction.mockImplementation((fn: any, _opts?: any) => fn(mockPrisma))
 })
 
 describe('subscriptionService.createSubscription', () => {
