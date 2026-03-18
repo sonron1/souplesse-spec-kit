@@ -1,4 +1,4 @@
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, createError } from 'h3'
 import { requireAuth } from '../../middleware/auth.middleware'
 import { requireCoach } from '../../utils/role'
 import { validateBody } from '../../validators/index'
@@ -11,9 +11,16 @@ export default defineEventHandler(async (event) => {
 
   const body = await validateBody(event, createSessionSchema)
 
+  const dateTime = new Date(body.dateTime)
+
+  // Fix #6: prevent creating sessions in the past
+  if (dateTime <= new Date()) {
+    throw createError({ statusCode: 422, message: 'La date de la séance doit être dans le futur.' })
+  }
+
   const session = await sessionRepository.create({
     coachId: user.sub,
-    dateTime: new Date(body.dateTime),
+    dateTime,
     duration: body.duration,
     capacity: body.capacity,
   })

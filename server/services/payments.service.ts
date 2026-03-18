@@ -193,17 +193,27 @@ export async function handleWebhook(
 
   const paymentOrder = await prisma.paymentOrder.findUnique({ where: { id: reference } })
 
-  const tx = await prisma.transaction.create({
-    data: {
-      paymentOrderId: paymentOrder ? paymentOrder.id : 'unknown',
-      paymentId,
-      eventType: event,
-      status: data.status || 'unknown',
-      amount: amount ?? 0,
-      currency: currency ?? 'XOF',
-      rawPayload,
-    },
-  })
+  // Fix #5: catch DB-level unique violation on paymentId (concurrent webhooks)
+  let tx: Awaited<ReturnType<typeof prisma.transaction.create>>
+  try {
+    tx = await prisma.transaction.create({
+      data: {
+        paymentOrderId: paymentOrder ? paymentOrder.id : 'unknown',
+        paymentId,
+        eventType: event,
+        status: data.status || 'unknown',
+        amount: amount ?? 0,
+        currency: currency ?? 'XOF',
+        rawPayload,
+      },
+    })
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      logger.warn({ paymentId }, '[handleWebhook] Duplicate paymentId — webhook already processed, returning 200')
+      return { ignored: true }
+    }
+    throw e
+  }
 
   if (
     paymentOrder &&
@@ -235,6 +245,17 @@ export async function handleWebhook(
       if (partnerUserId) {
         try {
           await prisma.$transaction(async (prismaT) => {
+            // Fix #3: re-check inside the transaction to prevent race conditions
+            const existingCoupleSub = await prismaT.subscription.findFirst({
+              where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
+            })
+            if (existingCoupleSub) {
+              logger.warn(
+                { partnerUserId, existingSubId: existingCoupleSub.id },
+                '[handleWebhook] Partner already in active couple sub at activation time — skipping',
+              )
+              return
+            }
             await _activateForUserTx(prismaT, {
               userId: partnerUserId,
               subscriptionPlanId: paymentOrder.subscriptionPlanId,
@@ -248,6 +269,20 @@ export async function handleWebhook(
             { err: e, partnerUserId, paymentOrderId: paymentOrder.id },
             '[handleWebhook] Failed to activate partner subscription (non-fatal)',
           )
+          // Fix #2: notify admins of asymmetric couple activation
+          try {
+            const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } })
+            await prisma.notification.createMany({
+              data: admins.map((a) => ({
+                userId: a.id,
+                type: 'COUPLE_ACTIVATION_FAILED',
+                title: 'Activation couple échouée (webhook)',
+                body: `L'abonnement couple n'a pas pu être activé pour le partenaire (userId: ${partnerUserId}, order: ${paymentOrder.id}). Vérifiez manuellement.`,
+              })),
+            })
+          } catch (notifyErr) {
+            logger.error({ notifyErr }, '[handleWebhook] Failed to notify admins of partner activation failure')
+          }
         }
       }
     } catch (e) {
@@ -368,6 +403,17 @@ export async function confirmPayment(opts: {
   if (partnerUserId) {
     try {
       await prisma.$transaction(async (tx) => {
+        // Fix #3: re-check partner couple status inside the transaction (race condition guard)
+        const existingCoupleSub = await tx.subscription.findFirst({
+          where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
+        })
+        if (existingCoupleSub) {
+          logger.warn(
+            { partnerUserId, existingSubId: existingCoupleSub.id },
+            '[confirmPayment] Partner already in active couple sub at activation time — skipping',
+          )
+          return
+        }
         await _activateForUserTx(tx, {
           userId: partnerUserId,
           subscriptionPlanId,
@@ -381,6 +427,20 @@ export async function confirmPayment(opts: {
         { err: e, partnerUserId },
         '[confirmPayment] Failed to create/extend partner subscription (non-fatal)',
       )
+      // Fix #2: notify admins of asymmetric couple activation so they can fix it manually
+      try {
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } })
+        await prisma.notification.createMany({
+          data: admins.map((a) => ({
+            userId: a.id,
+            type: 'COUPLE_ACTIVATION_FAILED',
+            title: 'Activation couple échouée',
+            body: `L'abonnement couple n'a pas pu être activé pour le partenaire (userId: ${partnerUserId}). L'acheteur (userId: ${userId}) a bien un abonnement actif. Vérifiez manuellement.`,
+          })),
+        })
+      } catch (notifyErr) {
+        logger.error({ notifyErr }, '[confirmPayment] Failed to notify admins of partner activation failure')
+      }
     }
   }
 

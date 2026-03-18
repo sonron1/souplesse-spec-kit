@@ -5,6 +5,9 @@ import { prisma } from '../../utils/prisma'
 import { logger } from '../../utils/logger'
 import { notificationService } from '../../services/notification.service'
 import { systemLog } from '../../utils/systemLog'
+import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
+
+const coachRequestRateLimit = rateLimitMiddleware({ max: 5, windowMs: 10 * 60_000, keyPrefix: 'coach-request' })
 
 const bodySchema = z.object({
   coachId: z.string().uuid('ID coach invalide'),
@@ -18,6 +21,7 @@ const bodySchema = z.object({
  */
 export default defineEventHandler(async (event) => {
   const me = await requireAuth(event)
+  await coachRequestRateLimit(event)
 
   if (me.role !== 'CLIENT') {
     throw createError({ statusCode: 403, message: 'Réservé aux clients.' })
