@@ -9,15 +9,19 @@ import { authService } from '../../server/services/auth.service'
 import { subscriptionService } from '../../server/services/subscription.service'
 
 vi.mock('../../server/repositories/user.repository')
-vi.mock('../../server/utils/prisma', () => ({
-  prisma: {
+vi.mock('../../server/utils/prisma', () => {
+  const inst: Record<string, any> = {
     subscriptionPlan: { findUnique: vi.fn() },
-    subscription: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
+    subscription: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
     paymentOrder: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
     transaction: { findUnique: vi.fn(), create: vi.fn() },
     user: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
-  },
-}))
+  }
+  // Route $transaction callbacks through the same mock instance so tx.* calls
+  // are intercepted by the same vi.fn() spies used in assertions.
+  inst.$transaction = vi.fn().mockImplementation((fn: any) => fn(inst))
+  return { prisma: inst }
+})
 vi.mock('../../server/utils/logger', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
@@ -38,6 +42,9 @@ const mockUserRepo = vi.mocked(userRepository)
 beforeEach(() => {
   vi.clearAllMocks()
   process.env.KKIAPAY_WEBHOOK_SECRET = 'test_webhook_secret'
+  // Re-bind $transaction after clearAllMocks so it continues to route callbacks
+  // through the same mock instance (tx.* calls hit the same vi.fn() spies).
+  mockPrisma.$transaction.mockImplementation((fn: any) => fn(mockPrisma))
 })
 
 describe('US1 E2E: signup → purchase (Kkiapay) → webhook activation', () => {

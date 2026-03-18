@@ -6,6 +6,33 @@ import crypto from 'crypto'
 import { kkiapay } from '@kkiapay-org/nodejs-sdk'
 import logger from '../utils/logger'
 
+// ─── Serializable retry ───────────────────────────────────────────────────────
+const MAX_TX_RETRIES = 3
+
+/**
+ * Run `fn` up to MAX_TX_RETRIES times, retrying on Prisma P2034
+ * (serialization failure / concurrent transaction conflict).
+ */
+async function withSerializableRetry<T>(fn: () => Promise<T>): Promise<T> {
+  let attempt = 0
+  while (true) {
+    try {
+      return await fn()
+    } catch (e) {
+      if (
+        attempt < MAX_TX_RETRIES &&
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2034'
+      ) {
+        attempt++
+        logger.warn({ attempt, code: e.code }, '[withSerializableRetry] Serialization failure — retrying')
+        continue
+      }
+      throw e
+    }
+  }
+}
+
 const _isSandbox = (process.env.NUXT_PUBLIC_KKIAPAY_IS_SANDBOX || '').trim().toLowerCase() === 'true'
 
 function getKkiapayClient() {
@@ -230,40 +257,50 @@ export async function handleWebhook(
       const now = new Date()
       const partnerUserId = paymentOrder.partnerUserId ?? undefined
 
-      // Buyer activation (atomic)
-      await prisma.$transaction(async (prismaT) => {
-        await _activateForUserTx(prismaT, {
-          userId: paymentOrder.userId,
-          subscriptionPlanId: paymentOrder.subscriptionPlanId,
-          plan,
-          partnerUserId,
-          now,
-        })
-      })
+      // Buyer activation (atomic, serializable to guard single-active invariant)
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (prismaT) => {
+            await _activateForUserTx(prismaT, {
+              userId: paymentOrder.userId,
+              subscriptionPlanId: paymentOrder.subscriptionPlanId,
+              plan,
+              partnerUserId,
+              now,
+            })
+          },
+          { isolationLevel: 'Serializable' },
+        ),
+      )
 
       // Partner activation (best-effort — failure must not block webhook ack)
       if (partnerUserId) {
         try {
-          await prisma.$transaction(async (prismaT) => {
-            // Fix #3: re-check inside the transaction to prevent race conditions
-            const existingCoupleSub = await prismaT.subscription.findFirst({
-              where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
-            })
-            if (existingCoupleSub) {
-              logger.warn(
-                { partnerUserId, existingSubId: existingCoupleSub.id },
-                '[handleWebhook] Partner already in active couple sub at activation time — skipping',
-              )
-              return
-            }
-            await _activateForUserTx(prismaT, {
-              userId: partnerUserId,
-              subscriptionPlanId: paymentOrder.subscriptionPlanId,
-              plan,
-              partnerUserId: paymentOrder.userId,
-              now,
-            })
-          })
+          await withSerializableRetry(() =>
+            prisma.$transaction(
+              async (prismaT) => {
+                // Re-check partner couple status inside the serializable snapshot
+                const existingCoupleSub = await prismaT.subscription.findFirst({
+                  where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
+                })
+                if (existingCoupleSub) {
+                  logger.warn(
+                    { partnerUserId, existingSubId: existingCoupleSub.id },
+                    '[handleWebhook] Partner already in active couple sub at activation time — skipping',
+                  )
+                  return
+                }
+                await _activateForUserTx(prismaT, {
+                  userId: partnerUserId,
+                  subscriptionPlanId: paymentOrder.subscriptionPlanId,
+                  plan,
+                  partnerUserId: paymentOrder.userId,
+                  now,
+                })
+              },
+              { isolationLevel: 'Serializable' },
+            ),
+          )
         } catch (e) {
           logger.error(
             { err: e, partnerUserId, paymentOrderId: paymentOrder.id },
@@ -351,34 +388,39 @@ export async function confirmPayment(opts: {
   let extended: boolean
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.create({
-        data: {
-          userId,
-          amount,
-          currency: 'XOF',
-          provider: 'kkiapay',
-          kkiapayTransactionId: transactionId,
-          status: 'CONFIRMED',
-          rawPayload: verifyData as object,
+    const result = await withSerializableRetry(() =>
+      prisma.$transaction(
+        async (tx) => {
+          const payment = await tx.payment.create({
+            data: {
+              userId,
+              amount,
+              currency: 'XOF',
+              provider: 'kkiapay',
+              kkiapayTransactionId: transactionId,
+              status: 'CONFIRMED',
+              rawPayload: verifyData as object,
+            },
+          })
+
+          const { sub: main, extended: ext } = await _activateForUserTx(tx, {
+            userId,
+            subscriptionPlanId,
+            plan,
+            partnerUserId,       // stored as forward reference on main sub
+            now,
+          })
+
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { subscriptionId: main.id },
+          })
+
+          return { subscriptionId: main.id, extended: ext }
         },
-      })
-
-      const { sub: main, extended: ext } = await _activateForUserTx(tx, {
-        userId,
-        subscriptionPlanId,
-        plan,
-        partnerUserId,       // stored as forward reference on main sub
-        now,
-      })
-
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { subscriptionId: main.id },
-      })
-
-      return { subscriptionId: main.id, extended: ext }
-    })
+        { isolationLevel: 'Serializable' },
+      ),
+    )
 
     subscriptionId = result.subscriptionId
     extended = result.extended
@@ -402,26 +444,31 @@ export async function confirmPayment(opts: {
   // roll back an already-confirmed buyer payment.
   if (partnerUserId) {
     try {
-      await prisma.$transaction(async (tx) => {
-        // Fix #3: re-check partner couple status inside the transaction (race condition guard)
-        const existingCoupleSub = await tx.subscription.findFirst({
-          where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
-        })
-        if (existingCoupleSub) {
-          logger.warn(
-            { partnerUserId, existingSubId: existingCoupleSub.id },
-            '[confirmPayment] Partner already in active couple sub at activation time — skipping',
-          )
-          return
-        }
-        await _activateForUserTx(tx, {
-          userId: partnerUserId,
-          subscriptionPlanId,
-          plan,
-          partnerUserId: userId,  // back-reference to main subscriber
-          now,
-        })
-      })
+      await withSerializableRetry(() =>
+        prisma.$transaction(
+          async (tx) => {
+            // Re-check partner couple status inside the serializable snapshot
+            const existingCoupleSub = await tx.subscription.findFirst({
+              where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
+            })
+            if (existingCoupleSub) {
+              logger.warn(
+                { partnerUserId, existingSubId: existingCoupleSub.id },
+                '[confirmPayment] Partner already in active couple sub at activation time — skipping',
+              )
+              return
+            }
+            await _activateForUserTx(tx, {
+              userId: partnerUserId,
+              subscriptionPlanId,
+              plan,
+              partnerUserId: userId,  // back-reference to main subscriber
+              now,
+            })
+          },
+          { isolationLevel: 'Serializable' },
+        ),
+      )
     } catch (e) {
       logger.error(
         { err: e, partnerUserId },

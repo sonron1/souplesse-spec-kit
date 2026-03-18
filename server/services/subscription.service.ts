@@ -1,4 +1,5 @@
 import { prisma } from '../utils/prisma'
+import { Prisma } from '@prisma/client'
 import { createError } from 'h3'
 import logger from '../utils/logger'
 import type { Subscription } from '.prisma/client'
@@ -40,66 +41,99 @@ export const subscriptionService = {
    * Idempotent -- safe to call multiple times with the same subscriptionId.
    * Copies maxReports from the plan at activation time.
    * Cumulative: if user already has an active sub for this plan, extends from its expiresAt.
+   *
+   * Uses Serializable isolation to prevent two concurrent activations from both
+   * setting isActive=true on different subscription rows (single-active invariant).
    */
   async activateSubscription(subscriptionId: string): Promise<Subscription> {
+    // Fast path: skip acquiring a serializable snapshot when already active
     const sub = await prisma.subscription.findUnique({ where: { id: subscriptionId } })
     if (!sub) {
       throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
     }
-
     if (sub.status === 'ACTIVE') {
       return sub // already active — idempotent
     }
 
-    const now = new Date()
-    const plan = sub.subscriptionPlanId
-      ? await prisma.subscriptionPlan.findUnique({ where: { id: sub.subscriptionPlanId } })
-      : null
-    const planDays = plan?.validityDays ?? 30
-    const planMaxReports = plan?.maxReports ?? 0
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          // Re-read inside the serializable snapshot so any concurrent activation
+          // is visible before we start writing.
+          const current = await tx.subscription.findUnique({ where: { id: subscriptionId } })
+          if (!current) throw createError({ statusCode: 404, message: 'Abonnement introuvable' })
+          if (current.status === 'ACTIVE') return current // concurrent activation already done
 
-    // Cumulative: if the user already has an active subscription for this plan, extend from its expiry
-    const activeForPlan = sub.subscriptionPlanId
-      ? await prisma.subscription.findFirst({
-          where: {
-            userId: sub.userId,
-            subscriptionPlanId: sub.subscriptionPlanId,
-            status: 'ACTIVE',
-            id: { not: subscriptionId },
-            expiresAt: { gt: now },
-          },
-          orderBy: { expiresAt: 'desc' },
-        })
-      : null
+          const now = new Date()
 
-    const baseDate = activeForPlan?.expiresAt ?? now
-    const expiresAt = new Date(baseDate)
-    expiresAt.setDate(expiresAt.getDate() + planDays)
+          const plan = current.subscriptionPlanId
+            ? await tx.subscriptionPlan.findUnique({ where: { id: current.subscriptionPlanId } })
+            : null
+          const planDays = plan?.validityDays ?? 30
+          const planMaxReports = plan?.maxReports ?? 0
 
-    const updated = await prisma.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        status: 'ACTIVE',
-        isActive: true,
-        activationDate: now,
-        startsAt: now,
-        expiresAt,
-        maxReports: planMaxReports,
-      },
-    })
+          // Cumulative: if the user already has an active subscription for this plan, extend from its expiry
+          const activeForPlan = current.subscriptionPlanId
+            ? await tx.subscription.findFirst({
+                where: {
+                  userId: current.userId,
+                  subscriptionPlanId: current.subscriptionPlanId,
+                  status: 'ACTIVE',
+                  id: { not: subscriptionId },
+                  expiresAt: { gt: now },
+                },
+                orderBy: { expiresAt: 'desc' },
+              })
+            : null
 
-    // Cumul: if we extended from an existing active sub, deactivate that old one now
-    // so the user has only one ACTIVE sub per plan at any time (no duplicates).
-    if (activeForPlan) {
-      await prisma.subscription.update({
-        where: { id: activeForPlan.id },
-        data: { status: 'EXPIRED', isActive: false },
-      })
-      logger.info({ supersededId: activeForPlan.id, newId: subscriptionId }, 'Old subscription superseded by cumulated renewal')
+          const baseDate = activeForPlan?.expiresAt ?? now
+          const expiresAt = new Date(baseDate)
+          expiresAt.setDate(expiresAt.getDate() + planDays)
+
+          const updated = await tx.subscription.update({
+            where: { id: subscriptionId },
+            data: {
+              status: 'ACTIVE',
+              isActive: true,
+              activationDate: now,
+              startsAt: now,
+              expiresAt,
+              maxReports: planMaxReports,
+            },
+          })
+
+          // Cumul: if we extended from an existing active sub, deactivate that old one now
+          // so the user has only one ACTIVE sub per plan at any time (no duplicates).
+          if (activeForPlan) {
+            await tx.subscription.update({
+              where: { id: activeForPlan.id },
+              data: { status: 'EXPIRED', isActive: false },
+            })
+            logger.info(
+              { supersededId: activeForPlan.id, newId: subscriptionId },
+              'Old subscription superseded by cumulated renewal',
+            )
+          }
+
+          logger.info(
+            { subscriptionId, userId: current.userId, cumulatedFrom: activeForPlan?.id ?? null },
+            'Subscription activated',
+          )
+          return updated
+        },
+        { isolationLevel: 'Serializable' },
+      )
+    } catch (e) {
+      // P2034 = serialization failure (concurrent transaction conflict).
+      // The caller (webhook / confirm) retries, so we propagate the raw error.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034') {
+        logger.warn(
+          { subscriptionId, code: e.code },
+          '[activateSubscription] Serialization failure — caller should retry',
+        )
+      }
+      throw e
     }
-
-    logger.info({ subscriptionId, userId: sub.userId, cumulatedFrom: activeForPlan?.id ?? null }, 'Subscription activated')
-    return updated
   },
 
   /**
