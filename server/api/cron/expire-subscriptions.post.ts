@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
 import { acquireCronLock, releaseCronLock } from '../../utils/cronLock'
 import logger from '../../utils/logger'
+import { systemLog } from '../../utils/systemLog'
 
 const cronRateLimit = rateLimitMiddleware({ max: 5, windowMs: 60_000, keyPrefix: 'cron-expire' })
 
@@ -28,6 +29,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
+  const startedAt = Date.now()
 
   try {
     // 1. Expire ACTIVE subscriptions whose expiresAt has passed (skip paused ones)
@@ -59,12 +61,19 @@ export default defineEventHandler(async (event) => {
       },
     })
 
+    const durationMs = Date.now() - startedAt
+    systemLog({
+      action: 'CRON_EXPIRE_SUBSCRIPTIONS',
+      message: `Expired ${normalExpired + pauseExpired} subscription(s) in ${durationMs}ms`,
+      meta: { expired: normalExpired + pauseExpired, normalExpired, pauseExpired, durationMs, ranAt: now.toISOString() },
+    })
     return {
       success: true,
       expired: normalExpired + pauseExpired,
       normalExpired,
       pauseExpired,
       ranAt: now.toISOString(),
+      durationMs,
     }
   } finally {
     await releaseCronLock(LOCK_KEY)

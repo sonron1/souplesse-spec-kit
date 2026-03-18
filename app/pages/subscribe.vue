@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 definePageMeta({ middleware: ['auth', 'client-only'] })
 
 interface Plan {
@@ -9,6 +9,7 @@ interface Plan {
   priceCouple?: number | null
   validityDays: number
   maxReports?: number | null
+  maxPauses?: number | null
 }
 
 const { accessToken, user } = useAuth()
@@ -35,6 +36,7 @@ const partnerModal = reactive({
   planId: '',
   planName: '',
   planAmount: 0,
+  planSoloAmount: 0,
   firstName: '',
   lastName: '',
   phone: '',
@@ -56,6 +58,7 @@ function openPartnerModal(plan: Plan) {
   partnerModal.planId = plan.id
   partnerModal.planName = plan.name
   partnerModal.planAmount = plan.priceCouple ?? plan.priceSingle
+  partnerModal.planSoloAmount = plan.priceSingle
   partnerModal.firstName = ''
   partnerModal.lastName = ''
   partnerModal.phone = ''
@@ -142,8 +145,39 @@ function validityLabel(days: number) {
   return `${days} jours`
 }
 
-const sessionPlan = computed(() => plans.value.find(p => p.planType === 'SESSION' || p.validityDays === 1))
-const mainPlans = computed(() => plans.value.filter(p => p !== sessionPlan.value))
+/** How much you save vs buying 2 solo subscriptions. */
+function couplesSavings(plan: Plan): number {
+  if (!plan.priceCouple) return 0
+  return plan.priceSingle * 2 - plan.priceCouple
+}
+
+/** Approximate daily cost hint string. */
+function pricePerDay(price: number, days: number): string {
+  if (days <= 1) return ''
+  const ppd = Math.round(price / days)
+  return `≈ ${new Intl.NumberFormat('fr-FR').format(ppd)} FCFA/jour`
+}
+
+/** Currently displayed price for a plan card (respects couple toggle). */
+function displayPrice(plan: Plan): number {
+  return coupleMode[plan.id] && plan.priceCouple ? plan.priceCouple : plan.priceSingle
+}
+
+// ── Plan grouping ─────────────────────────────────────────────────────────
+const SPECIALIZED_NAMES = new Set(['Fit Dance', 'Taekwondo', 'Boxe'])
+
+const sessionPlan      = computed(() => plans.value.find(p => p.validityDays === 1))
+const carnetPlans      = computed(() => plans.value.filter(p => p.name.startsWith('Carnet')))
+const mainPlans        = computed(() => plans.value.filter(p =>
+  p !== sessionPlan.value &&
+  !carnetPlans.value.includes(p) &&
+  !SPECIALIZED_NAMES.has(p.name)
+))
+const specializedPlans = computed(() => plans.value.filter(p => SPECIALIZED_NAMES.has(p.name)))
+
+// ── Plan badges ───────────────────────────────────────────────────────────
+function isPopular(plan: Plan)   { return plan.name === 'Abonnement 1 mois' }
+function isBestValue(plan: Plan) { return plan.name === 'Abonnement 1 an' }
 
 // L001: true when partner's gender is the same as the current user's (blocks couple payment)
 const sameGenderError = computed(() =>
@@ -151,6 +185,13 @@ const sameGenderError = computed(() =>
   partnerModal.partnerGender != null &&
   user.value?.gender != null &&
   partnerModal.partnerGender === user.value.gender
+)
+
+/** Savings shown in partner modal (couple vs 2× solo). */
+const modalSavings = computed(() =>
+  partnerModal.planSoloAmount > 0
+    ? partnerModal.planSoloAmount * 2 - partnerModal.planAmount
+    : 0
 )
 </script>
 
@@ -177,10 +218,12 @@ const sameGenderError = computed(() =>
 
     <template v-else-if="plans.length">
 
-      <!-- ── Séance à l'unité ── -->
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Accès à l'unité
+           ════════════════════════════════════════════ -->
       <div v-if="sessionPlan" class="mb-8">
         <h2 class="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
-          <span class="w-4 h-px bg-gray-200"></span> Accès à l'unité <span class="flex-1 h-px bg-gray-200"></span>
+          <span class="w-4 h-px bg-gray-200" /> Accès à l'unité <span class="flex-1 h-px bg-gray-200" />
         </h2>
         <div class="flex items-center justify-between bg-white border border-gray-100 rounded-2xl shadow-sm px-6 py-5 hover:border-yellow-200 hover:shadow-md transition-all">
           <div>
@@ -203,31 +246,102 @@ const sameGenderError = computed(() =>
         </div>
       </div>
 
-      <!-- ── Abonnements ── -->
-      <div v-if="mainPlans.length">
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Carnets de séances
+           ════════════════════════════════════════════ -->
+      <div v-if="carnetPlans.length" class="mb-8">
         <h2 class="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
-          <span class="w-4 h-px bg-gray-200"></span> Abonnements <span class="flex-1 h-px bg-gray-200"></span>
+          <span class="w-4 h-px bg-gray-200" /> Carnets de séances <span class="flex-1 h-px bg-gray-200" />
+        </h2>
+        <div class="space-y-3">
+          <div
+            v-for="plan in carnetPlans"
+            :key="plan.id"
+            class="flex items-center justify-between bg-white border border-gray-100 rounded-2xl shadow-sm px-6 py-5 hover:border-yellow-200 hover:shadow-md transition-all"
+          >
+            <div>
+              <p class="font-extrabold text-gray-900 text-base">{{ plan.name }}</p>
+              <div class="flex items-center gap-2 mt-1.5">
+                <span class="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  {{ validityLabel(plan.validityDays) }}
+                </span>
+                <span class="text-[11px] text-gray-400">{{ pricePerDay(plan.priceSingle, plan.validityDays) }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-6">
+              <p class="text-2xl font-extrabold text-gray-900">{{ fmt(plan.priceSingle) }}</p>
+              <div class="w-44">
+                <p v-if="planErrors[plan.id]" class="text-red-500 text-xs mb-1">{{ planErrors[plan.id] }}</p>
+                <PaymentCheckout
+                  :subscription-plan-id="plan.id"
+                  :amount="plan.priceSingle"
+                  :amount-label="fmt(plan.priceSingle)"
+                  @success="onPaymentSuccess"
+                  @error="(msg: string) => onPaymentError(plan.id, msg)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Abonnements (avec couple)
+           ════════════════════════════════════════════ -->
+      <div v-if="mainPlans.length" class="mb-8">
+        <h2 class="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
+          <span class="w-4 h-px bg-gray-200" /> Abonnements <span class="flex-1 h-px bg-gray-200" />
         </h2>
         <div class="space-y-4">
           <div
             v-for="plan in mainPlans"
             :key="plan.id"
-            class="bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-yellow-200 hover:shadow-md transition-all overflow-hidden"
+            class="bg-white border rounded-2xl shadow-sm transition-all overflow-hidden"
+            :class="isPopular(plan)
+              ? 'border-yellow-300 ring-1 ring-yellow-200 shadow-md'
+              : 'border-gray-100 hover:border-yellow-200 hover:shadow-md'"
           >
-            <!-- Top accent -->
-            <div class="h-1 w-full bg-gradient-to-r from-yellow-400 to-amber-300" />
+            <!-- Top accent bar -->
+            <div
+              class="h-1 w-full"
+              :class="isBestValue(plan)
+                ? 'bg-gradient-to-r from-green-400 to-emerald-400'
+                : isPopular(plan)
+                  ? 'bg-gradient-to-r from-yellow-400 to-amber-400'
+                  : 'bg-gradient-to-r from-yellow-400 to-amber-300'"
+            />
 
             <div class="px-6 py-5">
-              <!-- Plan name + badges -->
+              <!-- Plan name + badges row -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div>
-                  <h3 class="font-extrabold text-gray-900 text-lg leading-tight">{{ plan.name }}</h3>
-                  <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <h3 class="font-extrabold text-gray-900 text-lg leading-tight">{{ plan.name }}</h3>
+                    <span
+                      v-if="isPopular(plan)"
+                      class="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-yellow-700 bg-yellow-100 border border-yellow-200 px-2 py-0.5 rounded-full shrink-0"
+                    >
+                      ★ Populaire
+                    </span>
+                    <span
+                      v-else-if="isBestValue(plan)"
+                      class="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wide text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full shrink-0"
+                    >
+                      ✦ Meilleure valeur
+                    </span>
+                  </div>
+                  <!-- Feature badges -->
+                  <div class="flex flex-wrap items-center gap-2">
                     <span class="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                       {{ validityLabel(plan.validityDays) }}
                     </span>
-                    <span v-if="plan.maxReports && plan.maxReports > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    <span v-if="plan.maxPauses && plan.maxPauses > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6"/></svg>
+                      {{ plan.maxPauses }} pause{{ plan.maxPauses > 1 ? 's' : '' }}
+                    </span>
+                    <span v-if="plan.maxReports && plan.maxReports > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
                       <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                       {{ plan.maxReports }} report{{ plan.maxReports > 1 ? 's' : '' }}
                     </span>
@@ -256,20 +370,32 @@ const sameGenderError = computed(() =>
               <!-- Pricing row -->
               <div class="flex items-end justify-between gap-4">
                 <div>
-                  <!-- Current mode price (big) -->
-                  <div class="flex items-baseline gap-1">
+                  <!-- Main price -->
+                  <div class="flex items-baseline gap-2">
                     <span class="text-3xl font-extrabold text-gray-900">
-                      {{ coupleMode[plan.id] && plan.priceCouple ? fmt(plan.priceCouple) : fmt(plan.priceSingle) }}
+                      {{ fmt(displayPrice(plan)) }}
                     </span>
                     <span v-if="plan.validityDays >= 30 && plan.validityDays <= 31" class="text-xs text-gray-400">/mois</span>
                   </div>
-                  <!-- Secondary price hint -->
-                  <div class="flex items-center gap-3 mt-1">
+
+                  <!-- Hints row -->
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                    <span class="text-xs text-gray-400">
+                      {{ pricePerDay(displayPrice(plan), plan.validityDays) }}
+                    </span>
                     <span v-if="!coupleMode[plan.id] && plan.priceCouple" class="text-xs text-gray-400">
                       Couple : {{ fmt(plan.priceCouple) }}
                     </span>
                     <span v-else-if="coupleMode[plan.id]" class="text-xs text-gray-400">
                       Solo : {{ fmt(plan.priceSingle) }}
+                    </span>
+                    <!-- Couple savings badge -->
+                    <span
+                      v-if="coupleMode[plan.id] && couplesSavings(plan) > 0"
+                      class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full"
+                    >
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                      Économisez {{ fmt(couplesSavings(plan)) }}
                     </span>
                   </div>
                 </div>
@@ -299,6 +425,48 @@ const sameGenderError = computed(() =>
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Activités spécifiques
+           ════════════════════════════════════════════ -->
+      <div v-if="specializedPlans.length" class="mb-8">
+        <h2 class="text-[11px] font-extrabold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
+          <span class="w-4 h-px bg-gray-200" /> Activités spécifiques <span class="flex-1 h-px bg-gray-200" />
+        </h2>
+        <div class="grid sm:grid-cols-3 gap-3">
+          <div
+            v-for="plan in specializedPlans"
+            :key="plan.id"
+            class="bg-white border border-gray-100 rounded-2xl shadow-sm px-5 py-5 hover:border-yellow-200 hover:shadow-md transition-all flex flex-col gap-3"
+          >
+            <!-- Top accent -->
+            <div class="h-0.5 w-8 rounded-full bg-gradient-to-r from-yellow-400 to-amber-300" />
+            <!-- Name + validity -->
+            <div>
+              <p class="font-extrabold text-gray-900 text-base">{{ plan.name }}</p>
+              <span class="inline-flex items-center gap-1 text-[11px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full mt-1.5">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                {{ validityLabel(plan.validityDays) }}
+              </span>
+            </div>
+            <!-- Price + CTA -->
+            <div class="mt-auto flex flex-col gap-2">
+              <div>
+                <p class="text-2xl font-extrabold text-gray-900">{{ fmt(plan.priceSingle) }}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5">{{ pricePerDay(plan.priceSingle, plan.validityDays) }}</p>
+              </div>
+              <p v-if="planErrors[plan.id]" class="text-red-500 text-xs">{{ planErrors[plan.id] }}</p>
+              <PaymentCheckout
+                :subscription-plan-id="plan.id"
+                :amount="plan.priceSingle"
+                :amount-label="fmt(plan.priceSingle)"
+                @success="onPaymentSuccess"
+                @error="(msg: string) => onPaymentError(plan.id, msg)"
+              />
             </div>
           </div>
         </div>
@@ -441,12 +609,19 @@ const sameGenderError = computed(() =>
               </div>
 
               <!-- Divider + price recap -->
-              <div v-if="partnerModal.found" class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                <div>
-                  <p class="text-xs text-gray-500">Tarif couple</p>
-                  <p class="font-extrabold text-gray-900 text-xl">{{ fmt(partnerModal.planAmount) }}</p>
+              <div v-if="partnerModal.found" class="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs text-gray-500">Tarif couple</p>
+                    <p class="font-extrabold text-gray-900 text-xl">{{ fmt(partnerModal.planAmount) }}</p>
+                  </div>
+                  <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.163c.969 0 1.371 1.24.588 1.81l-3.37 2.449a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.449a1 1 0 00-1.175 0l-3.37 2.449c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.163a1 1 0 00.951-.69L9.049 2.927z"/></svg>
                 </div>
-                <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.958a1 1 0 00.95.69h4.163c.969 0 1.371 1.24.588 1.81l-3.37 2.449a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.449a1 1 0 00-1.175 0l-3.37 2.449c-.784.57-1.838-.197-1.539-1.118l1.286-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.163a1 1 0 00.951-.69L9.049 2.927z"/></svg>
+                <!-- Savings reminder -->
+                <p v-if="modalSavings > 0" class="text-[11px] text-emerald-600 font-semibold mt-1.5 flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  Économie de {{ fmt(modalSavings) }} vs 2 abonnements solo
+                </p>
               </div>
 
               <!-- Payment CTA (shows only when partner confirmed) -->
