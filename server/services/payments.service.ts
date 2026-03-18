@@ -216,7 +216,10 @@ export async function handleWebhook(
   if (!reference) throw new Error('Missing reference/order id in webhook payload')
 
   const existingTx = await prisma.transaction.findUnique({ where: { paymentId } })
-  if (existingTx) return { ignored: true }
+  if (existingTx) {
+    logger.info({ paymentId }, '[handleWebhook] paymentId already processed — returning 200 immediately')
+    return { ignored: true }
+  }
 
   const paymentOrder = await prisma.paymentOrder.findUnique({ where: { id: reference } })
 
@@ -246,6 +249,7 @@ export async function handleWebhook(
     paymentOrder &&
     (data.status === 'success' || data.status === 'paid' || event === 'payment.succeeded')
   ) {
+    logger.info({ paymentOrderId: paymentOrder.id, event }, '[handleWebhook] Payment successful — activating subscription')
     await prisma.paymentOrder.update({ where: { id: paymentOrder.id }, data: { status: 'paid' } })
 
     try {
@@ -272,6 +276,7 @@ export async function handleWebhook(
           { isolationLevel: 'Serializable' },
         ),
       )
+      logger.info({ paymentOrderId: paymentOrder.id, userId: paymentOrder.userId }, '[handleWebhook] Buyer subscription activated')
 
       // Partner activation (best-effort — failure must not block webhook ack)
       if (partnerUserId) {
@@ -301,6 +306,7 @@ export async function handleWebhook(
               { isolationLevel: 'Serializable' },
             ),
           )
+          logger.info({ partnerUserId, paymentOrderId: paymentOrder.id }, '[handleWebhook] Partner subscription activated')
         } catch (e) {
           logger.error(
             { err: e, partnerUserId, paymentOrderId: paymentOrder.id },
@@ -329,6 +335,7 @@ export async function handleWebhook(
       )
     }
   } else if (paymentOrder && (data.status === 'failed' || event === 'payment.failed')) {
+    logger.info({ paymentOrderId: paymentOrder.id, event }, '[handleWebhook] Payment failed — order marked failed')
     await prisma.paymentOrder.update({ where: { id: paymentOrder.id }, data: { status: 'failed' } })
   }
 
@@ -348,6 +355,7 @@ export async function confirmPayment(opts: {
     where: { kkiapayTransactionId: transactionId },
   })
   if (existing) {
+    logger.info({ transactionId, userId }, '[confirmPayment] Idempotent hit — transaction already processed, returning existing sub')
     const sub = await prisma.subscription.findFirst({
       where: { userId, subscriptionPlanId, isActive: true },
       orderBy: { createdAt: 'desc' },
@@ -424,6 +432,7 @@ export async function confirmPayment(opts: {
 
     subscriptionId = result.subscriptionId
     extended = result.extended
+    logger.info({ subscriptionId, extended, userId }, '[confirmPayment] Buyer subscription activated')
   } catch (e: unknown) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       logger.warn(
@@ -469,6 +478,7 @@ export async function confirmPayment(opts: {
           { isolationLevel: 'Serializable' },
         ),
       )
+      logger.info({ partnerUserId, userId }, '[confirmPayment] Partner subscription activated')
     } catch (e) {
       logger.error(
         { err: e, partnerUserId },
