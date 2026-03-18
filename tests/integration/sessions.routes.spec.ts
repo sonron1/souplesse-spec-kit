@@ -149,6 +149,15 @@ describe('POST /api/sessions', () => {
     const handler = (await import('../../server/api/sessions/index.post')).default as any
     await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 403 })
   })
+
+  it('throws 422 if dateTime is in the past', async () => {
+    mockRequireAuth.mockResolvedValue(COACH_USER)
+    // Date in the past
+    mockValidateBody.mockResolvedValue({ dateTime: '2020-01-01T09:00:00Z', duration: 60, capacity: 10 })
+
+    const handler = (await import('../../server/api/sessions/index.post')).default as any
+    await expect(handler(makeEvent())).rejects.toMatchObject({ statusCode: 422 })
+  })
 })
 
 // ─── DELETE /api/sessions/:id ─────────────────────────────────────────────────

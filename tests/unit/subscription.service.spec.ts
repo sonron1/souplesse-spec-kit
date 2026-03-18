@@ -135,6 +135,18 @@ describe('subscriptionService.hasActiveSubscription', () => {
     mockPrisma.subscription.findFirst.mockResolvedValue(null)
     expect(await subscriptionService.hasActiveSubscription('user-1')).toBe(false)
   })
+
+  it('returns false if subscription is active but paused (pausedAt set)', async () => {
+    // findFirst returns null because the query includes pausedAt: null filter
+    mockPrisma.subscription.findFirst.mockResolvedValue(null)
+    expect(await subscriptionService.hasActiveSubscription('user-1')).toBe(false)
+    // Verify the query included pausedAt: null to exclude paused subs
+    expect(mockPrisma.subscription.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ pausedAt: null }),
+      })
+    )
+  })
 })
 
 // R003: pause / resume
