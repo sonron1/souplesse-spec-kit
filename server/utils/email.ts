@@ -17,6 +17,57 @@ function getAppUrl(): string {
   return (process.env.APP_URL ?? 'https://souplessefitness.com').trim()
 }
 
+// ─── Retry helper ─────────────────────────────────────────────────────────────
+
+/**
+ * Sends one email with up to `maxAttempts` retries on transient failures.
+ * Retries on thrown exceptions AND on Resend API-level errors (e.g. 429, 5xx).
+ * Uses exponential backoff: 500ms, 1000ms, 2000ms between attempts.
+ *
+ * Non-retryable errors (4xx validation, missing key) are surfaced immediately.
+ */
+async function sendWithRetry(
+  params: Parameters<Resend['emails']['send']>[0],
+  maxAttempts = 3,
+): Promise<void> {
+  const resend = getResend()
+  let lastErr: unknown
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const { data, error } = await resend.emails.send(params)
+
+      // Resend returns errors in the response body (not as throws) for API-level issues
+      if (error) {
+        // Non-retryable: validation errors (missing field, bad address, etc.)
+        const isValidationError = typeof error === 'object' && 'statusCode' in error
+          && (error as { statusCode: number }).statusCode < 500
+          && (error as { statusCode: number }).statusCode !== 429
+
+        if (isValidationError) {
+          logger.error({ to: params.to, error }, 'Resend: non-retryable error sending email')
+          return
+        }
+
+        lastErr = error
+        logger.warn({ to: params.to, error, attempt }, `Resend: transient error on attempt ${attempt}/${maxAttempts}`)
+      } else {
+        logger.info({ to: params.to, emailId: data?.id, attempt }, 'Email sent via Resend')
+        return
+      }
+    } catch (err) {
+      lastErr = err
+      logger.warn({ to: params.to, err, attempt }, `Resend: exception on attempt ${attempt}/${maxAttempts}`)
+    }
+
+    if (attempt < maxAttempts) {
+      await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt - 1)))
+    }
+  }
+
+  logger.error({ to: params.to, err: lastErr }, `Resend: all ${maxAttempts} attempts failed`)
+}
+
 // ─── Email templates ──────────────────────────────────────────────────────────
 
 function verificationHtml(verifyUrl: string): string {
@@ -92,25 +143,13 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
     return
   }
 
-  const resend = getResend()
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: getFrom(),
-      to,
-      subject: 'Vérifiez votre adresse email — Souplesse Fitness',
-      html: verificationHtml(verifyUrl),
-      text: `Vérifiez votre email en cliquant sur ce lien : ${verifyUrl}`,
-    })
-
-    if (error) {
-      logger.error({ to, error }, 'Resend: failed to send verification email')
-    } else {
-      logger.info({ to, emailId: data?.id }, 'Verification email sent via Resend')
-    }
-  } catch (err) {
-    logger.error({ to, err }, 'Resend: unexpected error sending verification email')
-  }
+  await sendWithRetry({
+    from: getFrom(),
+    to,
+    subject: 'Vérifiez votre adresse email — Souplesse Fitness',
+    html: verificationHtml(verifyUrl),
+    text: `Vérifiez votre email en cliquant sur ce lien : ${verifyUrl}`,
+  })
 }
 /**
  * Send a subscription expiry reminder email (3 days before expiry).
@@ -162,23 +201,13 @@ export async function sendSubscriptionReminderEmail(
 </body>
 </html>`
 
-  const resend = getResend()
-  try {
-    const { data, error } = await resend.emails.send({
-      from: getFrom(),
-      to,
-      subject: `Votre ${planName} expire le ${expiryDate} — Souplesse Fitness`,
-      html,
-      text: `Bonjour ${firstName}, votre ${planName} expire le ${expiryDate}. Renouvelez sur ${renewUrl}`,
-    })
-    if (error) {
-      logger.error({ to, error }, 'Resend: failed to send reminder email')
-    } else {
-      logger.info({ to, emailId: data?.id }, 'Subscription reminder email sent via Resend')
-    }
-  } catch (err) {
-    logger.error({ to, err }, 'Resend: unexpected error sending reminder email')
-  }
+  await sendWithRetry({
+    from: getFrom(),
+    to,
+    subject: `Votre ${planName} expire le ${expiryDate} — Souplesse Fitness`,
+    html,
+    text: `Bonjour ${firstName}, votre ${planName} expire le ${expiryDate}. Renouvelez sur ${renewUrl}`,
+  })
 }
 
 /**
@@ -232,23 +261,13 @@ export async function sendAdminPauseNotification(opts: {
 </body>
 </html>`
 
-  const resend = getResend()
-  try {
-    await Promise.all(opts.adminEmails.map(async (adminEmail) => {
-      const { data, error } = await resend.emails.send({
-        from: getFrom(),
-        to: adminEmail,
-        subject: `Pause abonnement — ${opts.userLabel} — ${opts.planName}`,
-        html,
-        text: `${opts.userLabel} a mis en pause son abonnement ${opts.planName}. Pauses : ${opts.pauseCount}/${opts.maxPauses}. Voir : ${dashboardUrl}`,
-      })
-      if (error) {
-        logger.error({ adminEmail, error }, 'Resend: failed to send pause notification to admin')
-      } else {
-        logger.info({ adminEmail, emailId: data?.id }, 'Pause notification email sent to admin')
-      }
-    }))
-  } catch (err) {
-    logger.error({ err }, 'Resend: unexpected error sending admin pause notifications')
-  }
+  await Promise.all(opts.adminEmails.map(adminEmail =>
+    sendWithRetry({
+      from: getFrom(),
+      to: adminEmail,
+      subject: `Pause abonnement — ${opts.userLabel} — ${opts.planName}`,
+      html,
+      text: `${opts.userLabel} a mis en pause son abonnement ${opts.planName}. Pauses : ${opts.pauseCount}/${opts.maxPauses}. Voir : ${dashboardUrl}`,
+    })
+  ))
 }
