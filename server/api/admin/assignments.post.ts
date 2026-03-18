@@ -30,6 +30,10 @@ export default defineEventHandler(async (event) => {
 
   const { coachId, clientId } = parsed.data
 
+  if (coachId === clientId) {
+    throw createError({ statusCode: 400, message: 'Un utilisateur ne peut pas être assigné comme son propre coach.' })
+  }
+
   // Verify both users exist and have the expected roles
   const [coach, client] = await Promise.all([
     prisma.user.findUnique({ where: { id: coachId } }),
