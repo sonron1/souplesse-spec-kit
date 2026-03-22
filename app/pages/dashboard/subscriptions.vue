@@ -229,7 +229,7 @@
               </svg>
               <div>
                 <p class="text-[10px] text-primary-600 uppercase tracking-wide leading-none font-bold">Restant</p>
-                <p class="text-sm font-extrabold text-primary-700 mt-0.5">{{ daysLeft(activeSub.expiresAt) }} jour(s)</p>
+                <p class="text-sm font-extrabold text-primary-700 mt-0.5">{{ formatRemaining(daysLeft(activeSub.expiresAt)) }}</p>
               </div>
             </div>
           </div>
@@ -430,6 +430,15 @@
     if (!end) return 0
     const diff = new Date(end).getTime() - Date.now()
     return Math.max(0, Math.ceil(diff / 86400000))
+  }
+
+  function formatRemaining(days: number): string {
+    if (days <= 0) return '0 jour'
+    if (days < 30) return `${days} jour${days > 1 ? 's' : ''}`
+    const months = Math.floor(days / 30)
+    const rem = days % 30
+    if (rem === 0) return `${months} mois`
+    return `${months} mois ${rem}j`
   }
 
   function progressPct(sub: Subscription) {

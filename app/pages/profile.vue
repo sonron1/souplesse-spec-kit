@@ -178,11 +178,11 @@
               </div>
               <!-- Days left pill -->
               <div class="mt-2 flex items-center justify-between">
-                <span class="text-xs text-gray-400">Jours restants</span>
+                <span class="text-xs text-gray-400">Temps restant</span>
                 <span
                   class="text-sm font-extrabold px-2.5 py-0.5 rounded-full"
                   :class="(clientStats.activeSub.daysLeft ?? 0) <= 3 ? 'bg-red-100 text-red-700' : (clientStats.activeSub.daysLeft ?? 0) <= 7 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'"
-                >{{ clientStats.activeSub.daysLeft }}j</span>
+                >{{ formatRemaining(clientStats.activeSub.daysLeft ?? 0) }}</span>
               </div>
             </div>
 
@@ -778,5 +778,14 @@ async function onAvatarChange(event: Event) {
 function formatDate(iso?: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function formatRemaining(days: number): string {
+  if (days <= 0) return '0 jour'
+  if (days < 30) return `${days} jour${days > 1 ? 's' : ''}`
+  const months = Math.floor(days / 30)
+  const rem = days % 30
+  if (rem === 0) return `${months} mois`
+  return `${months} mois ${rem}j`
 }
 </script>

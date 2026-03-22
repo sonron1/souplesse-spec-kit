@@ -90,18 +90,23 @@
             </div>
           </div>
           <div v-if="subPending" class="h-6 bg-gray-100 rounded animate-pulse w-24 mb-2" />
-          <p v-else class="text-base font-bold mt-1">
-            <span v-if="activeSubscription" class="text-primary-600">
-              {{ activeSubscription.subscriptionPlan?.name ?? activeSubscription.type }}
-            </span>
-            <span v-else class="text-gray-400">Aucun abonnement</span>
-          </p>
-          <p v-if="activeSubscription?.expiresAt" class="text-xs text-gray-400 mt-1">
-            Expire le {{ formatDate(activeSubscription.expiresAt) }}
-          </p>
-          <NuxtLink v-if="!activeSubscription" to="/subscribe" class="mt-3 inline-flex text-xs font-semibold text-primary-600 hover:text-primary-500 transition-colors">
-            Souscrire →
-          </NuxtLink>
+          <template v-else>
+            <p class="text-base font-bold mt-1">
+              <span v-if="activeSubscription" class="text-primary-600">
+                {{ activeSubscription.subscriptionPlan?.name ?? activeSubscription.type }}
+              </span>
+              <span v-else class="text-gray-400">Aucun abonnement</span>
+            </p>
+            <p v-if="daysLeftSub !== null" class="text-xs font-bold text-primary-600 mt-0.5">
+              {{ formatRemaining(daysLeftSub) }} restant{{ daysLeftSub > 1 ? 's' : '' }}
+            </p>
+            <p v-if="activeSubscription?.expiresAt" class="text-xs text-gray-400 mt-0.5">
+              Expire le {{ formatDate(activeSubscription.expiresAt) }}
+            </p>
+            <NuxtLink v-if="!activeSubscription" to="/subscribe" class="mt-3 inline-flex text-xs font-semibold text-primary-600 hover:text-primary-500 transition-colors">
+              Souscrire →
+            </NuxtLink>
+          </template>
         </div>
 
         <!-- Next booking -->
@@ -229,6 +234,15 @@
   function formatDate(d: string | null) {
     if (!d) return '—'
     return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  function formatRemaining(days: number): string {
+    if (days <= 0) return '0 jour'
+    if (days < 30) return `${days} jour${days > 1 ? 's' : ''}`
+    const months = Math.floor(days / 30)
+    const rem = days % 30
+    if (rem === 0) return `${months} mois`
+    return `${months} mois ${rem}j`
   }
 
   function formatDateTime(dt?: string) {
