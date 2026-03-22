@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   // Staff roles bypass the subscription gate entirely
   if (user.role !== 'CLIENT') {
-    return { active: true, planName: null as string | null, expiresAt: null as string | null, daysLeft: null as number | null, isCouple: false, partnerName: null as string | null }
+    return { active: true, planName: null as string | null, expiresAt: null as string | null, daysLeft: null as number | null, isCouple: false, partnerName: null as string | null, maxPauses: 0, pauseCount: 0, maxReports: 0 }
   }
 
   const sub = await prisma.subscription.findFirst({
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!sub) {
-    return { active: false, planName: null, expiresAt: null, daysLeft: null, isCouple: false, partnerName: null }
+    return { active: false, planName: null, expiresAt: null, daysLeft: null, isCouple: false, partnerName: null, maxPauses: 0, pauseCount: 0, maxReports: 0 }
   }
 
   const daysLeft = Math.max(
@@ -53,5 +53,8 @@ export default defineEventHandler(async (event) => {
     daysLeft,
     isCouple: !!sub.partnerUserId,
     partnerName,
+    maxPauses: sub.maxPauses,
+    pauseCount: sub.pauseCount,
+    maxReports: sub.maxReports ?? 0,
   }
 })

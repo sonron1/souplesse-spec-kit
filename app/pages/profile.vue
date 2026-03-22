@@ -184,6 +184,14 @@
                   :class="(clientStats.activeSub.daysLeft ?? 0) <= 3 ? 'bg-red-100 text-red-700' : (clientStats.activeSub.daysLeft ?? 0) <= 7 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'"
                 >{{ formatRemaining(clientStats.activeSub.daysLeft ?? 0) }}</span>
               </div>
+              <!-- Pauses row -->
+              <div v-if="clientStats.activeSub.maxPauses > 0" class="mt-2 flex items-center justify-between">
+                <span class="text-xs text-gray-400">Pauses dispo</span>
+                <span class="text-sm font-extrabold text-amber-600">
+                  {{ Math.max(0, clientStats.activeSub.maxPauses - clientStats.activeSub.pauseCount) }}
+                  <span class="text-xs font-normal text-gray-400">/ {{ clientStats.activeSub.maxPauses }}</span>
+                </span>
+              </div>
             </div>
 
             <!-- No sub -->
@@ -655,7 +663,7 @@ const isFormValid = computed(() => Object.keys(errors.value).length === 0)
 
 // ── Role-specific stats ────────────────────────────────────
 const clientStats = reactive({
-  activeSub: null as { planName: string | null; expiresAt: string | null; daysLeft: number | null; isCouple: boolean; partnerName: string | null } | null,
+  activeSub: null as { planName: string | null; expiresAt: string | null; daysLeft: number | null; isCouple: boolean; partnerName: string | null; maxPauses: number; pauseCount: number; maxReports: number } | null,
   bookingCount: 0,
   upcomingCount: 0,
 })
@@ -665,14 +673,14 @@ const coachStats = reactive({ sessionCount: 0, clientCount: 0 })
 if (isClient.value) {
   try {
     const [subData, bkData] = await Promise.all([
-      $fetch<{ active: boolean; planName: string | null; expiresAt: string | null; daysLeft: number | null; isCouple: boolean; partnerName: string | null }>('/api/me/subscription', {
+      $fetch<{ active: boolean; planName: string | null; expiresAt: string | null; daysLeft: number | null; isCouple: boolean; partnerName: string | null; maxPauses: number; pauseCount: number; maxReports: number }>('/api/me/subscription', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
       $fetch<Array<{ status: string; session: { dateTime: string } }>>('/api/bookings', {
         headers: { Authorization: `Bearer ${accessToken.value}` },
       }),
     ])
-    clientStats.activeSub = subData.active ? subData : null
+    clientStats.activeSub = subData.active ? { ...subData, maxPauses: subData.maxPauses ?? 0, pauseCount: subData.pauseCount ?? 0, maxReports: subData.maxReports ?? 0 } : null
     clientStats.bookingCount = bkData.length
     clientStats.upcomingCount = bkData.filter(
       b => b.status === 'CONFIRMED' && new Date(b.session.dateTime) > new Date()
