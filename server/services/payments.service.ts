@@ -62,10 +62,14 @@ function planTypeToSubscriptionType(planType: string): 'MONTHLY' | 'QUARTERLY' |
  * Guarantees:
  *   • Single-active invariant: all existing ACTIVE subs are deactivated first.
  *   • Cumulation (K001-K002): if the user already has an ACTIVE sub for the
- *     same plan, the new expiry extends from the old one instead of from now.
+ *     same plan with a future expiresAt, the existing record is extended IN PLACE
+ *     (expiresAt += validityDays). Any other active subs for different plans are
+ *     expired. This avoids creating a new row and makes the extension explicit.
+ *   • New subscription: if no matching active sub exists (or its expiry has
+ *     already passed), all active subs are expired and a fresh record is created.
  *
- * The `partnerUserId` arg is stored as a forward reference on the created sub
- * (bidirectional couple fix) but does NOT trigger partner activation here —
+ * The `partnerUserId` arg is stored as a forward reference on the created/updated
+ * sub (bidirectional couple fix) but does NOT trigger partner activation here —
  * callers handle the partner independently so failures can be caught separately.
  *
  * MUST be called inside a prisma.$transaction() callback.
@@ -75,27 +79,61 @@ async function _activateForUserTx(
   opts: {
     userId: string
     subscriptionPlanId: string
-    plan: { validityDays: number; maxReports: number }
-    partnerUserId?: string    // stored as forward reference on the created sub
+    plan: { validityDays: number; maxReports: number; planType: string }
+    partnerUserId?: string    // stored as forward reference on the created/updated sub
     now: Date
   },
 ): Promise<{ sub: Subscription; extended: boolean }> {
   const { userId, subscriptionPlanId, plan, partnerUserId, now } = opts
 
+  // Look for an existing ACTIVE subscription for this exact plan
   const existingActive = await tx.subscription.findFirst({
     where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
     orderBy: { expiresAt: 'desc' },
   })
 
+  if (existingActive && existingActive.expiresAt && existingActive.expiresAt > now) {
+    // ── CUMULATION: extend the existing subscription in place ────────────────
+    // Using millisecond arithmetic (DST-safe, same as admin grant route).
+    const newExpiry = new Date(existingActive.expiresAt.getTime() + plan.validityDays * 86_400_000)
+
+    // Expire any other active subscriptions for different plans (single-active invariant)
+    await tx.subscription.updateMany({
+      where: { userId, status: 'ACTIVE', isActive: true, id: { not: existingActive.id } },
+      data: { status: 'EXPIRED', isActive: false },
+    })
+
+    // Extend the existing subscription record in place
+    const updated = await tx.subscription.update({
+      where: { id: existingActive.id },
+      data: {
+        expiresAt: newExpiry,
+        ...(partnerUserId !== undefined ? { partnerUserId } : {}),
+      },
+    })
+
+    logger.info(
+      {
+        subscriptionId: existingActive.id,
+        userId,
+        prevExpiry: existingActive.expiresAt,
+        newExpiry,
+        addedDays: plan.validityDays,
+      },
+      '[_activateForUserTx] Subscription extended in place (cumulation)',
+    )
+
+    return { sub: updated, extended: true }
+  }
+
+  // ── NEW SUBSCRIPTION: no matching active sub (or its expiry is past) ───────
+  // Expire ALL remaining active subs for this user first.
   await tx.subscription.updateMany({
     where: { userId, status: 'ACTIVE', isActive: true },
     data: { status: 'EXPIRED', isActive: false },
   })
 
-  const baseDate = existingActive?.expiresAt && existingActive.expiresAt > now
-    ? existingActive.expiresAt
-    : now
-  const expiresAt = new Date(baseDate.getTime() + plan.validityDays * 86_400_000)
+  const expiresAt = new Date(now.getTime() + plan.validityDays * 86_400_000)
 
   const sub = await tx.subscription.create({
     data: {
@@ -112,7 +150,12 @@ async function _activateForUserTx(
     },
   })
 
-  return { sub, extended: !!existingActive }
+  logger.info(
+    { subscriptionId: sub.id, userId, expiresAt },
+    '[_activateForUserTx] New subscription created',
+  )
+
+  return { sub, extended: false }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

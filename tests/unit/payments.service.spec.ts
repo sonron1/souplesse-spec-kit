@@ -87,8 +87,8 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
     mockPrisma.subscription.findFirst.mockResolvedValue(EXISTING_ACTIVE_SUB) // existing active
-    const extendedSub = { ...EXISTING_ACTIVE_SUB, id: 'sub-new', expiresAt: new Date(Date.now() + 40 * 86400000) }
-    mockPrisma.subscription.create.mockResolvedValue(extendedSub)
+    const extendedSub = { ...EXISTING_ACTIVE_SUB, expiresAt: new Date(Date.now() + 40 * 86400000) }
+    mockPrisma.subscription.update.mockResolvedValue(extendedSub)
 
     const result = await confirmPayment({
       userId: 'user-1',
@@ -97,21 +97,22 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     })
 
     expect(result.extended).toBe(true)
-    // New code always creates a new sub record (even for extensions)
-    expect(mockPrisma.subscription.create).toHaveBeenCalledWith(
+    // New code extends in place via subscription.update (update-in-place cumulation)
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: EXISTING_ACTIVE_SUB.id },
         data: expect.objectContaining({ expiresAt: expect.any(Date) }),
       })
     )
-    // subscription.updateMany deactivates the old sub before creating the new one
+    // subscription.updateMany deactivates other active subs (those with a different id)
     expect(mockPrisma.subscription.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ userId: 'user-1', status: 'ACTIVE' }),
         data: expect.objectContaining({ status: 'EXPIRED', isActive: false }),
       })
     )
-    // subscription.update is never called in the new activation path
-    expect(mockPrisma.subscription.update).not.toHaveBeenCalled()
+    // subscription.create is NOT called when extending an existing sub in place
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
   })
 
   it('creates a new subscription when no active one exists', async () => {
@@ -186,6 +187,8 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
       .mockResolvedValueOnce(partnerSub) // partner tx: cumulation check — partner has active sub for same plan
     const newSub = { id: 'sub-main', expiresAt: new Date(Date.now() + 30 * 86400000) }
     mockPrisma.subscription.create.mockResolvedValue(newSub)
+    const extendedPartnerSub = { ...partnerSub, expiresAt: new Date(Date.now() + 35 * 86400000) }
+    mockPrisma.subscription.update.mockResolvedValue(extendedPartnerSub)
 
     await confirmPayment({
       userId: 'user-1',
@@ -194,10 +197,15 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
       partnerUserId: 'partner-1',
     })
 
-    // Both buyer and partner get a new sub record created (extension = new record with pushed-out expiry)
-    expect(mockPrisma.subscription.create).toHaveBeenCalledTimes(2)
-    // subscription.update is never called in the new activation path
-    expect(mockPrisma.subscription.update).not.toHaveBeenCalled()
+    // Buyer gets a new sub record (no existing active sub); partner gets their existing sub extended in place
+    expect(mockPrisma.subscription.create).toHaveBeenCalledOnce()
+    // Partner extension uses update-in-place
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: partnerSub.id },
+        data: expect.objectContaining({ expiresAt: expect.any(Date) }),
+      })
+    )
   })
 
   it('extends expiresAt by plan.validityDays from current expiresAt', async () => {
@@ -208,13 +216,14 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
     mockPrisma.subscription.findFirst.mockResolvedValue(subWithExpiry)
-    const extendedSub = { ...subWithExpiry, id: 'sub-extended', expiresAt: new Date(currentExpiry.getTime() + 30 * 86400000) }
-    mockPrisma.subscription.create.mockResolvedValue(extendedSub)
+    const extendedSub = { ...subWithExpiry, expiresAt: new Date(currentExpiry.getTime() + 30 * 86400000) }
+    mockPrisma.subscription.update.mockResolvedValue(extendedSub)
 
     await confirmPayment({ userId: 'user-1', transactionId: 'tx-789', subscriptionPlanId: 'plan-1' })
 
-    const createCall = mockPrisma.subscription.create.mock.calls[0][0]
-    const newExpiry: Date = createCall.data.expiresAt
+    // Extension uses update-in-place: read the expiresAt from subscription.update call
+    const updateCall = mockPrisma.subscription.update.mock.calls[0][0]
+    const newExpiry: Date = updateCall.data.expiresAt
 
     // The new expiry should be currentExpiry + 30 days (validityDays) in milliseconds
     // Use the same arithmetic as the service to avoid DST-induced 1h drift
