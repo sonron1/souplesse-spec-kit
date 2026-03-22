@@ -66,7 +66,12 @@ export default defineEventHandler(async (event) => {
 
         const updated = await tx.subscription.update({
           where: { id: existing.id },
-          data: { expiresAt: newExpiry, updatedAt: now },
+          data: {
+            expiresAt: newExpiry,
+            maxPauses: { increment: plan.maxPauses },
+            maxReports: { increment: plan.maxReports },
+            updatedAt: now,
+          },
         })
 
         logger.info(
@@ -94,6 +99,7 @@ export default defineEventHandler(async (event) => {
             startsAt: now,
             expiresAt,
             maxReports: plan.maxReports,
+            maxPauses: plan.maxPauses,
           },
         })
 

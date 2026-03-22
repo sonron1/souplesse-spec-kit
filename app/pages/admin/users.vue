@@ -7,7 +7,7 @@ interface UsersResponse { success: boolean; users: SafeUser[]; total: number; pa
 
 interface Subscription {
   id: string; status: string; type: string; startsAt: string | null; expiresAt: string | null
-  pauseCount?: number; pausedAt?: string | null
+  pauseCount?: number; maxPauses?: number; pausedAt?: string | null
   subscriptionPlan?: { name: string; planType: string; price: number; maxPauses?: number } | null
 }
 interface DetailResponse {
@@ -432,14 +432,14 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
                   </span>
                 </div>
                 <!-- J009: Pause info -->
-                <div v-if="(detail.activeSubscription.subscriptionPlan?.maxPauses ?? 0) > 0" class="mt-2 pt-2 border-t border-green-100 text-xs">
+                <div v-if="(detail.activeSubscription.maxPauses ?? 0) > 0" class="mt-2 pt-2 border-t border-green-100 text-xs">
                   <div v-if="detail.activeSubscription.pausedAt" class="flex items-center gap-1.5 text-amber-700 font-semibold">
                     <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     En pause depuis le {{ formatDate(detail.activeSubscription.pausedAt) }}
                   </div>
                   <div class="flex items-center justify-between text-gray-500 mt-0.5">
                     <span>Pauses utilisées</span>
-                    <span class="font-bold text-gray-700">{{ detail.activeSubscription.pauseCount ?? 0 }} / {{ detail.activeSubscription.subscriptionPlan?.maxPauses }}</span>
+                    <span class="font-bold text-gray-700">{{ detail.activeSubscription.pauseCount ?? 0 }} / {{ detail.activeSubscription.maxPauses ?? 0 }}</span>
                   </div>
                 </div>
               </div>

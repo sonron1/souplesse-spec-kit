@@ -181,11 +181,11 @@
                   : '—' }}
               </p>
             </div>
-            <div v-if="activeSub.subscriptionPlan?.maxPauses" class="text-center px-3 border-l border-gray-200">
+            <div v-if="activeSub.maxPauses > 0" class="text-center px-3 border-l border-gray-200">
               <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Pauses</p>
-              <p class="text-lg font-extrabold text-gray-700">{{ activeSub.subscriptionPlan.maxPauses }}</p>
+              <p class="text-lg font-extrabold text-gray-700">{{ activeSub.maxPauses }}</p>
             </div>
-            <div v-if="activeSub.subscriptionPlan && activeSub.subscriptionPlan.maxPauses === 0" class="text-center px-3 border-l border-gray-200">
+            <div v-else class="text-center px-3 border-l border-gray-200">
               <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Pauses</p>
               <p class="text-lg font-extrabold text-gray-400">—</p>
             </div>
@@ -249,10 +249,10 @@
           </div>
 
           <!-- Pause / resume action -->
-          <div v-if="activeSub.subscriptionPlan?.maxPauses" class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+          <div v-if="activeSub.maxPauses > 0" class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
             <div class="text-xs text-gray-500">
               <span v-if="activeSub.pausedAt">Abonnement en pause depuis le {{ formatDate(activeSub.pausedAt) }}</span>
-              <span v-else>Pauses disponibles : {{ activeSub.pauseCount }} / {{ activeSub.subscriptionPlan.maxPauses }}</span>
+              <span v-else>Pauses disponibles : {{ activeSub.pauseCount }} / {{ activeSub.maxPauses }}</span>
             </div>
             <div class="flex items-center gap-2">
               <p v-if="pauseError" class="text-xs text-red-600">{{ pauseError }}</p>
@@ -266,7 +266,7 @@
                 {{ pauseLoading ? 'En cours…' : 'Reprendre' }}
               </button>
               <button
-                v-else-if="activeSub.pauseCount < activeSub.subscriptionPlan.maxPauses"
+                v-else-if="activeSub.pauseCount < activeSub.maxPauses"
                 class="flex items-center gap-1.5 text-xs font-semibold text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-colors px-3 py-1.5 rounded-lg disabled:opacity-50"
                 :disabled="pauseLoading"
                 @click="pauseSub"
@@ -366,6 +366,7 @@
     expiresAt: string | null
     pausedAt: string | null
     pauseCount: number
+    maxPauses: number   // subscription-level, cumulates on renewal
     partnerUserId: string | null
     partnerInfo: { name: string; email: string } | null
     subscriptionPlan?: { name: string; planType: string; maxPauses: number; priceSingle: number; priceCouple: number | null } | null

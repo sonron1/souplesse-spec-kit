@@ -79,7 +79,7 @@ async function _activateForUserTx(
   opts: {
     userId: string
     subscriptionPlanId: string
-    plan: { validityDays: number; maxReports: number; planType: string }
+    plan: { validityDays: number; maxReports: number; maxPauses: number; planType: string }
     partnerUserId?: string    // stored as forward reference on the created/updated sub
     now: Date
   },
@@ -108,6 +108,8 @@ async function _activateForUserTx(
       where: { id: existingActive.id },
       data: {
         expiresAt: newExpiry,
+        maxPauses: { increment: plan.maxPauses },
+        maxReports: { increment: plan.maxReports },
         ...(partnerUserId !== undefined ? { partnerUserId } : {}),
       },
     })
@@ -119,6 +121,8 @@ async function _activateForUserTx(
         prevExpiry: existingActive.expiresAt,
         newExpiry,
         addedDays: plan.validityDays,
+        addedPauses: plan.maxPauses,
+        addedReports: plan.maxReports,
       },
       '[_activateForUserTx] Subscription extended in place (cumulation)',
     )
@@ -147,6 +151,7 @@ async function _activateForUserTx(
       startsAt: now,
       expiresAt,
       maxReports: plan.maxReports,
+      maxPauses: plan.maxPauses,
     },
   })
 

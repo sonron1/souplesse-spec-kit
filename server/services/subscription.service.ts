@@ -194,7 +194,8 @@ export const subscriptionService = {
     if (sub.status !== 'ACTIVE') throw createError({ statusCode: 400, message: 'L\'abonnement n\'est pas actif' })
     if (sub.pausedAt) throw createError({ statusCode: 400, message: 'L\'abonnement est déjà en pause' })
 
-    const maxPauses = sub.subscriptionPlan?.maxPauses ?? 0
+    // Use subscription-level maxPauses (cumulates with each renewal) if set, else fall back to plan
+    const maxPauses = sub.maxPauses > 0 ? sub.maxPauses : (sub.subscriptionPlan?.maxPauses ?? 0)
     if (sub.pauseCount >= maxPauses) {
       throw createError({ statusCode: 400, message: `Nombre de pauses maximum atteint (${maxPauses})` })
     }

@@ -192,6 +192,7 @@ model Subscription {
 
   // Pause / report fields (v3 — Bloc J)
   pauseCount   Int       @default(0)
+  maxPauses    Int       @default(0)   // cumulates on renewal: += plan.maxPauses each time
   pausedAt     DateTime?
   pausedUntil  DateTime?
 
