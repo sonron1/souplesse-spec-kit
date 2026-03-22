@@ -86,27 +86,26 @@ async function _activateForUserTx(
 ): Promise<{ sub: Subscription; extended: boolean }> {
   const { userId, subscriptionPlanId, plan, partnerUserId, now } = opts
 
-  // Look for an existing ACTIVE subscription for this exact plan
+  // ── Search for ANY active subscription (any plan) — not just the same plan.
+  // Rule: the expiry date must NEVER decrease. Whatever plan is purchased,
+  // its validityDays are always added on top of the current remaining duration.
   const existingActive = await tx.subscription.findFirst({
-    where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
+    where: { userId, status: 'ACTIVE', isActive: true },
     orderBy: { expiresAt: 'desc' },
   })
 
   if (existingActive && existingActive.expiresAt && existingActive.expiresAt > now) {
-    // ── CUMULATION: extend the existing subscription in place ────────────────
-    // Using millisecond arithmetic (DST-safe, same as admin grant route).
+    // ── CUMULATION (cross-plan): extend in place regardless of plan type ─────
+    // Always add validityDays to the current expiresAt so the date never drops.
+    // Also accumulate maxPauses and maxReports from the newly purchased plan.
+    // Update subscriptionPlanId + type to reflect the newly purchased plan.
     const newExpiry = new Date(existingActive.expiresAt.getTime() + plan.validityDays * 86_400_000)
 
-    // Expire any other active subscriptions for different plans (single-active invariant)
-    await tx.subscription.updateMany({
-      where: { userId, status: 'ACTIVE', isActive: true, id: { not: existingActive.id } },
-      data: { status: 'EXPIRED', isActive: false },
-    })
-
-    // Extend the existing subscription record in place
     const updated = await tx.subscription.update({
       where: { id: existingActive.id },
       data: {
+        subscriptionPlanId,
+        type: planTypeToSubscriptionType(plan.planType ?? ''),
         expiresAt: newExpiry,
         maxPauses: { increment: plan.maxPauses },
         maxReports: { increment: plan.maxReports },
@@ -118,20 +117,22 @@ async function _activateForUserTx(
       {
         subscriptionId: existingActive.id,
         userId,
+        prevPlanId: existingActive.subscriptionPlanId,
+        newPlanId: subscriptionPlanId,
         prevExpiry: existingActive.expiresAt,
         newExpiry,
         addedDays: plan.validityDays,
         addedPauses: plan.maxPauses,
         addedReports: plan.maxReports,
       },
-      '[_activateForUserTx] Subscription extended in place (cumulation)',
+      '[_activateForUserTx] Subscription extended in place (cross-plan cumulation)',
     )
 
     return { sub: updated, extended: true }
   }
 
-  // ── NEW SUBSCRIPTION: no matching active sub (or its expiry is past) ───────
-  // Expire ALL remaining active subs for this user first.
+  // ── NEW SUBSCRIPTION: no active sub or expiry already past ──────────────────
+  // Expire any stale ACTIVE rows (should not exist due to unique index, but guard anyway).
   await tx.subscription.updateMany({
     where: { userId, status: 'ACTIVE', isActive: true },
     data: { status: 'EXPIRED', isActive: false },

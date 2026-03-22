@@ -46,10 +46,23 @@ const mockPrisma = vi.mocked(prisma) as any
 const MOCK_PLAN = {
   id: 'plan-1',
   name: 'Abonnement 1 mois',
+  planType: 'MONTHLY',
   priceSingle: 15000,
   priceCouple: 25000,
   validityDays: 30,
   maxReports: 0,
+  maxPauses: 0,
+}
+
+const MOCK_PLAN_WITH_PAUSES = {
+  id: 'plan-2',
+  name: 'Suivi personnel',
+  planType: 'MONTHLY',
+  priceSingle: 20000,
+  priceCouple: 40000,
+  validityDays: 30,
+  maxReports: 1,
+  maxPauses: 1,
 }
 
 const MOCK_PAYMENT = {
@@ -82,11 +95,11 @@ beforeEach(() => {
 
 // ── K001/K002: extension instead of duplicate ─────────────────────────────
 describe('confirmPayment — subscription extension (K001/K002)', () => {
-  it('extends expiresAt when an ACTIVE subscription for the same plan exists', async () => {
-    mockPrisma.payment.findUnique.mockResolvedValue(null)          // not yet processed
+  it('extends expiresAt when ANY active subscription exists (same plan)', async () => {
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
-    mockPrisma.subscription.findFirst.mockResolvedValue(EXISTING_ACTIVE_SUB) // existing active
+    mockPrisma.subscription.findFirst.mockResolvedValue(EXISTING_ACTIVE_SUB)
     const extendedSub = { ...EXISTING_ACTIVE_SUB, expiresAt: new Date(Date.now() + 40 * 86400000) }
     mockPrisma.subscription.update.mockResolvedValue(extendedSub)
 
@@ -97,21 +110,55 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     })
 
     expect(result.extended).toBe(true)
-    // New code extends in place via subscription.update (update-in-place cumulation)
+    // Extends in place — subscription.update called, subscription.create NOT called
     expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: EXISTING_ACTIVE_SUB.id },
         data: expect.objectContaining({ expiresAt: expect.any(Date) }),
       })
     )
-    // subscription.updateMany deactivates other active subs (those with a different id)
-    expect(mockPrisma.subscription.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
+    // updateMany NOT called in the extend path (unique index ensures single active)
+    expect(mockPrisma.subscription.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('extends expiresAt when a DIFFERENT plan is active (cross-plan cumulation)', async () => {
+    const existingDifferentPlanSub = {
+      ...EXISTING_ACTIVE_SUB,
+      subscriptionPlanId: 'plan-other',  // different plan
+    }
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN_WITH_PAUSES)
+    mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
+    mockPrisma.subscription.findFirst.mockResolvedValue(existingDifferentPlanSub)
+    const extendedSub = {
+      ...existingDifferentPlanSub,
+      subscriptionPlanId: MOCK_PLAN_WITH_PAUSES.id,
+      expiresAt: new Date(Date.now() + 40 * 86400000),
+      maxPauses: 1,
+      maxReports: 1,
+    }
+    mockPrisma.subscription.update.mockResolvedValue(extendedSub)
+
+    const result = await confirmPayment({
+      userId: 'user-1',
+      transactionId: 'tx-cross',
+      subscriptionPlanId: MOCK_PLAN_WITH_PAUSES.id,
+    })
+
+    expect(result.extended).toBe(true)
+    // Must update subscriptionPlanId to new plan and accumulate pauses/reports
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ userId: 'user-1', status: 'ACTIVE' }),
-        data: expect.objectContaining({ status: 'EXPIRED', isActive: false }),
+        where: { id: existingDifferentPlanSub.id },
+        data: expect.objectContaining({
+          subscriptionPlanId: MOCK_PLAN_WITH_PAUSES.id,
+          expiresAt: expect.any(Date),
+          maxPauses: { increment: MOCK_PLAN_WITH_PAUSES.maxPauses },
+          maxReports: { increment: MOCK_PLAN_WITH_PAUSES.maxReports },
+        }),
       })
     )
-    // subscription.create is NOT called when extending an existing sub in place
     expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
   })
 
