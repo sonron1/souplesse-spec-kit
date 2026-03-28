@@ -67,7 +67,7 @@
             </div>
             <div>
               <p class="text-sm font-semibold text-amber-800">Votre abonnement expire bientôt</p>
-              <p class="text-xs text-amber-600 mt-0.5">Plus que {{ daysLeftSub }} jour(s) — renouvelez pour ne pas perdre l’accès.</p>
+              <p class="text-xs text-amber-600 mt-0.5">Plus que {{ daysLeftSub }} jour(s) — renouvelez pour ne pas perdre l'accès.</p>
             </div>
           </div>
           <NuxtLink
@@ -79,63 +79,87 @@
         </div>
       </div>
 
-      <!-- KPI cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <!-- Subscription status -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+      <!-- KPI cards — 4-column grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        <!-- Abonnement & temps restant -->
+        <div class="col-span-2 sm:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <div class="flex items-center justify-between mb-3">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Abonnement</p>
-            <div class="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center">
+            <div class="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
               <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
             </div>
           </div>
           <div v-if="subPending" class="h-6 bg-gray-100 rounded animate-pulse w-24 mb-2" />
-          <p v-else class="text-base font-bold mt-1">
-            <span v-if="activeSubscription" class="text-primary-600">
-              {{ activeSubscription.subscriptionPlan?.name ?? activeSubscription.type }}
-            </span>
-            <span v-else class="text-gray-400">Aucun abonnement</span>
-          </p>
-          <p v-if="activeSubscription?.expiresAt" class="text-xs text-gray-400 mt-1">
-            Expire le {{ formatDate(activeSubscription.expiresAt) }}
-          </p>
-          <NuxtLink v-if="!activeSubscription" to="/subscribe" class="mt-3 inline-flex text-xs font-semibold text-primary-600 hover:text-primary-500 transition-colors">
-            Souscrire →
-          </NuxtLink>
+          <template v-else>
+            <p class="text-sm font-bold text-gray-700 leading-tight truncate mt-1">
+              <span v-if="activeSubscription">{{ activeSubscription.subscriptionPlan?.name ?? activeSubscription.type }}</span>
+              <span v-else class="text-gray-400 font-normal">Aucun abonnement</span>
+            </p>
+            <p v-if="daysLeftSub !== null" class="text-2xl font-extrabold text-primary-600 mt-1.5 leading-none">
+              {{ remainingMonths(daysLeftSub) }}
+              <span v-if="remainingDaysSuffix(daysLeftSub)" class="text-sm font-bold text-primary-400 ml-0.5">{{ remainingDaysSuffix(daysLeftSub) }}</span>
+            </p>
+            <p v-if="activeSubscription?.expiresAt" class="text-[11px] text-gray-400 mt-1">
+              Expire le {{ formatDate(activeSubscription.expiresAt) }}
+            </p>
+            <NuxtLink v-if="!activeSubscription" to="/subscribe" class="mt-2 inline-flex text-xs font-semibold text-primary-600 hover:text-primary-500 transition-colors">
+              Souscrire →
+            </NuxtLink>
+          </template>
         </div>
 
-        <!-- Next booking -->
+        <!-- Pauses disponibles -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <div class="flex items-center justify-between mb-3">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Prochaine séance</p>
-            <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pauses</p>
+            <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div v-if="subPending" class="h-9 bg-gray-100 rounded animate-pulse w-10 mb-2" />
+          <template v-else>
+            <p class="text-3xl font-bold text-amber-500 mt-1">{{ pausesLeft }}</p>
+            <p class="text-[11px] text-gray-400 mt-1">
+              <span v-if="activeSubscription">{{ activeSubscription.pauseCount ?? 0 }} utilisée{{ (activeSubscription.pauseCount ?? 0) > 1 ? 's' : '' }}</span>
+              <span v-else>disponibles</span>
+            </p>
+          </template>
+        </div>
+
+        <!-- Prochaine séance -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Prochaine</p>
+            <div class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
               <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
           </div>
           <div v-if="bookingsPending" class="h-6 bg-gray-100 rounded animate-pulse w-32 mb-2" />
-          <p v-else-if="nextBooking" class="text-sm font-bold mt-1 text-gray-800 leading-snug">
+          <p v-else-if="nextBooking" class="text-xs font-bold mt-1 text-gray-800 leading-snug">
             {{ formatDateTime(nextBooking.session?.dateTime) }}
           </p>
           <p v-else class="text-gray-400 mt-1 text-sm">Aucune réservation</p>
           <NuxtLink to="/sessions" class="mt-2 inline-flex text-xs font-semibold text-green-600 hover:text-green-500 transition-colors">
-            Réserver une séance →
+            Réserver →
           </NuxtLink>
         </div>
 
-        <!-- Total bookings -->
+        <!-- Total payé -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <div class="flex items-center justify-between mb-3">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Séances réservées</p>
-            <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total payé</p>
+            <div class="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
           </div>
-          <div v-if="bookingsPending" class="h-9 bg-gray-100 rounded animate-pulse w-12 mb-2" />
-          <p v-else class="text-3xl font-bold text-blue-600 mt-1">
-            {{ bookings?.length ?? 0 }}
-          </p>
-          <p class="text-xs text-gray-400 mt-1">au total</p>
+          <div v-if="subPending" class="h-9 bg-gray-100 rounded animate-pulse w-20 mb-2" />
+          <template v-else>
+            <p class="text-xl font-extrabold text-purple-600 mt-1 leading-none">{{ fmtFCFA(totalSpent) }}</p>
+            <p class="text-[11px] text-gray-400 mt-1">{{ paidCount }} abonnement{{ paidCount > 1 ? 's' : '' }}</p>
+          </template>
         </div>
+
       </div>
 
       <!-- Quick actions -->
@@ -188,7 +212,16 @@
     type: string
     status: string
     expiresAt: string | null
-    subscriptionPlan: { name: string; planType: string } | null
+    partnerUserId: string | null
+    maxPauses: number
+    pauseCount: number
+    maxReports: number | null
+    subscriptionPlan: {
+      name: string
+      planType: string
+      priceSingle: number
+      priceCouple: number | null
+    } | null
   }
 
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
@@ -212,8 +245,30 @@
     const diff = new Date(activeSubscription.value.expiresAt).getTime() - Date.now()
     return Math.max(0, Math.ceil(diff / 86_400_000))
   })
+
   const expiringSoon = computed(() => daysLeftSub.value !== null && daysLeftSub.value <= 7)
   const noActiveSub = computed(() => !subPending.value && !activeSubscription.value)
+
+  const pausesLeft = computed(() => {
+    if (!activeSubscription.value) return 0
+    return Math.max(0, (activeSubscription.value.maxPauses ?? 0) - (activeSubscription.value.pauseCount ?? 0))
+  })
+
+  const totalSpent = computed(() => {
+    if (!subscriptions.value) return 0
+    return subscriptions.value
+      .filter(s => s.status === 'ACTIVE' || s.status === 'EXPIRED')
+      .reduce((sum, s) => {
+        const price = s.partnerUserId
+          ? (s.subscriptionPlan?.priceCouple ?? s.subscriptionPlan?.priceSingle ?? 0)
+          : (s.subscriptionPlan?.priceSingle ?? 0)
+        return sum + price
+      }, 0)
+  })
+
+  const paidCount = computed(() =>
+    subscriptions.value?.filter(s => s.status === 'ACTIVE' || s.status === 'EXPIRED').length ?? 0
+  )
 
   const nextBooking = computed(() => {
     const now = new Date()
@@ -229,6 +284,25 @@
   function formatDate(d: string | null) {
     if (!d) return '—'
     return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  function remainingMonths(days: number): string {
+    if (days <= 0) return '0 j'
+    if (days < 30) return `${days} j`
+    const months = Math.floor(days / 30)
+    return `${months} mois`
+  }
+
+  function remainingDaysSuffix(days: number): string | null {
+    if (days < 30) return null
+    const rem = days % 30
+    return rem > 0 ? `+${rem}j` : null
+  }
+
+  function fmtFCFA(amount: number): string {
+    if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M FCFA`
+    if (amount >= 1_000) return `${Math.round(amount / 1_000)}k FCFA`
+    return `${amount} FCFA`
   }
 
   function formatDateTime(dt?: string) {

@@ -5,6 +5,7 @@
  * - New subscription created when no active one exists.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 vi.mock('../../server/utils/prisma', () => {
@@ -45,10 +46,23 @@ const mockPrisma = vi.mocked(prisma) as any
 const MOCK_PLAN = {
   id: 'plan-1',
   name: 'Abonnement 1 mois',
+  planType: 'MONTHLY',
   priceSingle: 15000,
   priceCouple: 25000,
   validityDays: 30,
   maxReports: 0,
+  maxPauses: 0,
+}
+
+const MOCK_PLAN_WITH_PAUSES = {
+  id: 'plan-2',
+  name: 'Suivi personnel',
+  planType: 'MONTHLY',
+  priceSingle: 20000,
+  priceCouple: 40000,
+  validityDays: 30,
+  maxReports: 1,
+  maxPauses: 1,
 }
 
 const MOCK_PAYMENT = {
@@ -81,13 +95,13 @@ beforeEach(() => {
 
 // ── K001/K002: extension instead of duplicate ─────────────────────────────
 describe('confirmPayment — subscription extension (K001/K002)', () => {
-  it('extends expiresAt when an ACTIVE subscription for the same plan exists', async () => {
-    mockPrisma.payment.findUnique.mockResolvedValue(null)          // not yet processed
+  it('extends expiresAt when ANY active subscription exists (same plan)', async () => {
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
-    mockPrisma.subscription.findFirst.mockResolvedValue(EXISTING_ACTIVE_SUB) // existing active
-    const extendedSub = { ...EXISTING_ACTIVE_SUB, id: 'sub-new', expiresAt: new Date(Date.now() + 40 * 86400000) }
-    mockPrisma.subscription.create.mockResolvedValue(extendedSub)
+    mockPrisma.subscription.findFirst.mockResolvedValue(EXISTING_ACTIVE_SUB)
+    const extendedSub = { ...EXISTING_ACTIVE_SUB, expiresAt: new Date(Date.now() + 40 * 86400000) }
+    mockPrisma.subscription.update.mockResolvedValue(extendedSub)
 
     const result = await confirmPayment({
       userId: 'user-1',
@@ -96,21 +110,56 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     })
 
     expect(result.extended).toBe(true)
-    // New code always creates a new sub record (even for extensions)
-    expect(mockPrisma.subscription.create).toHaveBeenCalledWith(
+    // Extends in place — subscription.update called, subscription.create NOT called
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: EXISTING_ACTIVE_SUB.id },
         data: expect.objectContaining({ expiresAt: expect.any(Date) }),
       })
     )
-    // subscription.updateMany deactivates the old sub before creating the new one
-    expect(mockPrisma.subscription.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
+    // updateMany NOT called in the extend path (unique index ensures single active)
+    expect(mockPrisma.subscription.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('extends expiresAt when a DIFFERENT plan is active (cross-plan cumulation)', async () => {
+    const existingDifferentPlanSub = {
+      ...EXISTING_ACTIVE_SUB,
+      subscriptionPlanId: 'plan-other',  // different plan
+    }
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN_WITH_PAUSES)
+    mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
+    mockPrisma.subscription.findFirst.mockResolvedValue(existingDifferentPlanSub)
+    const extendedSub = {
+      ...existingDifferentPlanSub,
+      subscriptionPlanId: MOCK_PLAN_WITH_PAUSES.id,
+      expiresAt: new Date(Date.now() + 40 * 86400000),
+      maxPauses: 1,
+      maxReports: 1,
+    }
+    mockPrisma.subscription.update.mockResolvedValue(extendedSub)
+
+    const result = await confirmPayment({
+      userId: 'user-1',
+      transactionId: 'tx-cross',
+      subscriptionPlanId: MOCK_PLAN_WITH_PAUSES.id,
+    })
+
+    expect(result.extended).toBe(true)
+    // Must update subscriptionPlanId to new plan and accumulate pauses/reports
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ userId: 'user-1', status: 'ACTIVE' }),
-        data: expect.objectContaining({ status: 'EXPIRED', isActive: false }),
+        where: { id: existingDifferentPlanSub.id },
+        data: expect.objectContaining({
+          subscriptionPlanId: MOCK_PLAN_WITH_PAUSES.id,
+          expiresAt: expect.any(Date),
+          maxPauses: { increment: MOCK_PLAN_WITH_PAUSES.maxPauses },
+          maxReports: { increment: MOCK_PLAN_WITH_PAUSES.maxReports },
+        }),
       })
     )
-    // subscription.update is never called in the new activation path
-    expect(mockPrisma.subscription.update).not.toHaveBeenCalled()
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
   })
 
   it('creates a new subscription when no active one exists', async () => {
@@ -185,6 +234,8 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
       .mockResolvedValueOnce(partnerSub) // partner tx: cumulation check — partner has active sub for same plan
     const newSub = { id: 'sub-main', expiresAt: new Date(Date.now() + 30 * 86400000) }
     mockPrisma.subscription.create.mockResolvedValue(newSub)
+    const extendedPartnerSub = { ...partnerSub, expiresAt: new Date(Date.now() + 35 * 86400000) }
+    mockPrisma.subscription.update.mockResolvedValue(extendedPartnerSub)
 
     await confirmPayment({
       userId: 'user-1',
@@ -193,10 +244,15 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
       partnerUserId: 'partner-1',
     })
 
-    // Both buyer and partner get a new sub record created (extension = new record with pushed-out expiry)
-    expect(mockPrisma.subscription.create).toHaveBeenCalledTimes(2)
-    // subscription.update is never called in the new activation path
-    expect(mockPrisma.subscription.update).not.toHaveBeenCalled()
+    // Buyer gets a new sub record (no existing active sub); partner gets their existing sub extended in place
+    expect(mockPrisma.subscription.create).toHaveBeenCalledOnce()
+    // Partner extension uses update-in-place
+    expect(mockPrisma.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: partnerSub.id },
+        data: expect.objectContaining({ expiresAt: expect.any(Date) }),
+      })
+    )
   })
 
   it('extends expiresAt by plan.validityDays from current expiresAt', async () => {
@@ -207,13 +263,14 @@ describe('confirmPayment — subscription extension (K001/K002)', () => {
     mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
     mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
     mockPrisma.subscription.findFirst.mockResolvedValue(subWithExpiry)
-    const extendedSub = { ...subWithExpiry, id: 'sub-extended', expiresAt: new Date(currentExpiry.getTime() + 30 * 86400000) }
-    mockPrisma.subscription.create.mockResolvedValue(extendedSub)
+    const extendedSub = { ...subWithExpiry, expiresAt: new Date(currentExpiry.getTime() + 30 * 86400000) }
+    mockPrisma.subscription.update.mockResolvedValue(extendedSub)
 
     await confirmPayment({ userId: 'user-1', transactionId: 'tx-789', subscriptionPlanId: 'plan-1' })
 
-    const createCall = mockPrisma.subscription.create.mock.calls[0][0]
-    const newExpiry: Date = createCall.data.expiresAt
+    // Extension uses update-in-place: read the expiresAt from subscription.update call
+    const updateCall = mockPrisma.subscription.update.mock.calls[0][0]
+    const newExpiry: Date = updateCall.data.expiresAt
 
     // The new expiry should be currentExpiry + 30 days (validityDays) in milliseconds
     // Use the same arithmetic as the service to avoid DST-induced 1h drift
@@ -308,6 +365,106 @@ describe('createPaymentOrder', () => {
 
     vi.unstubAllGlobals()
     delete process.env.KKIAPAY_SECRET_KEY
+  })
+})
+
+// ── withSerializableRetry exhaustion ──────────────────────────────────────
+describe('confirmPayment — withSerializableRetry', () => {
+  it('retries up to MAX_TX_RETRIES on P2034 then rethrows', async () => {
+    // PrismaClientKnownRequestError with code P2034 (serialization failure)
+    const p2034 = new Prisma.PrismaClientKnownRequestError('Serialization failure', {
+      code: 'P2034',
+      clientVersion: '5.0.0',
+    })
+
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
+    // $transaction always throws P2034 — withSerializableRetry must exhaust
+    mockPrisma.$transaction.mockRejectedValue(p2034)
+
+    const { kkiapay } = await import('@kkiapay-org/nodejs-sdk')
+    vi.mocked(kkiapay).mockReturnValue({ verify: vi.fn().mockResolvedValue({ status: 'SUCCESS', amount: 15000 }) } as never)
+
+    await expect(
+      confirmPayment({ userId: 'user-1', transactionId: 'tx-p2034', subscriptionPlanId: 'plan-1' })
+    ).rejects.toThrow('Serialization failure')
+
+    // MAX_TX_RETRIES = 3, so attempt goes 0→1→2→3 before throwing.
+    // That means 4 total calls to $transaction (initial + 3 retries).
+    expect(mockPrisma.$transaction).toHaveBeenCalledTimes(4)
+  })
+
+  it('does NOT retry on non-P2034 errors', async () => {
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
+    mockPrisma.$transaction.mockRejectedValue(new Error('Generic DB error'))
+
+    const { kkiapay } = await import('@kkiapay-org/nodejs-sdk')
+    vi.mocked(kkiapay).mockReturnValue({ verify: vi.fn().mockResolvedValue({ status: 'SUCCESS', amount: 15000 }) } as never)
+
+    await expect(
+      confirmPayment({ userId: 'user-1', transactionId: 'tx-noretry', subscriptionPlanId: 'plan-1' })
+    ).rejects.toThrow('Generic DB error')
+
+    // Only 1 attempt — no retry on generic errors
+    expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ── Couple race condition guard ────────────────────────────────────────────
+describe('confirmPayment — couple race condition', () => {
+  it('skips partner activation when partner is already in active couple sub', async () => {
+    const existingCoupleSub = { id: 'couple-sub', isActive: true, partnerUserId: 'other-user' }
+
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
+    mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
+    mockPrisma.subscription.findFirst
+      .mockResolvedValueOnce(null)           // buyer tx: cumulation check — no existing for buyer
+      .mockResolvedValueOnce(existingCoupleSub) // partner tx: conflict check — partner ALREADY in couple
+    const newSub = { id: 'sub-buyer', expiresAt: new Date(Date.now() + 30 * 86400000) }
+    mockPrisma.subscription.create.mockResolvedValue(newSub)
+
+    const { kkiapay } = await import('@kkiapay-org/nodejs-sdk')
+    vi.mocked(kkiapay).mockReturnValue({ verify: vi.fn().mockResolvedValue({ status: 'SUCCESS', amount: 15000 }) } as never)
+
+    const result = await confirmPayment({
+      userId: 'user-1',
+      transactionId: 'tx-race',
+      subscriptionPlanId: 'plan-1',
+      partnerUserId: 'partner-race',
+    })
+
+    // Buyer sub created; partner skipped (only 1 create call)
+    expect(result.subscriptionId).toBe('sub-buyer')
+    expect(mockPrisma.subscription.create).toHaveBeenCalledOnce()
+
+    // Warning must be logged so admins can investigate if needed
+    const logger = (await import('../../server/utils/logger')).default
+    expect(vi.mocked(logger).warn).toHaveBeenCalledWith(
+      expect.objectContaining({ partnerUserId: 'partner-race' }),
+      expect.stringContaining('Partner already in active couple sub'),
+    )
+  })
+
+  it('does not throw when partner race condition is detected (buyer confirmed)', async () => {
+    const existingCoupleSub = { id: 'couple-sub', isActive: true, partnerUserId: 'other-user' }
+
+    mockPrisma.payment.findUnique.mockResolvedValue(null)
+    mockPrisma.subscriptionPlan.findUnique.mockResolvedValue(MOCK_PLAN)
+    mockPrisma.payment.create.mockResolvedValue(MOCK_PAYMENT)
+    mockPrisma.subscription.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existingCoupleSub)
+    mockPrisma.subscription.create.mockResolvedValue({ id: 'sub-ok', expiresAt: new Date(Date.now() + 30 * 86400000) })
+
+    const { kkiapay } = await import('@kkiapay-org/nodejs-sdk')
+    vi.mocked(kkiapay).mockReturnValue({ verify: vi.fn().mockResolvedValue({ status: 'SUCCESS', amount: 15000 }) } as never)
+
+    // Must resolve (not throw) — buyer is already confirmed
+    await expect(
+      confirmPayment({ userId: 'user-1', transactionId: 'tx-race-nothrow', subscriptionPlanId: 'plan-1', partnerUserId: 'partner-2' })
+    ).resolves.toMatchObject({ subscriptionId: 'sub-ok' })
   })
 })
 

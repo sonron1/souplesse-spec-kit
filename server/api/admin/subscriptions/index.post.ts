@@ -48,25 +48,27 @@ export default defineEventHandler(async (event) => {
   // concurrent admin grant or payment webhook cannot sneak in a second isActive=true row.
   const { subscription, extended } = await prisma.$transaction(
     async (tx) => {
-      // Re-read inside the serializable snapshot (TOCTOU guard — prevents stale-read race)
+      // Re-read inside the serializable snapshot (TOCTOU guard — prevents stale-read race).
+      // Search ANY active sub — cumulation applies across different plan types too.
       const existing = await tx.subscription.findFirst({
-        where: { userId, subscriptionPlanId, status: 'ACTIVE', isActive: true },
+        where: { userId, status: 'ACTIVE', isActive: true },
         orderBy: { expiresAt: 'desc' },
       })
 
       if (existing && existing.expiresAt && existing.expiresAt > now) {
-        // Cumulative: extend from current expiry (millisecond arithmetic — DST safe)
+        // Cumulative (cross-plan): always add validityDays on top, never reduce.
         const newExpiry = new Date(existing.expiresAt.getTime() + plan.validityDays * 86_400_000)
-
-        // Deactivate any OTHER active subs (preserve the one being extended)
-        await tx.subscription.updateMany({
-          where: { userId, status: 'ACTIVE', isActive: true, id: { not: existing.id } },
-          data: { status: 'EXPIRED', isActive: false },
-        })
 
         const updated = await tx.subscription.update({
           where: { id: existing.id },
-          data: { expiresAt: newExpiry, updatedAt: now },
+          data: {
+            subscriptionPlanId,
+            type: (plan.planType?.includes('QUARTERLY') ? 'QUARTERLY' : plan.planType?.includes('ANNUAL') ? 'ANNUAL' : 'MONTHLY') as 'MONTHLY' | 'QUARTERLY' | 'ANNUAL',
+            expiresAt: newExpiry,
+            maxPauses: { increment: plan.maxPauses },
+            maxReports: { increment: plan.maxReports },
+            updatedAt: now,
+          },
         })
 
         logger.info(
@@ -94,6 +96,7 @@ export default defineEventHandler(async (event) => {
             startsAt: now,
             expiresAt,
             maxReports: plan.maxReports,
+            maxPauses: plan.maxPauses,
           },
         })
 

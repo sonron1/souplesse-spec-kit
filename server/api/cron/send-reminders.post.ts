@@ -3,6 +3,7 @@ import { prisma } from '../../utils/prisma'
 import { notificationService } from '../../services/notification.service'
 import { sendSubscriptionReminderEmail } from '../../utils/email'
 import logger from '../../utils/logger'
+import { systemLog } from '../../utils/systemLog'
 import { rateLimitMiddleware } from '../../middleware/rateLimit.middleware'
 import { acquireCronLock, releaseCronLock } from '../../utils/cronLock'
 
@@ -31,16 +32,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
+  const startedAt = Date.now()
 
   try {
-    const windowStart = new Date(now.getTime() + (REMINDER_DAYS - 1) * 24 * 60 * 60 * 1000)
-    const windowEnd   = new Date(now.getTime() + REMINDER_DAYS * 24 * 60 * 60 * 1000)
+    // Window: [now, now + 3 days) — catch ALL subscriptions expiring within 3 days
+    // (not just the 24h slice before the 3-day mark).
+    // reminderSentAt: null ensures we never double-send even if cron runs late.
+    const windowEnd = new Date(now.getTime() + REMINDER_DAYS * 24 * 60 * 60 * 1000)
 
     // Find ACTIVE subscriptions expiring in the next 3 days that haven't been reminded yet
     const subscriptions = await prisma.subscription.findMany({
       where: {
         status: 'ACTIVE',
-        expiresAt: { gte: windowStart, lt: windowEnd },
+        expiresAt: { gte: now, lt: windowEnd },
         reminderSentAt: null,
         pausedAt: null,
       },
@@ -106,8 +110,14 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    logger.info({ sent, ranAt: now.toISOString() }, 'Subscription reminders sent')
-    return { success: true, sent, ranAt: now.toISOString() }
+    const durationMs = Date.now() - startedAt
+    logger.info({ sent, ranAt: now.toISOString(), durationMs }, 'Subscription reminders sent')
+    systemLog({
+      action: 'CRON_SEND_REMINDERS',
+      message: `Sent ${sent} reminder(s) in ${durationMs}ms`,
+      meta: { sent, durationMs, ranAt: now.toISOString() },
+    })
+    return { success: true, sent, ranAt: now.toISOString(), durationMs }
   } finally {
     await releaseCronLock(LOCK_KEY)
   }

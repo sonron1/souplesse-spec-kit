@@ -134,7 +134,7 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
 
   // Always log the link in dev so you can verify accounts without email delivery
   if (process.env.NODE_ENV !== 'production') {
-    console.log(`\n[DEV] Email verification link for ${to}:\n  ${verifyUrl}\n`)
+    logger.info({ to, verifyUrl }, '[DEV] Email verification link')
   }
 
   const apiKey = (process.env.RESEND_API_KEY ?? '').trim()

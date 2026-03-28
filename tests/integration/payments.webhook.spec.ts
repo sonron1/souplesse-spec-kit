@@ -80,6 +80,28 @@ describe('handleWebhook — idempotency', () => {
     const result = await handleWebhook(envelope as any, envelope)
     expect(result).toMatchObject({ ignored: true })
   })
+
+  it('returns { ignored: true } on P2002 duplicate paymentId (concurrent webhooks)', async () => {
+    // Simulate two concurrent requests: findUnique returns null but create throws P2002
+    const { Prisma } = await import('@prisma/client')
+    const p2002 = new Prisma.PrismaClientKnownRequestError('Unique constraint', {
+      code: 'P2002',
+      clientVersion: '5.0.0',
+    })
+
+    mockPrisma.transaction.findUnique.mockResolvedValue(null)
+    mockPrisma.paymentOrder.findUnique.mockResolvedValue({ id: 'order-1', userId: 'u', subscriptionPlanId: 'p', partnerUserId: null, status: 'pending' })
+    mockPrisma.transaction.create = vi.fn().mockRejectedValue(p2002)
+
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_concurrent', reference: 'order-1', amount: 5000, currency: 'XOF', status: 'success' },
+    }
+
+    const result = await handleWebhook(envelope as any, envelope)
+    expect(result).toMatchObject({ ignored: true })
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
+  })
 })
 
 describe('handleWebhook — success path', () => {
@@ -138,6 +160,38 @@ describe('handleWebhook — success path', () => {
     expect(result).toMatchObject({ processed: true })
     // Subscription was not activated because the plan lookup failed
     expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
+  })
+
+  it('activates subscription when data.status is "paid" (alternate status value)', async () => {
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_paid', reference: 'order-success', amount: 15000, currency: 'XOF', status: 'paid' },
+    }
+
+    const result = await handleWebhook(envelope as any, envelope)
+
+    expect(result).toMatchObject({ processed: true })
+    expect(mockPrisma.paymentOrder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'paid' } })
+    )
+    expect(mockPrisma.subscription.create).toHaveBeenCalledOnce()
+  })
+
+  it('creates transaction but skips activation when paymentOrder is not found', async () => {
+    mockPrisma.paymentOrder.findUnique.mockResolvedValue(null) // unknown reference
+    mockPrisma.transaction.create = vi.fn().mockResolvedValue({ id: 'tx-noorder', paymentId: 'pay_noorder' })
+
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_noorder', reference: 'unknown-ref', amount: 5000, currency: 'XOF', status: 'success' },
+    }
+
+    const result = await handleWebhook(envelope as any, envelope)
+
+    expect(result).toMatchObject({ processed: true })
+    expect(mockPrisma.transaction.create).toHaveBeenCalledOnce()
+    expect(mockPrisma.subscription.create).not.toHaveBeenCalled()
+    expect(mockPrisma.paymentOrder.update).not.toHaveBeenCalled()
   })
 
   it('creates partner subscription when partnerUserId is set', async () => {
@@ -235,6 +289,35 @@ describe('handleWebhook — error catch paths', () => {
     // Should not throw — the outer catch swallows the error
     const result = await handleWebhook(envelope as any, envelope)
     expect(result).toMatchObject({ processed: true })
+  })
+
+  it('skips partner when partner already has active couple sub (race condition)', async () => {
+    const orderWithPartner = { ...ORDER, partnerUserId: 'partner-race' }
+    mockPrisma.paymentOrder.findUnique.mockResolvedValue(orderWithPartner)
+    // First findFirst: buyer cumulation check → null
+    // Second findFirst: partner couple conflict check → found existing couple sub
+    mockPrisma.subscription.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'existing-couple', isActive: true, partnerUserId: 'buyer-x' })
+    mockPrisma.subscription.create = vi.fn().mockResolvedValue({ id: 'sub-buyer-only' })
+
+    const envelope = {
+      event: 'payment.succeeded',
+      data: { id: 'pay_race', reference: 'order-success', amount: 25000, currency: 'XOF', status: 'success' },
+    }
+
+    const result = await handleWebhook(envelope as any, envelope)
+
+    expect(result).toMatchObject({ processed: true })
+    // Only buyer sub created — partner skipped
+    expect(mockPrisma.subscription.create).toHaveBeenCalledOnce()
+    expect(mockPrisma.subscription.create.mock.calls[0][0].data.userId).toBe('user-1')
+
+    const logger = (await import('../../server/utils/logger')).default
+    expect(vi.mocked(logger).warn).toHaveBeenCalledWith(
+      expect.objectContaining({ partnerUserId: 'partner-race' }),
+      expect.stringContaining('Partner already in active couple sub'),
+    )
   })
 
   it('silently catches partner subscription failure (logs, does not throw)', async () => {

@@ -87,15 +87,17 @@ describe('sendVerificationEmail', () => {
     expect(mockLogger.error).toHaveBeenCalled()
   })
 
-  it('logs verify URL to console in development', async () => {
+  it('logs verify URL via logger.info in development', async () => {
     process.env.NODE_ENV = 'development'
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     mockSend.mockResolvedValue({ data: { id: 'e-dev' }, error: null })
 
     await sendVerificationEmail('dev@example.com', 'tok_dev')
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('tok_dev'))
-    consoleSpy.mockRestore()
+    // console.log replaced by logger.info — verify URL must be present in the logged object
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ verifyUrl: expect.stringContaining('tok_dev') }),
+      expect.any(String),
+    )
   })
 })
 
