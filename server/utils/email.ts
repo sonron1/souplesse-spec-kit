@@ -130,7 +130,7 @@ function verificationHtml(verifyUrl: string): string {
  * URL is always printed to the server console as a fallback.
  */
 export async function sendVerificationEmail(to: string, token: string): Promise<void> {
-  const verifyUrl = `${getAppUrl()}/verify-email?token=${token}`
+  const verifyUrl = `${getAppUrl()}/verification?token=${token}`
 
   // Always log the link in dev so you can verify accounts without email delivery
   if (process.env.NODE_ENV !== 'production') {
@@ -227,7 +227,7 @@ export async function sendAdminPauseNotification(opts: {
     return
   }
 
-  const dashboardUrl = `${getAppUrl()}/admin/users`
+  const dashboardUrl = `${getAppUrl()}/admin-users`
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><title>Abonnement mis en pause</title></head>

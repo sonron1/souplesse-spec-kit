@@ -78,7 +78,7 @@
         <!-- Footer link -->
         <div class="border-t border-gray-800 px-4 py-2.5">
           <NuxtLink
-            to="/dashboard/notifications"
+            to="/notifications"
             class="text-xs text-gray-400 hover:text-white transition-colors font-medium"
             @click="open = false"
           >

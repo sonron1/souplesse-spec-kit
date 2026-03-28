@@ -143,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-analytics', middleware: ['auth', 'admin'] })
 
   const { accessToken } = useAuth()
 

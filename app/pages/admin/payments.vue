@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-payments', middleware: ['auth', 'admin'] })
   const { accessToken } = useAuth()
 
   interface Payment {

@@ -189,7 +189,7 @@
 </style>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-messages', middleware: ['auth', 'admin'] })
 
   const { user: me, accessToken, ensureFresh } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

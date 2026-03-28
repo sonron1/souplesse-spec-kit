@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-definePageMeta({ middleware: ['auth', 'admin'] })
+definePageMeta({ path: '/admin-monitor', middleware: ['auth', 'admin'] })
 
 const { accessToken } = useAuth()
 const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
@@ -326,7 +326,7 @@ function coachUnread(group: CoachGroup) {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
               </svg>
               Mode consultation â€” pour contacter un coach utilisez
-              <NuxtLink to="/admin/messages" class="text-yellow-400 hover:underline">Messages coachs</NuxtLink>.
+              <NuxtLink to="/admin-messages" class="text-yellow-400 hover:underline">Messages coachs</NuxtLink>.
             </div>
           </div>
         </template>

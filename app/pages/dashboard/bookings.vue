@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-definePageMeta({ middleware: ['auth', 'client-only'] })
+definePageMeta({ path: '/reservations', middleware: ['auth', 'client-only'] })
 
 const { accessToken } = useAuth()
 

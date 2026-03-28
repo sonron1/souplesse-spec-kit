@@ -137,7 +137,7 @@
               </div>
               <p class="text-sm text-gray-400 mb-5">{{ assignment.coach.email }}</p>
               <NuxtLink
-                to="/dashboard/messages"
+                to="/messages"
                 class="inline-flex items-center gap-2 bg-primary-400 text-black font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-primary-300 transition-colors"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,7 +316,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/my-coach', middleware: ['auth', 'client-only'] })
 
   const { accessToken } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-logs', middleware: ['auth', 'admin'] })
 
   const { accessToken } = useAuth() as { accessToken: ReturnType<typeof useCookie> }
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

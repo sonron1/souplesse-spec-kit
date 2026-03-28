@@ -37,7 +37,7 @@
           </div>
           <p class="font-bold text-gray-800 mb-1">En attente de validation</p>
           <p class="text-sm text-gray-400 mb-5">Votre demande de coach est en cours de traitement par un administrateur.</p>
-          <NuxtLink to="/dashboard/mon-coach" class="btn-primary inline-flex items-center gap-2">
+          <NuxtLink to="/my-coach" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             Gérer mon coach
           </NuxtLink>
@@ -54,7 +54,7 @@
           </div>
           <p class="font-bold text-gray-800 mb-1">Proposition refusée</p>
           <p class="text-sm text-gray-400 mb-5">Le coach proposé a été refusé. Vous pouvez en choisir un autre.</p>
-          <NuxtLink to="/dashboard/mon-coach" class="btn-primary inline-flex items-center gap-2">
+          <NuxtLink to="/my-coach" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             Choisir un coach
           </NuxtLink>
@@ -71,7 +71,7 @@
           </div>
           <p class="font-bold text-gray-800 mb-1">Aucun coach assigné</p>
           <p class="text-sm text-gray-400 mb-5">Choisissez un coach pour commencer à échanger avec lui.</p>
-          <NuxtLink to="/dashboard/mon-coach" class="btn-primary inline-flex items-center gap-2">
+          <NuxtLink to="/my-coach" class="btn-primary inline-flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
             Choisir un coach
           </NuxtLink>
@@ -205,7 +205,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/messages', middleware: ['auth', 'client-only'] })
 
   const { user: me, accessToken, ensureFresh } = useAuth()
 

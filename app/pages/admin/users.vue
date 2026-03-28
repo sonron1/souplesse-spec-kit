@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: ['auth', 'admin'] })
+definePageMeta({ path: '/admin-users', middleware: ['auth', 'admin'] })
 const { accessToken, user: authUser } = useAuth()
 
 interface SafeUser { id: string; name: string; email: string; role: string; createdAt: string; emailVerified?: boolean }
@@ -449,7 +449,7 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
 
               <!-- Assign subscription quick link -->
               <NuxtLink
-                :to="`/admin/subscriptions`"
+                :to="`/admin-subscriptions`"
                 class="mt-2 flex items-center justify-center gap-1.5 w-full py-2 text-xs font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 rounded-xl border border-yellow-200 transition-colors"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>

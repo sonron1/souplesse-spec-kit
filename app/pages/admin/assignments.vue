@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-assignments', middleware: ['auth', 'admin'] })
   const { accessToken } = useAuth()
 
   const authHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

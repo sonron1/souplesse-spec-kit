@@ -452,7 +452,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: ['auth', 'coach'] })
+definePageMeta({ path: '/coach-sessions', middleware: ['auth', 'coach'] })
 const { accessToken, user } = useAuth()
 
 interface Session {

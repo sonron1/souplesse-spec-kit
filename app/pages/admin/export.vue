@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-export', middleware: ['auth', 'admin'] })
 
   const { accessToken } = useAuth()
 

@@ -255,7 +255,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'coach'] })
+  definePageMeta({ path: '/coach-programs', middleware: ['auth', 'coach'] })
   const { accessToken } = useAuth()
 
   type ProgramType = 'CARDIO' | 'FULL_BODY' | 'ABDO' | 'UPPER_BODY' | 'LOWER_BODY'

@@ -53,8 +53,8 @@ describe('sendVerificationEmail', () => {
     const call = mockSend.mock.calls[0][0]
     expect(call.to).toBe('user@example.com')
     expect(call.subject).toMatch(/Vérifi/)
-    expect(call.html).toContain('/verify-email?token=tok_abc')
-    expect(call.text).toContain('/verify-email?token=tok_abc')
+    expect(call.html).toContain('/verification?token=tok_abc')
+    expect(call.text).toContain('/verification?token=tok_abc')
   })
 
   it('skips sending and warns when RESEND_API_KEY is missing', async () => {

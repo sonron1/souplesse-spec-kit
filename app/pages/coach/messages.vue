@@ -180,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'coach'] })
+  definePageMeta({ path: '/coach-messages', middleware: ['auth', 'coach'] })
 
   const { user: me, accessToken, ensureFresh } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

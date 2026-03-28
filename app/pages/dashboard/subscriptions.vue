@@ -284,7 +284,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/subscriptions', middleware: ['auth', 'client-only'] })
 
   const { accessToken } = useAuth()
   const route = useRoute()

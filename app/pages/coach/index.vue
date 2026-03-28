@@ -11,7 +11,7 @@
           <p class="text-sm text-gray-500 mt-0.5">Bonjour, {{ user?.name }} !</p>
         </div>
       </div>
-      <NuxtLink to="/coach/sessions" class="btn-primary text-sm gap-1.5">
+      <NuxtLink to="/coach-sessions" class="btn-primary text-sm gap-1.5">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Planifier une séance
       </NuxtLink>
@@ -40,7 +40,7 @@
         </div>
         <div v-if="clientsPending" class="h-9 bg-gray-100 rounded animate-pulse w-12" />
         <p v-else class="text-3xl font-extrabold text-blue-600">{{ clientCount }}</p>
-        <NuxtLink to="/coach/programs" class="text-xs text-blue-600 font-semibold hover:underline">Voir les programmes →</NuxtLink>
+        <NuxtLink to="/coach-programs" class="text-xs text-blue-600 font-semibold hover:underline">Voir les programmes →</NuxtLink>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3 col-span-2 sm:col-span-1">
@@ -60,7 +60,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
       <div class="flex items-center justify-between mb-5">
         <h2 class="text-base font-bold text-gray-900">Séances à venir</h2>
-        <NuxtLink to="/coach/sessions" class="text-xs text-primary-600 hover:text-primary-500 font-semibold">Voir tout →</NuxtLink>
+        <NuxtLink to="/coach-sessions" class="text-xs text-primary-600 hover:text-primary-500 font-semibold">Voir tout →</NuxtLink>
       </div>
       <div v-if="sessionsPending" class="space-y-3">
         <div v-for="i in 3" :key="i" class="h-14 bg-gray-100 rounded-xl animate-pulse" />
@@ -68,7 +68,7 @@
       <div v-else-if="!nextSessions.length" class="text-center py-10 text-gray-400">
         <svg class="w-10 h-10 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         <p class="text-sm font-medium">Aucune séance planifiée.</p>
-        <NuxtLink to="/coach/sessions" class="btn-primary mt-3 text-xs">Planifier maintenant</NuxtLink>
+        <NuxtLink to="/coach-sessions" class="btn-primary mt-3 text-xs">Planifier maintenant</NuxtLink>
       </div>
       <div v-else class="space-y-2">
         <div
@@ -98,7 +98,7 @@
     <!-- Quick actions -->
     <div class="grid grid-cols-2 gap-4">
       <NuxtLink
-        to="/coach/sessions"
+        to="/coach-sessions"
         class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4 hover:border-primary-200 hover:bg-primary-50 transition-all"
       >
         <div class="w-12 h-12 rounded-xl bg-black flex items-center justify-center shrink-0">
@@ -110,7 +110,7 @@
         </div>
       </NuxtLink>
       <NuxtLink
-        to="/coach/programs"
+        to="/coach-programs"
         class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center gap-4 hover:border-blue-200 hover:bg-blue-50 transition-all"
       >
         <div class="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">

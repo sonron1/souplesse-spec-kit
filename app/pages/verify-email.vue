@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ layout: 'landing' })
+  definePageMeta({ path: '/verification', layout: 'landing' })
 
   const route = useRoute()
   const status = ref<'loading' | 'success' | 'error'>('loading')

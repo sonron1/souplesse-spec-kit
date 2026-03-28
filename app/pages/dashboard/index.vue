@@ -166,7 +166,7 @@
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Actions rapides</h2>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NuxtLink to="/dashboard/bookings" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all">
+          <NuxtLink to="/reservations" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-all">
             <div class="w-9 h-9 rounded-lg bg-blue-500 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
             </div>
@@ -178,13 +178,13 @@
             </div>
             <span class="text-xs font-bold text-primary-700 text-center leading-tight">Séances dispo</span>
           </NuxtLink>
-          <NuxtLink to="/dashboard/subscriptions" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-green-50 hover:bg-green-100 border border-green-100 transition-all">
+          <NuxtLink to="/subscriptions" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-green-50 hover:bg-green-100 border border-green-100 transition-all">
             <div class="w-9 h-9 rounded-lg bg-green-500 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
             </div>
             <span class="text-xs font-bold text-green-700 text-center leading-tight">Mon abonnement</span>
           </NuxtLink>
-          <NuxtLink to="/dashboard/programs" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-100 transition-all">
+          <NuxtLink to="/programs" class="flex flex-col items-center gap-3 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-100 transition-all">
             <div class="w-9 h-9 rounded-lg bg-purple-500 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
             </div>

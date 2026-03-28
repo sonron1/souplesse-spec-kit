@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/calendar', middleware: ['auth', 'client-only'] })
 
   const { accessToken, ensureFresh } = useAuth()
 

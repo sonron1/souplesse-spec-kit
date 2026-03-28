@@ -7,11 +7,11 @@
         <p class="text-sm text-gray-500 mt-0.5">Vue d’ensemble de l’activité du club</p>
       </div>
       <div class="flex gap-2">
-        <NuxtLink to="/admin/export" class="btn-secondary text-sm gap-1.5">
+        <NuxtLink to="/admin-export" class="btn-secondary text-sm gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           Exporter
         </NuxtLink>
-        <NuxtLink to="/admin/users" class="btn-primary text-sm gap-1.5">
+        <NuxtLink to="/admin-users" class="btn-primary text-sm gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
           Utilisateurs
         </NuxtLink>
@@ -132,25 +132,25 @@
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-base font-bold text-gray-900 mb-4">Accès rapides</h2>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <NuxtLink to="/admin/users" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-blue-50 hover:bg-blue-100 border border-blue-100 hover:border-blue-200 transition-all">
+          <NuxtLink to="/admin-users" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-blue-50 hover:bg-blue-100 border border-blue-100 hover:border-blue-200 transition-all">
             <div class="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
             </div>
             <span class="text-xs font-bold text-blue-700">Utilisateurs</span>
           </NuxtLink>
-          <NuxtLink to="/admin/assignments" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-green-50 hover:bg-green-100 border border-green-100 hover:border-green-200 transition-all">
+          <NuxtLink to="/admin-assignments" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-green-50 hover:bg-green-100 border border-green-100 hover:border-green-200 transition-all">
             <div class="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             </div>
             <span class="text-xs font-bold text-green-700">Assignations</span>
           </NuxtLink>
-          <NuxtLink to="/admin/export" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-primary-50 hover:bg-primary-100 border border-primary-100 hover:border-primary-200 transition-all">
+          <NuxtLink to="/admin-export" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-primary-50 hover:bg-primary-100 border border-primary-100 hover:border-primary-200 transition-all">
             <div class="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
               <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             </div>
             <span class="text-xs font-bold text-primary-700">Export CSV</span>
           </NuxtLink>
-          <NuxtLink to="/admin/settings" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all">
+          <NuxtLink to="/admin-settings" class="flex flex-col items-center gap-3 p-5 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all">
             <div class="w-10 h-10 rounded-xl bg-gray-600 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>

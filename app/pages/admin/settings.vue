@@ -204,7 +204,7 @@
 </style>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'admin'] })
+  definePageMeta({ path: '/admin-settings', middleware: ['auth', 'admin'] })
   const { accessToken } = useAuth()
 
   interface GymSettings {

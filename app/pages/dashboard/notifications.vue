@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/notifications', middleware: ['auth', 'client-only'] })
 
   const { accessToken } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

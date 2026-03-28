@@ -32,7 +32,7 @@
 
         <p class="text-xs text-gray-400 mt-4">
           Déjà abonné ?
-          <NuxtLink to="/dashboard/subscriptions" class="text-primary-600 hover:underline font-medium">
+          <NuxtLink to="/subscriptions" class="text-primary-600 hover:underline font-medium">
             Vérifier mon abonnement
           </NuxtLink>
         </p>
