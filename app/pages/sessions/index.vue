@@ -133,12 +133,8 @@
       Erreur lors du chargement des séances.
     </div>
 
-    <!-- Gated content -->
-    <SubscriptionGate
-      v-else
-      :active="subActive"
-      message="Souscrivez à une formule pour parcourir les séances disponibles et effectuer des réservations."
-    >
+    <!-- Sessions content -->
+    <div v-else>
       <!-- Empty -->
       <div v-if="!sessions.length" class="bg-white rounded-2xl border border-gray-100 shadow-sm py-16 px-6 text-center">
         <div class="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
@@ -266,7 +262,7 @@
         :total="pagination.total"
         @update:model-value="goToPage($event)"
       />
-    </SubscriptionGate>
+    </div>
 
     <!-- Toast -->
     <Teleport to="body">
@@ -370,7 +366,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ middleware: 'auth' })
+  definePageMeta({ middleware: ['auth', 'client-only', 'subscription'] })
 
   const { accessToken, isClient, ensureFresh } = useAuth()
 
@@ -389,12 +385,6 @@
   const toDate = ref('')
   const showFilters = ref(false)
 
-  const subHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
-  const { data: subData, pending: subPending } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
-    headers: subHeaders,
-    default: () => ({ active: false }),
-  })
-  const subActive = computed(() => !isClient.value || (subData.value?.active ?? false))
 
   interface Session {
     id: string; dateTime: string; duration: number; capacity: number; coachId: string
@@ -431,7 +421,7 @@
 
   const sessions = computed(() => data.value?.sessions ?? [])
   const pagination = computed(() => data.value?.pagination ?? null)
-  const isLoading = computed(() => pending.value || subPending.value)
+  const isLoading = computed(() => pending.value)
 
   async function switchTab(value: 'upcoming' | 'past') {
     tab.value = value as 'upcoming' | 'past'

@@ -1,19 +1,32 @@
 <template>
   <div>
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Notifications</h1>
-        <p class="text-sm text-gray-500 mt-0.5">{{ unreadCount }} non lue(s)</p>
+    <!-- ── Hero banner ──────────────────────────────────────────── -->
+    <div class="relative overflow-hidden rounded-2xl bg-black mb-8 px-6 py-8 sm:px-10 sm:py-10">
+      <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, #eab308 0, #eab308 1px, transparent 0, transparent 50%); background-size: 20px 20px;"/>
+      <div class="absolute -top-10 -right-10 w-48 h-48 bg-primary-400/20 rounded-full blur-3xl"/>
+      <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-primary-400/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+            </div>
+            <span class="text-xs font-bold text-primary-400 uppercase tracking-widest">Notifications</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight">Vos notifications</h1>
+          <p class="text-sm text-gray-400 mt-1.5">{{ unreadCount > 0 ? `${unreadCount} non lue(s)` : 'Tout est à jour !' }}</p>
+        </div>
+        <button
+          v-if="unreadCount > 0"
+          class="shrink-0 inline-flex items-center gap-2 bg-primary-400 hover:bg-primary-300 text-black font-bold text-sm px-5 py-2.5 rounded-xl transition-all"
+          :disabled="markingAll"
+          @click="markAllRead"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+          {{ markingAll ? 'En cours…' : 'Tout marquer lu' }}
+        </button>
       </div>
-      <button
-        v-if="unreadCount > 0"
-        class="btn-secondary text-sm"
-        :disabled="markingAll"
-        @click="markAllRead"
-      >
-        {{ markingAll ? 'En cours…' : 'Tout marquer lu' }}
-      </button>
     </div>
 
     <!-- Loading -->
@@ -73,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ path: '/notifications', middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/notifications', middleware: ['auth', 'client-only', 'subscription'] })
 
   const { accessToken } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

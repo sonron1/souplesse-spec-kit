@@ -30,7 +30,7 @@
 
           <!-- CLIENT-only links (hidden from coaches and admins) -->
           <template v-if="isClient">
-            <div class="relative" @mouseenter="sessionsDrop = true" @mouseleave="sessionsDrop = false">
+            <div v-if="hasActiveSub" class="relative" @mouseenter="sessionsDrop = true" @mouseleave="sessionsDrop = false">
               <button
                 class="nav-pill"
                 :class="isOnSessionsRoute ? 'nav-pill-active' : ''"
@@ -53,7 +53,7 @@
                 </div>
               </Transition>
             </div>
-            <div class="relative" @mouseenter="bookingsDrop = true" @mouseleave="bookingsDrop = false">
+            <div v-if="hasActiveSub" class="relative" @mouseenter="bookingsDrop = true" @mouseleave="bookingsDrop = false">
               <button
                 class="nav-pill"
                 :class="isOnBookingsRoute ? 'nav-pill-active' : ''"
@@ -81,7 +81,7 @@
               Abonnement
             </NuxtLink>
 
-            <NuxtLink to="/messages" class="nav-pill relative" active-class="nav-pill-active">
+            <NuxtLink v-if="hasActiveSub" to="/messages" class="nav-pill relative" active-class="nav-pill-active">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
               Messages
               <span v-if="unreadMessages > 0" class="ml-1 bg-red-500 text-white text-[9px] font-bold rounded-full px-1 min-w-[16px] text-center leading-4">
@@ -89,7 +89,7 @@
               </span>
             </NuxtLink>
 
-            <NuxtLink to="/my-coach" class="nav-pill" active-class="nav-pill-active">
+            <NuxtLink v-if="hasActiveSub" to="/my-coach" class="nav-pill" active-class="nav-pill-active">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               Mon coach
             </NuxtLink>
@@ -298,19 +298,19 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     Tableau de bord
                   </NuxtLink>
-                  <NuxtLink to="/sessions" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/sessions" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     Séances disponibles
                   </NuxtLink>
-                  <NuxtLink to="/programs" class="drawer-link pl-10" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/programs" class="drawer-link pl-10" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                     Programmes
                   </NuxtLink>
-                  <NuxtLink to="/reservations" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/reservations" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Mes réservations
                   </NuxtLink>
-                  <NuxtLink to="/calendar" class="drawer-link pl-10" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/calendar" class="drawer-link pl-10" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     Calendrier
                   </NuxtLink>
@@ -318,19 +318,19 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                     Mon abonnement
                   </NuxtLink>
-                  <NuxtLink to="/notifications" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/notifications" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                     Notifications
                   </NuxtLink>
 
-                  <NuxtLink to="/messages" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/messages" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                     Messages
                     <span v-if="unreadMessages > 0" class="ml-auto bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 min-w-[18px] text-center leading-4">
                       {{ unreadMessages > 99 ? '99+' : unreadMessages }}
                     </span>
                   </NuxtLink>
-                  <NuxtLink to="/my-coach" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
+                  <NuxtLink v-if="hasActiveSub" to="/my-coach" class="drawer-link" active-class="drawer-link-active" @click="drawerOpen = false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     Mon coach
                   </NuxtLink>
@@ -467,7 +467,7 @@
               <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
               <span>Accueil</span>
             </NuxtLink>
-            <NuxtLink to="/sessions" class="bottom-nav-item" active-class="bottom-nav-item-active">
+            <NuxtLink v-if="hasActiveSub" to="/sessions" class="bottom-nav-item" active-class="bottom-nav-item-active">
               <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
               <span>Séances</span>
             </NuxtLink>
@@ -475,7 +475,7 @@
               <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
               <span>Abonnement</span>
             </NuxtLink>
-            <NuxtLink to="/messages" class="bottom-nav-item" active-class="bottom-nav-item-active">
+            <NuxtLink v-if="hasActiveSub" to="/messages" class="bottom-nav-item" active-class="bottom-nav-item-active">
               <div class="relative">
                 <svg class="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                 <span v-if="unreadMessages > 0" class="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{{ unreadMessages > 9 ? '9+' : unreadMessages }}</span>
@@ -553,6 +553,22 @@
 <script setup lang="ts">
   const { user, isAdmin, isCoach, isClient, logout, accessToken, ensureFresh, handleSessionRevoked } = useAuth()
   const route = useRoute()
+
+  // Subscription status — used to conditionally show/hide gated nav links
+  const hasActiveSub = ref(false)
+  async function refreshSubStatus() {
+    if (!isClient.value || !accessToken.value) return
+    try {
+      const data = await $fetch<{ active: boolean }>('/api/me/subscription', {
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      })
+      hasActiveSub.value = data?.active ?? false
+    } catch {
+      hasActiveSub.value = false
+    }
+  }
+  onMounted(() => { refreshSubStatus(); setInterval(refreshSubStatus, 60_000) })
+  watch(() => route.path, refreshSubStatus)
 
   // Unread messages badge (poll every 30s, only for coach/client)
   const unreadMessages = ref(0)

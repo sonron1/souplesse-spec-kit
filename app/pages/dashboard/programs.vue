@@ -1,13 +1,8 @@
 ﻿<script setup lang="ts">
-definePageMeta({ path: '/programs', middleware: ['auth', 'client-only'] })
+definePageMeta({ path: '/programs', middleware: ['auth', 'client-only', 'subscription'] })
 
-const { accessToken, isClient } = useAuth()
-
-const { data: subData, pending: subPending } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
-  headers: computed(() => ({ Authorization: `Bearer ${accessToken.value}` })),
-  default: () => ({ active: false }),
-})
-const subActive = computed(() => !isClient.value || (subData.value?.active ?? false))
+const { accessToken } = useAuth()
+const subPending = ref(false)
 
 interface Exercise { day: string; name: string; sets: number; reps: string; rest: string }
 interface ProgramContent {
@@ -59,7 +54,7 @@ const typeConfig = {
       <p class="text-red-600 font-semibold">Erreur lors du chargement.</p>
     </div>
 
-    <SubscriptionGate v-else :active="subActive" message="Souscrivez à une formule pour accéder à vos programmes personnalisés.">
+    <div v-else>
 
       <!-- Empty state -->
       <div v-if="!programs.length" class="flex flex-col items-center justify-center py-20 text-center">
@@ -163,7 +158,7 @@ const typeConfig = {
         </div>
       </div>
 
-    </SubscriptionGate>
+    </div>
   </div>
 </template>
 

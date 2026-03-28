@@ -25,7 +25,7 @@
       </div>
     </div>
 
-    <SubscriptionGate v-else :active="subActive" class="flex-1 flex flex-col min-h-0" message="Souscrivez à une formule et choisissez un coach pour accéder à la messagerie.">
+    <div v-else class="flex-1 flex flex-col min-h-0">
 
       <!-- Assignment: PENDING -->
       <div v-if="assignmentStatus === 'PENDING'" class="flex-1 flex items-center justify-center">
@@ -200,12 +200,12 @@
         </div>
       </div>
 
-    </SubscriptionGate>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ path: '/messages', middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/messages', middleware: ['auth', 'client-only', 'subscription'] })
 
   const { user: me, accessToken, ensureFresh } = useAuth()
 
@@ -228,7 +228,6 @@
   }
 
   const pending = ref(true)
-  const subActive = ref(false)
   const coach = ref<{ id: string; name: string; email: string } | null>(null)
   const coachId = ref<string | null>(null)
   const assignmentStatus = ref<string | null>(null)
@@ -251,12 +250,10 @@
   async function loadInitial() {
     if (!accessToken.value) return
     try {
-      const [convoData, assignData, subData] = await Promise.all([
+      const [convoData, assignData] = await Promise.all([
         $fetch<{ conversations: ConversationRow[] }>('/api/messages', { headers: authHeader() }),
         $fetch<AssignmentData>('/api/me/assignment', { headers: authHeader() }),
-        $fetch<{ active: boolean }>('/api/me/subscription', { headers: authHeader() }).catch(() => ({ active: false })),
       ])
-      subActive.value = subData.active
       const first = convoData.conversations?.[0]
       coach.value = first?.coach ?? null
       coachId.value = first?.coachId ?? null

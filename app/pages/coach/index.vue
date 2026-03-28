@@ -1,20 +1,27 @@
 <template>
   <div>
-    <!-- Header with avatar -->
-    <div class="flex items-center justify-between mb-8">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-primary-400 font-extrabold text-lg shrink-0">
-          {{ initials }}
-        </div>
+    <!-- ── Hero banner ──────────────────────────────────────────── -->
+    <div class="relative overflow-hidden rounded-2xl bg-black mb-8 px-6 py-8 sm:px-10 sm:py-10">
+      <div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, #3b82f6 0, #3b82f6 1px, transparent 0, transparent 50%); background-size: 20px 20px;"/>
+      <div class="absolute -top-10 -right-10 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl"/>
+      <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Espace Coach</h1>
-          <p class="text-sm text-gray-500 mt-0.5">Bonjour, {{ user?.name }} !</p>
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-blue-400/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Espace Coach</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight">Bonjour, {{ user?.name?.split(' ')[0] }} !</h1>
+          <p class="text-sm text-gray-400 mt-1.5">Bienvenue dans votre espace coach Souplesse.</p>
         </div>
+        <NuxtLink to="/coach-sessions" class="shrink-0 inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Planifier une séance
+        </NuxtLink>
       </div>
-      <NuxtLink to="/coach-sessions" class="btn-primary text-sm gap-1.5">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        Planifier une séance
-      </NuxtLink>
     </div>
 
     <!-- KPI summary -->

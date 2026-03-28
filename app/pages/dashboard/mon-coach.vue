@@ -316,7 +316,7 @@
 </template>
 
 <script setup lang="ts">
-  definePageMeta({ path: '/my-coach', middleware: ['auth', 'client-only'] })
+  definePageMeta({ path: '/my-coach', middleware: ['auth', 'client-only', 'subscription'] })
 
   const { accessToken } = useAuth()
   const headers = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))

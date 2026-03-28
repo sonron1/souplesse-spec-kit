@@ -1,14 +1,9 @@
 ﻿<script setup lang="ts">
-definePageMeta({ path: '/reservations', middleware: ['auth', 'client-only'] })
+definePageMeta({ path: '/reservations', middleware: ['auth', 'client-only', 'subscription'] })
 
 const { accessToken } = useAuth()
 
-const subHeaders = computed(() => ({ Authorization: `Bearer ${accessToken.value}` }))
-const { data: subData, pending: subLoading } = await useLazyFetch<{ active: boolean }>('/api/me/subscription', {
-  headers: subHeaders,
-  default: () => ({ active: false }),
-})
-const subActive = computed(() => subData.value?.active ?? false)
+const subLoading = ref(false)
 
 interface Booking {
   id: string
@@ -124,14 +119,10 @@ async function cancelBooking(id: string) {
         <h1 class="text-2xl font-extrabold text-gray-900">Mes réservations</h1>
         <p class="text-sm text-gray-400 mt-0.5">{{ totalCount }} au total</p>
       </div>
-      <NuxtLink v-if="!subLoading && subActive" to="/sessions"
+      <NuxtLink to="/sessions"
         class="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Réserver
-      </NuxtLink>
-      <NuxtLink v-else-if="!subLoading && !subActive" to="/subscribe"
-        class="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all">
-        S'abonner →
       </NuxtLink>
     </div>
 
@@ -148,7 +139,7 @@ async function cancelBooking(id: string) {
       </div>
     </Transition>
 
-    <SubscriptionGate v-if="!pending && !subLoading" :active="subActive" message="Souscrivez à une formule pour pouvoir réserver des séances du club.">
+    <div v-if="!pending && !subLoading">
 
       <!-- Empty state -->
       <div v-if="!totalCount" class="flex flex-col items-center justify-center py-20 text-center">
@@ -245,7 +236,7 @@ async function cancelBooking(id: string) {
         </section>
       </template>
 
-    </SubscriptionGate>
+    </div>
 
     <!-- Confirm cancel modal -->
     <Teleport to="body">
