@@ -313,7 +313,7 @@ export async function handleWebhook(
       // Buyer activation (atomic, serializable to guard single-active invariant)
       await withSerializableRetry(() =>
         prisma.$transaction(
-          async (prismaT) => {
+          async (prismaT: Prisma.TransactionClient) => {
             await _activateForUserTx(prismaT, {
               userId: paymentOrder.userId,
               subscriptionPlanId: paymentOrder.subscriptionPlanId,
@@ -332,7 +332,7 @@ export async function handleWebhook(
         try {
           await withSerializableRetry(() =>
             prisma.$transaction(
-              async (prismaT) => {
+              async (prismaT: Prisma.TransactionClient) => {
                 // Re-check partner couple status inside the serializable snapshot
                 const existingCoupleSub = await prismaT.subscription.findFirst({
                   where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
@@ -365,7 +365,7 @@ export async function handleWebhook(
           try {
             const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } })
             await prisma.notification.createMany({
-              data: admins.map((a) => ({
+              data: admins.map((a: (typeof admins)[number]) => ({
                 userId: a.id,
                 type: 'COUPLE_ACTIVATION_FAILED',
                 title: 'Activation couple échouée (webhook)',
@@ -445,9 +445,9 @@ export async function confirmPayment(opts: {
   let extended: boolean
 
   try {
-    const result = await withSerializableRetry(() =>
+    const result: { subscriptionId: string; extended: boolean } = await withSerializableRetry(() =>
       prisma.$transaction(
-        async (tx) => {
+        async (tx: Prisma.TransactionClient): Promise<{ subscriptionId: string; extended: boolean }> => {
           const payment = await tx.payment.create({
             data: {
               userId,
@@ -504,7 +504,7 @@ export async function confirmPayment(opts: {
     try {
       await withSerializableRetry(() =>
         prisma.$transaction(
-          async (tx) => {
+          async (tx: Prisma.TransactionClient) => {
             // Re-check partner couple status inside the serializable snapshot
             const existingCoupleSub = await tx.subscription.findFirst({
               where: { userId: partnerUserId, isActive: true, partnerUserId: { not: null } },
@@ -537,7 +537,7 @@ export async function confirmPayment(opts: {
       try {
         const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } })
         await prisma.notification.createMany({
-          data: admins.map((a) => ({
+          data: admins.map((a: (typeof admins)[number]) => ({
             userId: a.id,
             type: 'COUPLE_ACTIVATION_FAILED',
             title: 'Activation couple échouée',

@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
         lastRanAt:   last?.createdAt ?? null,
         lastMessage: last?.message   ?? null,
         lastMeta:    last?.meta      ?? null,
-        history:     logs.map(l => ({
+        history:     logs.map((l: (typeof logs)[number]) => ({
           ranAt:   l.createdAt,
           message: l.message,
           meta:    l.meta,

@@ -95,7 +95,7 @@ function makeEvent(overrides: Record<string, any> = {}) {
   return { context: {}, ...overrides }
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 // ─── GET /api/coaches ─────────────────────────────────────────────────────────
 describe('GET /api/coaches', () => {

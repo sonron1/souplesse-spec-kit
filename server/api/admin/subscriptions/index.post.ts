@@ -1,5 +1,6 @@
 import { defineEventHandler, readBody, createError } from 'h3'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../../utils/prisma'
 import { requireAuth } from '../../../middleware/auth.middleware'
 import { requireAdmin } from '../../../utils/role'
@@ -47,7 +48,7 @@ export default defineEventHandler(async (event) => {
   // The findFirst and all writes are inside a Serializable transaction so that a
   // concurrent admin grant or payment webhook cannot sneak in a second isActive=true row.
   const { subscription, extended } = await prisma.$transaction(
-    async (tx) => {
+    async (tx: Prisma.TransactionClient) => {
       // Re-read inside the serializable snapshot (TOCTOU guard — prevents stale-read race).
       // Search ANY active sub — cumulation applies across different plan types too.
       const existing = await tx.subscription.findFirst({

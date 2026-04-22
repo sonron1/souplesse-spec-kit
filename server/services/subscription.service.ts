@@ -57,7 +57,7 @@ export const subscriptionService = {
 
     try {
       return await prisma.$transaction(
-        async (tx) => {
+        async (tx: Prisma.TransactionClient) => {
           // Re-read inside the serializable snapshot so any concurrent activation
           // is visible before we start writing.
           const current = await tx.subscription.findUnique({ where: { id: subscriptionId } })

@@ -16,7 +16,8 @@ export default defineEventHandler(async (event) => {
   })
 
   // Resolve partner display info for couple subscriptions in one query
-  const partnerIds = [...new Set(subscriptions.filter(s => s.partnerUserId).map(s => s.partnerUserId!))]
+  type Sub = (typeof subscriptions)[number]
+  const partnerIds = [...new Set(subscriptions.filter((s: Sub) => s.partnerUserId).map((s: Sub) => s.partnerUserId!))]
   const partnersMap = new Map<string, { name: string; email: string }>()
 
   if (partnerIds.length > 0) {
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  return subscriptions.map(s => ({
+  return subscriptions.map((s: Sub) => ({
     ...s,
     partnerInfo: s.partnerUserId ? (partnersMap.get(s.partnerUserId) ?? null) : null,
   }))
