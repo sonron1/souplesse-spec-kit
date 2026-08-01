@@ -37,19 +37,27 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
 
 ## Dernière session
 
-- **Date/surface** : chat Claude.ai — 2026-08-01
-- **Fait** : maquettes cliquables du parcours abonnement/paiement (3 itérations),
-  puis connexion/inscription + 4 dashboards. Toutes validées par Ange sans réserve.
-- **Pas encore fait** : ces fichiers ne sont pas encore déposés dans le dépôt GitHub
-  (ils existent seulement en pièces jointes de la session chat).
+- **Date/surface** : chat Claude.ai + Claude Code (VS Code) — 2026-08-01
+- **Fait** : cahier des charges (v2.1, Markdown), STATUS.md, CLAUDE.md mis à jour,
+  et les prototypes cliquables (paiement/abonnement + auth/dashboards) déposés et
+  poussés sur la branche `feat/mobile-app` (commit `82038b1`, complété par un second
+  commit ajoutant le prototype de paiement). Confirmé pushé sur GitHub par Ange.
+- **Pas encore fait** : la branche `feat/mobile-app` n'est pas encore mergée dans
+  `master`. Aucun code de l'application mobile (React Native) n'a encore été écrit —
+  seuls les documents et prototypes existent à ce stade.
 
 ## Prochaine étape
 
-1. Déposer le cahier des charges + les prototypes dans `specs/2-mobile-app/` sur GitHub.
-2. Mettre à jour `CLAUDE.md` (racine) pour qu'il pointe vers ce fichier STATUS.md.
-3. Initialiser le projet React Native/Expo (nouveau dossier `mobile/` ou dépôt séparé —
-   à confirmer avec Ange) à partir du système de design déjà validé.
+1. Initialiser le projet React Native/Expo (décider : nouveau dossier `mobile/` dans
+   ce même dépôt, ou dépôt séparé — à trancher avec Ange avant de commencer).
+2. Reprendre le système de design déjà validé (couleur `#EAB308`, Manrope/Inter,
+   composants des prototypes HTML) comme base des composants React Native.
+3. Commencer par l'authentification (JWT, réutilise l'API existante) + navigation,
+   avant le module d'abonnement/preuve de paiement (voir section 11 du cahier des
+   charges pour l'ordre des phases).
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-08-01 — chat + Claude Code — Docs et prototypes poussés sur `feat/mobile-app`
+  (cahier des charges Markdown, STATUS.md, CLAUDE.md, prototypes paiement + auth/dashboards).
 - 2026-08-01 — chat — Maquettes validées (paiement, auth, 4 dashboards). Voir ci-dessus.
