@@ -39,14 +39,27 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
 
 ## Dernière session
 
-- **Date/surface** : chat Claude.ai + Claude Code (VS Code) — 2026-08-01
-- **Fait** : cahier des charges (v2.1, Markdown), STATUS.md, CLAUDE.md mis à jour,
-  et les prototypes cliquables (paiement/abonnement + auth/dashboards) déposés et
-  poussés sur la branche `feat/mobile-app` (commit `82038b1`, complété par un second
-  commit ajoutant le prototype de paiement). Confirmé pushé sur GitHub par Ange.
-- **Pas encore fait** : la branche `feat/mobile-app` n'est pas encore mergée dans
-  `master`. Aucun code de l'application mobile (React Native) n'a encore été écrit —
-  seuls les documents et prototypes existent à ce stade.
+- **Date/surface** : Claude Code (VS Code) — 2026-08-02
+- **Fait** : scaffold Expo initialisé dans `mobile/` (`create-expo-app@latest`,
+  template `blank-typescript`), navigation React Navigation installée
+  (`native`, `native-stack`, `bottom-tabs`, `react-native-screens`,
+  `react-native-safe-area-context`), polices installées (`expo-font`,
+  `@expo-google-fonts/manrope`, `@expo-google-fonts/inter`), `mobile/src/theme/tokens.ts`
+  créé (copie exacte de `specs/2-mobile-app/mobile-theme-tokens.ts`), 6 écrans
+  stub créés dans `mobile/src/screens/` (Login, Register, ClientDashboard,
+  CoachDashboard, ModeratorDashboard, AdminDashboard). Committé sur
+  `feat/mobile-app` (commit `94dd2a2` — "chore: init expo project scaffold").
+  Le `package.json` racine (Nuxt) n'a pas été touché ; `mobile/node_modules`
+  est ignoré via le `.gitignore` racine (règle `node_modules` non ancrée).
+  Note : le template Expo a lui-même généré `mobile/AGENTS.md`,
+  `mobile/CLAUDE.md` (qui référence `AGENTS.md`) et `mobile/.claude/settings.json`
+  — fichiers standards du scaffold `blank-typescript`, non modifiés par ailleurs.
+  Prompt interactif de `create-expo-app` ("Skip initializing a new git repo?")
+  résolu automatiquement sur son défaut (Oui) car aucun `.git` n'a été créé
+  dans `mobile/` — comportement conforme à l'attente monorepo.
+- **Pas encore fait** : ARRÊT OBLIGATOIRE atteint (étape 8) — aucun écran de
+  connexion, navigation par rôle ou appel API n'a été implémenté. La branche
+  `feat/mobile-app` n'est toujours pas mergée dans `master`.
 
 ## Prochaine étape — à exécuter dans cet ordre exact, une case à la fois
 
@@ -55,42 +68,47 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
 > de ce qui est décrit, ou si un choix non couvert ici se présente : **s'arrêter
 > et poser la question plutôt que de deviner.**
 
-- [ ] **1.** Se placer à la racine du dépôt (dossier contenant `CLAUDE.md` et le
+- [x] **1.** Se placer à la racine du dépôt (dossier contenant `CLAUDE.md` et le
       `package.json` de Nuxt) — ne pas exécuter les commandes suivantes ailleurs.
-- [ ] **2.** Lancer exactement :
+- [x] **2.** Lancer exactement :
       ```
       npx create-expo-app@latest mobile --template blank-typescript
       ```
       Le flag `--template blank-typescript` est obligatoire : sans lui, la
       commande pose une question interactive. Ne pas omettre ce flag.
-- [ ] **3.** Vérifier que `mobile/package.json` a été créé avec son propre
+- [x] **3.** Vérifier que `mobile/package.json` a été créé avec son propre
       `package.json` indépendant. **Ne pas** fusionner ses dépendances avec
       celles du `package.json` racine (Nuxt) : ce sont deux projets Node
       séparés dans le même dépôt.
-- [ ] **4.** Depuis `mobile/`, installer la navigation :
+- [x] **4.** Depuis `mobile/`, installer la navigation :
       ```
       npx expo install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context
       ```
-- [ ] **5.** Depuis `mobile/`, installer les polices :
+- [x] **5.** Depuis `mobile/`, installer les polices :
       ```
       npx expo install expo-font @expo-google-fonts/manrope @expo-google-fonts/inter
       ```
-- [ ] **6.** Créer `mobile/src/theme/tokens.ts` avec le contenu exact fourni dans
+- [x] **6.** Créer `mobile/src/theme/tokens.ts` avec le contenu exact fourni dans
       `specs/2-mobile-app/mobile-theme-tokens.ts` (copier ce fichier tel quel,
       ne pas réinventer les valeurs de couleur).
-- [ ] **7.** Créer des écrans vides (stub) — un fichier par écran, aucune logique
+- [x] **7.** Créer des écrans vides (stub) — un fichier par écran, aucune logique
       dedans pour l'instant, juste un `<View>` avec le titre de l'écran en texte :
       `mobile/src/screens/LoginScreen.tsx`, `RegisterScreen.tsx`,
       `ClientDashboardScreen.tsx`, `CoachDashboardScreen.tsx`,
       `ModeratorDashboardScreen.tsx`, `AdminDashboardScreen.tsx`.
-- [ ] **8. ARRÊT OBLIGATOIRE.** Une fois les points 1 à 7 terminés : ne pas
+- [x] **8. ARRÊT OBLIGATOIRE.** Une fois les points 1 à 7 terminés : ne pas
       continuer sur l'écran de connexion, la navigation par rôle, ou l'API —
       committer ce qui existe (`git add mobile && git commit -m "chore: init expo project scaffold"`),
       mettre à jour ce fichier (`Dernière session` + cocher les cases ci-dessus),
       et attendre la validation d'Ange avant d'aller plus loin.
+      **→ Fait. En attente de la validation d'Ange avant de poursuivre.**
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-08-02 — Claude Code — Scaffold Expo initialisé dans `mobile/` (navigation,
+  polices, tokens de thème, 6 écrans stub). Commit `94dd2a2` sur `feat/mobile-app`.
+  Étapes 1-7 de la checklist terminées, arrêt obligatoire à l'étape 8, en attente
+  de validation.
 - 2026-08-01 — chat + Claude Code — Docs et prototypes poussés sur `feat/mobile-app`
   (cahier des charges Markdown, STATUS.md, CLAUDE.md, prototypes paiement + auth/dashboards).
 - 2026-08-01 — chat — Maquettes validées (paiement, auth, 4 dashboards). Voir ci-dessus.
