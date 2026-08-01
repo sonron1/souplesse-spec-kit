@@ -26,6 +26,8 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
   prévu dès le départ dans l'architecture (React Native/Expo, pas de code natif
   spécifique à une seule plateforme) pour ne pas devoir réécrire plus tard.
 - Stack : React Native + Expo, backend = extension de l'API Nitro/Prisma existante.
+- **Monorepo** : le projet React Native vit dans `mobile/` à la racine de ce même
+  dépôt (`souplesse-speckit`), pas dans un dépôt séparé.
 - Identité visuelle validée : couleur de marque `#EAB308` (celle du site), thème
   sombre, typographies Manrope (titres) + Inter (texte).
 
@@ -48,10 +50,14 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
 
 ## Prochaine étape
 
-1. Initialiser le projet React Native/Expo (décider : nouveau dossier `mobile/` dans
-   ce même dépôt, ou dépôt séparé — à trancher avec Ange avant de commencer).
+1. Initialiser le projet Expo dans `mobile/` à la racine du dépôt :
+   ```
+   npx create-expo-app@latest mobile --template
+   ```
+   (choisir le template TypeScript blank).
 2. Reprendre le système de design déjà validé (couleur `#EAB308`, Manrope/Inter,
-   composants des prototypes HTML) comme base des composants React Native.
+   composants des prototypes HTML) comme base des composants React Native —
+   commencer par un fichier de thème/tokens partagé (`mobile/src/theme/`).
 3. Commencer par l'authentification (JWT, réutilise l'API existante) + navigation,
    avant le module d'abonnement/preuve de paiement (voir section 11 du cahier des
    charges pour l'ordre des phases).
