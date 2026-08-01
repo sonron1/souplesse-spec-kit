@@ -9,8 +9,9 @@
 
 ## Où on en est (résumé en une phrase)
 
-Cahier des charges v2 finalisé + maquettes validées (parcours abonnement/paiement,
-connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
+Cahier des charges v2 finalisé, maquettes validées, scaffold Expo initialisé et
+dépôt nettoyé. La phase authentification (écrans + navigation par rôle) reste
+à câbler.
 
 ## Décisions actées (ne pas rouvrir sans le dire explicitement)
 
@@ -30,9 +31,6 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
   dépôt (`souplesse-speckit`), pas dans un dépôt séparé.
 - Identité visuelle validée : couleur de marque `#EAB308` (celle du site), thème
   sombre, typographies Manrope (titres) + Inter (texte).
-
-  ## BLOC A 
- 
 - **Authentification mobile** : réutilise telle quelle l'API JWT existante
   (`/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`,
   `/api/auth/logout`) — aucune nouvelle route d'auth à créer.
@@ -59,71 +57,77 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
   template `blank-typescript`), navigation React Navigation installée
   (`native`, `native-stack`, `bottom-tabs`, `react-native-screens`,
   `react-native-safe-area-context`), polices installées (`expo-font`,
-  `@expo-google-fonts/manrope`, `@expo-google-fonts/inter`), `mobile/src/theme/tokens.ts`
-  créé (copie exacte de `specs/2-mobile-app/mobile-theme-tokens.ts`), 6 écrans
-  stub créés dans `mobile/src/screens/` (Login, Register, ClientDashboard,
-  CoachDashboard, ModeratorDashboard, AdminDashboard). Committé sur
-  `feat/mobile-app` (commit `94dd2a2` — "chore: init expo project scaffold").
-  Le `package.json` racine (Nuxt) n'a pas été touché ; `mobile/node_modules`
-  est ignoré via le `.gitignore` racine (règle `node_modules` non ancrée).
-  Note : le template Expo a lui-même généré `mobile/AGENTS.md`,
-  `mobile/CLAUDE.md` (qui référence `AGENTS.md`) et `mobile/.claude/settings.json`
-  — fichiers standards du scaffold `blank-typescript`, non modifiés par ailleurs.
-  Prompt interactif de `create-expo-app` ("Skip initializing a new git repo?")
-  résolu automatiquement sur son défaut (Oui) car aucun `.git` n'a été créé
-  dans `mobile/` — comportement conforme à l'attente monorepo.
-- **Pas encore fait** : ARRÊT OBLIGATOIRE atteint (étape 8) — aucun écran de
-  connexion, navigation par rôle ou appel API n'a été implémenté. La branche
+  `@expo-google-fonts/manrope`, `@expo-google-fonts/inter`),
+  `mobile/src/theme/tokens.ts` créé (copie exacte de
+  `specs/2-mobile-app/mobile-theme-tokens.ts`), 6 écrans stub créés dans
+  `mobile/src/screens/` (Login, Register, ClientDashboard, CoachDashboard,
+  ModeratorDashboard, AdminDashboard). Committé sur `feat/mobile-app` (commit
+  `94dd2a2`). Dépôt nettoyé séparément : `.claude/`, `out.txt`, `out_tsc.txt`,
+  `env_tmp_val.txt` retirés du suivi Git et ajoutés au `.gitignore` racine
+  (aucun secret réel trouvé — `env_tmp_val.txt` ne contenait qu'une URL
+  publique).
+- **Pas encore fait** : ARRÊT OBLIGATOIRE atteint — aucun écran de connexion,
+  navigation par rôle ou appel API n'a été implémenté. La branche
   `feat/mobile-app` n'est toujours pas mergée dans `master`.
 
-## Prochaine étape — à exécuter dans cet ordre exact, une case à la fois
+## Prochaine étape — Phase Authentification (à exécuter dans cet ordre exact)
 
-> Ces instructions sont volontairement littérales (commandes exactes, noms de
-> paquets exacts, chemins exacts). Si une commande produit un résultat différent
-> de ce qui est décrit, ou si un choix non couvert ici se présente : **s'arrêter
-> et poser la question plutôt que de deviner.**
+> Instructions littérales : s'arrêter et écrire dans "Questions en attente"
+> (nouvelle section à créer si besoin) en cas de doute plutôt que deviner.
 
-- [x] **1.** Se placer à la racine du dépôt (dossier contenant `CLAUDE.md` et le
-      `package.json` de Nuxt) — ne pas exécuter les commandes suivantes ailleurs.
-- [x] **2.** Lancer exactement :
+- [ ] **1.** Depuis `mobile/`, installer :
       ```
-      npx create-expo-app@latest mobile --template blank-typescript
+      npx expo install expo-secure-store
       ```
-      Le flag `--template blank-typescript` est obligatoire : sans lui, la
-      commande pose une question interactive. Ne pas omettre ce flag.
-- [x] **3.** Vérifier que `mobile/package.json` a été créé avec son propre
-      `package.json` indépendant. **Ne pas** fusionner ses dépendances avec
-      celles du `package.json` racine (Nuxt) : ce sont deux projets Node
-      séparés dans le même dépôt.
-- [x] **4.** Depuis `mobile/`, installer la navigation :
+- [ ] **2.** Créer `mobile/.env.example` avec cette ligne exacte :
       ```
-      npx expo install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context
+      EXPO_PUBLIC_API_URL=https://souplessefitness.com/api
       ```
-- [x] **5.** Depuis `mobile/`, installer les polices :
+      Créer aussi `mobile/.env` (mêmes valeurs) — vérifier qu'il est bien
+      ignoré par `mobile/.gitignore` (le template Expo l'ignore par défaut ;
+      confirmer, ne pas supposer).
+- [ ] **3.** Créer `mobile/src/config/env.ts` qui exporte
+      `API_URL = process.env.EXPO_PUBLIC_API_URL`, avec une erreur explicite
+      au démarrage si la variable est absente.
+- [ ] **4.** Créer `mobile/src/api/client.ts` : wrapper `fetch` qui préfixe
+      `API_URL`, ajoute `Authorization: Bearer <accessToken>` s'il existe, et
+      expose `apiFetch(path, options)`.
+- [ ] **5.** Créer `mobile/src/api/auth.ts` avec `login(email, password)`,
+      `register(name, email, phone, password)`, `logout()`, chacune appelant
+      la route correspondante via `apiFetch`.
+- [ ] **6.** Créer `mobile/src/context/AuthContext.tsx` : contexte React
+      exposant `user`, `isLoading`, `login()`, `register()`, `logout()`. Au
+      montage, restaure la session depuis `expo-secure-store` si des tokens
+      existent ; sinon `user = null`.
+- [ ] **7.** Créer `mobile/src/navigation/RootNavigator.tsx` :
+      - si `isLoading` → écran de chargement simple
+      - si `user === null` → `AuthStack` (Login, Register,
+        `@react-navigation/native-stack`)
+      - sinon → le dashboard correspondant à `user.role` (mapping ci-dessus)
+- [ ] **8.** Brancher `LoginScreen.tsx` et `RegisterScreen.tsx` (stubs
+      existants) sur `AuthContext` : formulaire contrôlé, appel à `login()` /
+      `register()`, erreur simple affichée en cas d'échec. Champs identiques
+      aux prototypes (`souplesse-auth-dashboards.html`) : Login = email + mot
+      de passe ; Register = nom complet, email, téléphone, mot de passe,
+      confirmation.
+- [ ] **9.** Vérifier la compilation :
       ```
-      npx expo install expo-font @expo-google-fonts/manrope @expo-google-fonts/inter
+      npx tsc --noEmit
       ```
-- [x] **6.** Créer `mobile/src/theme/tokens.ts` avec le contenu exact fourni dans
-      `specs/2-mobile-app/mobile-theme-tokens.ts` (copier ce fichier tel quel,
-      ne pas réinventer les valeurs de couleur).
-- [x] **7.** Créer des écrans vides (stub) — un fichier par écran, aucune logique
-      dedans pour l'instant, juste un `<View>` avec le titre de l'écran en texte :
-      `mobile/src/screens/LoginScreen.tsx`, `RegisterScreen.tsx`,
-      `ClientDashboardScreen.tsx`, `CoachDashboardScreen.tsx`,
-      `ModeratorDashboardScreen.tsx`, `AdminDashboardScreen.tsx`.
-- [x] **8. ARRÊT OBLIGATOIRE.** Une fois les points 1 à 7 terminés : ne pas
-      continuer sur l'écran de connexion, la navigation par rôle, ou l'API —
-      committer ce qui existe (`git add mobile && git commit -m "chore: init expo project scaffold"`),
-      mettre à jour ce fichier (`Dernière session` + cocher les cases ci-dessus),
-      et attendre la validation d'Ange avant d'aller plus loin.
-      **→ Fait. En attente de la validation d'Ange avant de poursuivre.**
+      Corriger toute erreur avant de continuer — pas de `@ts-ignore`.
+- [ ] **10. ARRÊT OBLIGATOIRE.** Ne pas commencer l'écran de choix de durée
+      d'abonnement, l'envoi de preuve de paiement, ni aucun appel API autre
+      que l'authentification. Committer
+      (`git add mobile && git commit -m "feat(mobile): wire authentication and role-based navigation"`),
+      mettre à jour ce fichier (Dernière session, cases cochées, Historique),
+      et attendre la validation d'Ange.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
-- 2026-08-02 — Claude Code — Scaffold Expo initialisé dans `mobile/` (navigation,
-  polices, tokens de thème, 6 écrans stub). Commit `94dd2a2` sur `feat/mobile-app`.
-  Étapes 1-7 de la checklist terminées, arrêt obligatoire à l'étape 8, en attente
-  de validation.
-- 2026-08-01 — chat + Claude Code — Docs et prototypes poussés sur `feat/mobile-app`
-  (cahier des charges Markdown, STATUS.md, CLAUDE.md, prototypes paiement + auth/dashboards).
-- 2026-08-01 — chat — Maquettes validées (paiement, auth, 4 dashboards). Voir ci-dessus.
+- 2026-08-02 — Claude Code (VS Code) — Scaffold Expo initialisé (navigation,
+  polices, tokens, écrans stub) ; commit `94dd2a2`. Dépôt nettoyé séparément
+  (`.claude/`, logs, `env_tmp_val.txt` retirés du suivi Git).
+- 2026-08-01 — chat + Claude Code — Docs et prototypes poussés sur
+  `feat/mobile-app` (cahier des charges Markdown, STATUS.md, CLAUDE.md,
+  prototypes paiement + auth/dashboards).
+- 2026-08-01 — chat — Maquettes validées (paiement, auth, 4 dashboards).
