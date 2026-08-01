@@ -140,17 +140,19 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 - **Coverage phase 3** (2026-03-17): 267 tests / 32 files — services 94.9%, `utils/email` 100%, `utils/jwt` 100%, `api/bookings` 100%, `api/sessions` 100%, `api/subscriptions` 100%. New test files: `email.util.spec.ts`, `jwt.util.spec.ts`, `auth.middleware.spec.ts`, `profile.routes.spec.ts`, `sessions.routes.spec.ts`, `bookings.routes.spec.ts`, `subscription-handlers.routes.spec.ts`.
 <!-- MANUAL ADDITIONS END -->
 
-<!-- Extrait à AJOUTER dans le CLAUDE.md existant Ã  la racine du dépôt (ne remplace pas le fichier, on l'ajoute à la suite du contenu actuel).-->
-
+<!--
+  Extrait à AJOUTER dans le CLAUDE.md existant à la racine du dépôt
+  (remplace l'extrait précédent si déjà collé — même section, contenu enrichi).
+-->
 
 ## Application mobile — protocole de session (important)
 
 Ce dépôt contient un chantier en cours : l'application mobile autonome
-(iOS/Android) décrite dans `specs/2-mobile-app/cahier-des-charges.md`.
+(iOS/Android) décrite dans `specs/2-mobile-app/cahier-des-charges.md`, dans un
+dossier `mobile/` (projet Expo indépendant, séparé du `package.json` racine Nuxt).
 
-Le travail sur ce chantier se fait à la fois depuis Claude Code (ici, dans
-VS Code) et depuis une session de chat Claude.ai séparée. Pour rester
-synchronisé entre les deux :
+Le travail sur ce chantier se fait à la fois depuis Claude Code (VS Code) et
+depuis une session de chat Claude.ai séparée. Pour rester synchronisé :
 
 1. **Avant toute action** liée à l'app mobile, lire entièrement
    `specs/2-mobile-app/STATUS.md`. Ne pas supposer le contexte d'une
@@ -160,10 +162,34 @@ synchronisé entre les deux :
    fonctionnalité terminée, choix technique tranché), mettre à jour
    `specs/2-mobile-app/STATUS.md` :
    - la section "Dernière session"
-   - la section "Prochaine étape"
+   - la section "Prochaine étape" (cocher les cases terminées)
    - ajouter une ligne dans "Historique" (date — surface — résumé court)
 3. Ne jamais rouvrir une décision listée dans "Décisions actées" sans que
    l'utilisateur le demande explicitement.
 4. Committer ce fichier dans le même commit que le travail qu'il décrit,
    pas séparément — pour qu'il ne se désynchronise jamais du code.
 
+### Garde-fous (mode Auto — s'applique même sans supervision à chaque étape)
+
+- **Ne jamais** modifier, supprimer ou déplacer des fichiers en dehors de
+  `mobile/` et `specs/2-mobile-app/`, sauf demande explicite d'Ange dans le
+  message en cours.
+- **Ne jamais** toucher au `package.json`, au schéma Prisma, ou au code Nuxt
+  existants à la racine du dépôt dans le cadre du travail sur l'app mobile.
+  Si l'API doit évoluer pour l'app mobile (nouvelles routes, nouveaux champs
+  Prisma listés dans le cahier des charges section 5.2/5.3), le signaler dans
+  `STATUS.md` sous une entrée claire plutôt que de modifier silencieusement.
+- **Ne jamais** committer sur `master` directement — tout le travail mobile se
+  fait sur `feat/mobile-app` ou une branche qui en dérive (ex.
+  `feat/mobile-app-expo-init`).
+- **Ne jamais** faire de `git push --force`.
+- **Ne jamais** installer une dépendance qui n'est pas explicitement listée
+  dans `specs/2-mobile-app/STATUS.md` ou le cahier des charges, sans le
+  signaler d'abord dans la réponse à Ange.
+- Quand une instruction de `STATUS.md` contient un point d'« ARRÊT
+  OBLIGATOIRE » : s'arrêter réellement, committer ce qui est fait, mettre à
+  jour le fichier, et ne pas enchaîner sur l'étape suivante même en mode Auto.
+- En cas de choix non couvert explicitement par `STATUS.md` ou le cahier des
+  charges (nom de variable mis à part — ça reste à l'appréciation du code),
+  **s'arrêter et écrire la question dans `STATUS.md` sous une section
+  "Questions en attente"** plutôt que de deviner et continuer.

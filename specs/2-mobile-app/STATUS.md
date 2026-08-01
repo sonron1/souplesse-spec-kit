@@ -48,19 +48,46 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
   `master`. Aucun code de l'application mobile (React Native) n'a encore été écrit —
   seuls les documents et prototypes existent à ce stade.
 
-## Prochaine étape
+## Prochaine étape — à exécuter dans cet ordre exact, une case à la fois
 
-1. Initialiser le projet Expo dans `mobile/` à la racine du dépôt :
-   ```
-   npx create-expo-app@latest mobile --template
-   ```
-   (choisir le template TypeScript blank).
-2. Reprendre le système de design déjà validé (couleur `#EAB308`, Manrope/Inter,
-   composants des prototypes HTML) comme base des composants React Native —
-   commencer par un fichier de thème/tokens partagé (`mobile/src/theme/`).
-3. Commencer par l'authentification (JWT, réutilise l'API existante) + navigation,
-   avant le module d'abonnement/preuve de paiement (voir section 11 du cahier des
-   charges pour l'ordre des phases).
+> Ces instructions sont volontairement littérales (commandes exactes, noms de
+> paquets exacts, chemins exacts). Si une commande produit un résultat différent
+> de ce qui est décrit, ou si un choix non couvert ici se présente : **s'arrêter
+> et poser la question plutôt que de deviner.**
+
+- [ ] **1.** Se placer à la racine du dépôt (dossier contenant `CLAUDE.md` et le
+      `package.json` de Nuxt) — ne pas exécuter les commandes suivantes ailleurs.
+- [ ] **2.** Lancer exactement :
+      ```
+      npx create-expo-app@latest mobile --template blank-typescript
+      ```
+      Le flag `--template blank-typescript` est obligatoire : sans lui, la
+      commande pose une question interactive. Ne pas omettre ce flag.
+- [ ] **3.** Vérifier que `mobile/package.json` a été créé avec son propre
+      `package.json` indépendant. **Ne pas** fusionner ses dépendances avec
+      celles du `package.json` racine (Nuxt) : ce sont deux projets Node
+      séparés dans le même dépôt.
+- [ ] **4.** Depuis `mobile/`, installer la navigation :
+      ```
+      npx expo install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context
+      ```
+- [ ] **5.** Depuis `mobile/`, installer les polices :
+      ```
+      npx expo install expo-font @expo-google-fonts/manrope @expo-google-fonts/inter
+      ```
+- [ ] **6.** Créer `mobile/src/theme/tokens.ts` avec le contenu exact fourni dans
+      `specs/2-mobile-app/mobile-theme-tokens.ts` (copier ce fichier tel quel,
+      ne pas réinventer les valeurs de couleur).
+- [ ] **7.** Créer des écrans vides (stub) — un fichier par écran, aucune logique
+      dedans pour l'instant, juste un `<View>` avec le titre de l'écran en texte :
+      `mobile/src/screens/LoginScreen.tsx`, `RegisterScreen.tsx`,
+      `ClientDashboardScreen.tsx`, `CoachDashboardScreen.tsx`,
+      `ModeratorDashboardScreen.tsx`, `AdminDashboardScreen.tsx`.
+- [ ] **8. ARRÊT OBLIGATOIRE.** Une fois les points 1 à 7 terminés : ne pas
+      continuer sur l'écran de connexion, la navigation par rôle, ou l'API —
+      committer ce qui existe (`git add mobile && git commit -m "chore: init expo project scaffold"`),
+      mettre à jour ce fichier (`Dernière session` + cocher les cases ci-dessus),
+      et attendre la validation d'Ange avant d'aller plus loin.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
