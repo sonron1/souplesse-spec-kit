@@ -9,9 +9,10 @@
 
 ## Où on en est (résumé en une phrase)
 
-Cahier des charges v2 finalisé, maquettes validées, scaffold Expo initialisé et
-dépôt nettoyé. La phase authentification (écrans + navigation par rôle) reste
-à câbler.
+Cahier des charges v2 finalisé, maquettes validées, scaffold Expo initialisé,
+dépôt nettoyé. Phase Authentification terminée (étapes 1 à 9) : écrans
+Login/Register branchés, navigation par rôle en place. ARRÊT OBLIGATOIRE
+(étape 10) — en attente de validation d'Ange avant la phase suivante.
 
 ## Décisions actées (ne pas rouvrir sans le dire explicitement)
 
@@ -33,16 +34,28 @@ dépôt nettoyé. La phase authentification (écrans + navigation par rôle) res
   sombre, typographies Manrope (titres) + Inter (texte).
 - **Authentification mobile** : réutilise telle quelle l'API JWT existante
   (`/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`,
-  `/api/auth/logout`) — aucune nouvelle route d'auth à créer.
+  `/api/auth/logout`) — aucune nouvelle route d'auth à créer, aucune
+  modification du schéma serveur (`server/validators/auth.schemas.ts`).
 - **Stockage des tokens sur l'appareil** : `expo-secure-store` (jamais
   `AsyncStorage` pour les tokens — AsyncStorage n'est pas chiffré).
 - **URL de base de l'API** : `https://souplessefitness.com/api` en production,
   configurable via la variable d'environnement Expo `EXPO_PUBLIC_API_URL`
   (voir `mobile/.env.example`). Ne jamais coder cette URL en dur dans le code.
+  `mobile/.env` est ignoré via le `.gitignore` **racine** (pas celui de
+  `mobile/`, qui ne couvre que `.env*.local`).
 - **Routage par rôle après connexion** : `CLIENT` → `ClientDashboardScreen`,
   `COACH` → `CoachDashboardScreen`, `MODERATOR` → `ModeratorDashboardScreen`,
   `ADMIN` → `AdminDashboardScreen`. Le rôle vient du champ `role` renvoyé par
   `/api/auth/login`.
+- **Champs du formulaire d'inscription (Q1, résolue)** : le contrat réel de
+  `POST /api/auth/register` (`server/validators/auth.schemas.ts`) exige
+  `firstName`, `lastName` (séparés), `email`, `phone`, `gender`
+  (`'MALE' | 'FEMALE'`, obligatoire, sans défaut), `password`,
+  `confirmPassword`. `RegisterScreen` mobile doit donc collecter exactement
+  ces champs, dans cet ordre : **Prénom, Nom, Email, Téléphone, Genre
+  (sélecteur Homme/Femme, obligatoire), Mot de passe, Confirmer**. Les champs
+  optionnels serveur `birthDay`/`birthMonth` ne sont **pas** collectés côté
+  mobile pour l'instant (optionnels, hors périmètre de cette phase).
 
 ## Fichiers de référence
 
@@ -52,131 +65,112 @@ dépôt nettoyé. La phase authentification (écrans + navigation par rôle) res
 
 ## Dernière session
 
-- **Date/surface** : Claude Code (VS Code) — 2026-08-02 (session 2, Phase Authentification)
-- **Fait** : étapes 1 à 4 de la checklist "Phase Authentification" terminées :
-  `expo-secure-store` installé, `mobile/.env.example` + `mobile/.env` créés
-  (vérifié empiriquement via `git check-ignore` / `git add --dry-run` que
-  `mobile/.env` est bien ignoré et `mobile/.env.example` bien suivi, grâce au
-  `.gitignore` racine — `mobile/.gitignore` seul ne suffit pas, il n'ignore que
-  `.env*.local`), `mobile/src/config/env.ts` (erreur explicite si
-  `EXPO_PUBLIC_API_URL` absent), `mobile/src/api/client.ts` (`apiFetch` avec
-  préfixe `API_URL` + en-tête `Authorization: Bearer` depuis
-  `expo-secure-store`). `npx tsc --noEmit` dans `mobile/` : aucune erreur.
-- **Bloqué à l'étape 5** : voir "Questions en attente" ci-dessous — le
-  signature `register(name, email, phone, password)` prescrite à l'étape 5 ne
-  correspond pas au contrat réel de `POST /api/auth/register`. Arrêt avant de
-  créer `mobile/src/api/auth.ts`, donc étapes 5 à 9 non commencées (pas de
-  `AuthContext`, pas de `RootNavigator`, écrans Login/Register non branchés).
-- **Pas encore fait** : tout ce qui est listé ci-dessus comme bloqué. La
-  branche `feat/mobile-app` n'est toujours pas mergée dans `master`.
+- **Date/surface** : Claude Code (VS Code) — 2026-08-02 (session 3, Phase
+  Authentification, étapes 5-9)
+- **Fait** :
+  - `mobile/src/api/auth.ts` — `login()`, `register()`, `logout()`, typés,
+    utilisant `apiFetch`. `register()` reprend exactement les noms de champs
+    du schéma serveur (`firstName`, `lastName`, `email`, `phone`, `gender`,
+    `password`, `confirmPassword`).
+  - `mobile/src/context/AuthContext.tsx` — `user`, `isLoading`, `login()`,
+    `register()`, `logout()`. Restaure la session au montage via
+    `GET /api/auth/me` si un `accessToken` existe en secure-store ; en cas
+    d'échec (token expiré/invalide), nettoie le stockage et repasse
+    `user = null`.
+  - `mobile/src/navigation/RootNavigator.tsx` — écran de chargement pendant
+    `isLoading`, `AuthStack` (Login/Register) si `user === null`, sinon le
+    dashboard du rôle (`CLIENT`/`COACH`/`MODERATOR`/`ADMIN`, avec repli sur
+    `ClientDashboardScreen` pour un rôle non mappé — cas défensif, ne devrait
+    pas se produire).
+  - `LoginScreen.tsx` et `RegisterScreen.tsx` branchés sur `AuthContext`,
+    champs exacts prescrits (Register : Prénom, Nom, Email, Téléphone, Genre
+    en deux boutons Homme/Femme, Mot de passe, Confirmer), erreur simple en
+    texte rouge sous le formulaire.
+  - **Ajouts non listés explicitement dans la checklist, mais nécessaires
+    pour que les étapes 6-8 aient un effet réel** (signalés ici plutôt que
+    faits silencieusement) :
+    - `mobile/App.tsx` réécrit pour monter `AuthProvider` +
+      `SafeAreaProvider` + `RootNavigator` (sans ça, l'app affichait encore
+      l'écran par défaut du template Expo).
+    - Un lien de navigation simple entre Login ↔ Register a été ajouté sur
+      chaque écran (sinon aucun des deux écrans n'était atteignable depuis
+      l'autre).
+    - Après une inscription réussie, `RegisterScreen` affiche un message
+      inline ("vérifiez votre boîte mail...") au lieu de rediriger vers un
+      dashboard — cohérent avec le fait que `POST /api/auth/register`
+      **n'émet pas de tokens** (vérification email obligatoire avant
+      connexion, cf. CLAUDE.md "Email verification enforced"). Aucun nouvel
+      écran créé pour ça, message géré dans `RegisterScreen` lui-même.
+  - `npx tsc --noEmit` dans `mobile/` : aucune erreur.
+- **Pas encore fait** : ARRÊT OBLIGATOIRE atteint (étape 10). Rien au-delà de
+  l'authentification (pas d'écran de durée d'abonnement, pas d'envoi de
+  preuve de paiement). La branche `feat/mobile-app` n'est toujours pas
+  mergée dans `master`.
 
-## Questions en attente
-
-### Q1 — Champs requis par `POST /api/auth/register` vs signature prescrite à l'étape 5
-
-L'étape 5 de la Phase Authentification demande de créer
-`register(name, email, phone, password)`, et l'étape 8 liste les champs de
-`RegisterScreen` comme "nom complet, email, téléphone, mot de passe,
-confirmation" (repris des prototypes `souplesse-auth-dashboards.html`).
-
-En lisant le schéma réel côté serveur
-(`server/validators/auth.schemas.ts`, `registerSchema`, lignes 4-34) et
-`server/services/auth.service.ts`, `POST /api/auth/register` exige en fait :
-
-- `firstName` **et** `lastName` séparés (pas un `name` unique) — min. 2 caractères chacun
-- `email`
-- `phone` (regex E.164-like, ex. `+229 97 00 00 00`)
-- `gender` : `'MALE' | 'FEMALE'` — **obligatoire, sans valeur par défaut**
-- `password` + `confirmPassword` (le serveur revalide déjà l'égalité, mais les
-  deux champs doivent être envoyés)
-- `birthDay` / `birthMonth` : optionnels (nombres), non mentionnés dans le
-  cahier des charges mobile ni dans les prototypes auth
-
-Sans `gender`, l'appel à `/api/auth/register` échoue systématiquement
-(validation Zod côté serveur) — impossible d'implémenter `register()` ni
-l'écran d'inscription tels que décrits littéralement à l'étape 5/8 sans
-d'abord trancher ce point. Conformément aux garde-fous, je ne modifie pas le
-schéma serveur pour l'assouplir.
-
-**Question pour Ange** : comment veux-tu gérer `gender` (et
-`birthDay`/`birthMonth`) sur `RegisterScreen` mobile ?
-
-- (a) Ajouter un sélecteur "Homme / Femme" (`MALE`/`FEMALE`) à l'écran
-  d'inscription mobile, en plus de nom/prénom séparés, email, téléphone, mot
-  de passe + confirmation — et ignorer `birthDay`/`birthMonth` pour l'instant
-  (optionnels côté serveur) ?
-- (b) Autre approche (à préciser) ?
-
-Je reprendrai l'étape 5 dès que ce point est tranché, sans rouvrir le reste
-de la checklist.
-
-## Prochaine étape — Phase Authentification (à exécuter dans cet ordre exact)
+## Prochaine étape — Phase Authentification (reprise à l'étape 5)
 
 > Instructions littérales : s'arrêter et écrire dans "Questions en attente"
 > (nouvelle section à créer si besoin) en cas de doute plutôt que deviner.
+> Les étapes 1 à 4 sont terminées (voir Historique) — ne pas les refaire.
 
-- [x] **1.** Depuis `mobile/`, installer :
-      ```
-      npx expo install expo-secure-store
-      ```
-- [x] **2.** Créer `mobile/.env.example` avec cette ligne exacte :
-      ```
-      EXPO_PUBLIC_API_URL=https://souplessefitness.com/api
-      ```
-      Créer aussi `mobile/.env` (mêmes valeurs) — vérifier qu'il est bien
-      ignoré par `mobile/.gitignore` (le template Expo l'ignore par défaut ;
-      confirmer, ne pas supposer).
-      **→ Fait, avec correction** : `mobile/.gitignore` seul n'ignore que
-      `.env*.local`, pas `.env` nu. Vérifié via `git check-ignore -v` et
-      `git add --dry-run` : `mobile/.env` est bien ignoré (grâce au
-      `.gitignore` **racine**, règle `.env` non ancrée donc valable à toute
-      profondeur) et `mobile/.env.example` est bien suivi (règle
-      `!.env.example`).
-- [x] **3.** Créer `mobile/src/config/env.ts` qui exporte
-      `API_URL = process.env.EXPO_PUBLIC_API_URL`, avec une erreur explicite
-      au démarrage si la variable est absente.
-- [x] **4.** Créer `mobile/src/api/client.ts` : wrapper `fetch` qui préfixe
-      `API_URL`, ajoute `Authorization: Bearer <accessToken>` s'il existe, et
-      expose `apiFetch(path, options)`.
-- [ ] **5. ⚠️ BLOQUÉ — voir "Questions en attente" / Q1.** Créer
-      `mobile/src/api/auth.ts` avec `login(email, password)`,
-      `register(name, email, phone, password)`, `logout()`, chacune appelant
-      la route correspondante via `apiFetch`.
-- [ ] **6.** Créer `mobile/src/context/AuthContext.tsx` : contexte React
+- [x] **1.** `expo-secure-store` installé.
+- [x] **2.** `mobile/.env` + `mobile/.env.example` créés et vérifiés.
+- [x] **3.** `mobile/src/config/env.ts` créé.
+- [x] **4.** `mobile/src/api/client.ts` créé (`apiFetch`).
+- [x] **5.** Créer `mobile/src/api/auth.ts` avec trois fonctions typées,
+      appelant chacune la route correspondante via `apiFetch` :
+      - `login(email: string, password: string)`
+      - `register(input: { firstName: string; lastName: string; email: string; phone: string; gender: 'MALE' | 'FEMALE'; password: string; confirmPassword: string })`
+      - `logout()`
+      Reprendre exactement les noms de champs du schéma serveur
+      (`server/validators/auth.schemas.ts`) dans le corps de la requête
+      `register` — ne pas renommer les clés JSON envoyées au serveur.
+- [x] **6.** Créer `mobile/src/context/AuthContext.tsx` : contexte React
       exposant `user`, `isLoading`, `login()`, `register()`, `logout()`. Au
       montage, restaure la session depuis `expo-secure-store` si des tokens
       existent ; sinon `user = null`.
-- [ ] **7.** Créer `mobile/src/navigation/RootNavigator.tsx` :
+- [x] **7.** Créer `mobile/src/navigation/RootNavigator.tsx` :
       - si `isLoading` → écran de chargement simple
       - si `user === null` → `AuthStack` (Login, Register,
         `@react-navigation/native-stack`)
-      - sinon → le dashboard correspondant à `user.role` (mapping ci-dessus)
-- [ ] **8.** Brancher `LoginScreen.tsx` et `RegisterScreen.tsx` (stubs
+      - sinon → le dashboard correspondant à `user.role` (mapping dans
+        "Décisions actées")
+- [x] **8.** Brancher `LoginScreen.tsx` et `RegisterScreen.tsx` (stubs
       existants) sur `AuthContext` : formulaire contrôlé, appel à `login()` /
-      `register()`, erreur simple affichée en cas d'échec. Champs identiques
-      aux prototypes (`souplesse-auth-dashboards.html`) : Login = email + mot
-      de passe ; Register = nom complet, email, téléphone, mot de passe,
-      confirmation.
-- [ ] **9.** Vérifier la compilation :
+      `register()`, erreur simple affichée en cas d'échec (texte rouge sous
+      le formulaire, pas de modal).
+      - **Login** : Email, Mot de passe.
+      - **Register** : Prénom, Nom, Email, Téléphone, Genre (sélecteur
+        Homme/Femme — deux boutons ou un segmented control, pas un menu
+        déroulant caché), Mot de passe, Confirmer — dans cet ordre exact.
+- [x] **9.** Vérifier la compilation :
       ```
       npx tsc --noEmit
       ```
       Corriger toute erreur avant de continuer — pas de `@ts-ignore`.
-- [ ] **10. ARRÊT OBLIGATOIRE.** Ne pas commencer l'écran de choix de durée
+      **→ Fait, 0 erreur.**
+- [x] **10. ARRÊT OBLIGATOIRE.** Ne pas commencer l'écran de choix de durée
       d'abonnement, l'envoi de preuve de paiement, ni aucun appel API autre
       que l'authentification. Committer
       (`git add mobile && git commit -m "feat(mobile): wire authentication and role-based navigation"`),
       mettre à jour ce fichier (Dernière session, cases cochées, Historique),
       et attendre la validation d'Ange.
+      **→ Fait. En attente de la validation d'Ange avant de poursuivre.**
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-08-02 — Claude Code (VS Code) — Phase Authentification, étapes 5-9 :
+  `api/auth.ts`, `context/AuthContext.tsx`, `navigation/RootNavigator.tsx`,
+  écrans Login/Register branchés (champs alignés sur Q1), `App.tsx` mis à
+  jour pour monter `AuthProvider`/`RootNavigator`. `npx tsc --noEmit` : 0
+  erreur. ARRÊT OBLIGATOIRE (étape 10), en attente de validation.
+- 2026-08-02 — chat — Q1 tranchée (champs `RegisterScreen` alignés sur le
+  vrai schéma serveur : prénom/nom séparés, genre obligatoire,
+  confirmPassword). Étapes 5 et 8 de la checklist réécrites en conséquence.
 - 2026-08-02 — Claude Code (VS Code) — Phase Authentification, étapes 1-4 :
   `expo-secure-store`, `.env`/`.env.example`, `config/env.ts`, `api/client.ts`.
   Arrêt à l'étape 5 (Q1 : signature `register()` prescrite incompatible avec
-  `registerSchema` réel — `gender` obligatoire, `firstName`/`lastName`
-  séparés, `confirmPassword`). Question posée dans "Questions en attente",
-  en attente de décision d'Ange avant de continuer.
+  `registerSchema` réel). Question posée dans "Questions en attente".
 - 2026-08-02 — Claude Code (VS Code) — Scaffold Expo initialisé (navigation,
   polices, tokens, écrans stub) ; commit `94dd2a2`. Dépôt nettoyé séparément
   (`.claude/`, logs, `env_tmp_val.txt` retirés du suivi Git).
