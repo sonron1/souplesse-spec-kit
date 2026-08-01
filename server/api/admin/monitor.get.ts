@@ -71,6 +71,7 @@ export default defineEventHandler(async (event) => {
     if (!coachMap.has(thread.coachId)) {
       coachMap.set(thread.coachId, { coach: thread.coach, threads: [] })
     }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     coachMap.get(thread.coachId)!.threads.push(thread)
   }
 

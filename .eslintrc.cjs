@@ -35,6 +35,10 @@ module.exports = {
     useCookie: 'readonly',
     useNuxtApp: 'readonly',
     $fetch: 'readonly',
+    clearError: 'readonly',
+    usePolling: 'readonly',
+    abortNavigation: 'readonly',
+    createError: 'readonly',
     // Vue auto-imports
     ref: 'readonly',
     reactive: 'readonly',
@@ -85,6 +89,7 @@ module.exports = {
       files: ['tests/**/*.ts', 'tests/**/*.spec.ts'],
       rules: {
         '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
       },
     },
   ],

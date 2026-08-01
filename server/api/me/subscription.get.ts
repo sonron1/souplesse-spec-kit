@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
 
   const daysLeft = Math.max(
     0,
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     Math.ceil((new Date(sub.expiresAt!).getTime() - Date.now()) / 86_400_000)
   )
 

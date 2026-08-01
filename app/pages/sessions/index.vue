@@ -461,7 +461,7 @@
 
   // Q001/Q004: Poll sessions every 30s, skip when a refresh is already running
   const pollingActive = ref(false)
-  const { isPolling } = usePolling(async () => {
+  usePolling(async () => {
     if (pending.value) return
     pollingActive.value = true
     nowTs.value = Date.now() // invalidate queryParams so `from` uses current time

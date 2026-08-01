@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   requireRole(user, 'CLIENT')
   await pauseRateLimit(event)
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = getRouterParam(event, 'id')!
   const subscription = await subscriptionService.pauseSubscription(id, user.sub)
   return { success: true, subscription }

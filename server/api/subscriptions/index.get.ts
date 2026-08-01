@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
 
   // Resolve partner display info for couple subscriptions in one query
   type Sub = (typeof subscriptions)[number]
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const partnerIds = [...new Set(subscriptions.filter((s: Sub) => s.partnerUserId).map((s: Sub) => s.partnerUserId!))]
   const partnersMap = new Map<string, { name: string; email: string }>()
 

@@ -182,8 +182,8 @@ function isBestValue(plan: Plan) { return plan.name === 'Abonnement 1 an' }
 // L001: true when partner's gender is the same as the current user's (blocks couple payment)
 const sameGenderError = computed(() =>
   partnerModal.found &&
-  partnerModal.partnerGender != null &&
-  user.value?.gender != null &&
+  partnerModal.partnerGender !== null && partnerModal.partnerGender !== undefined &&
+  user.value?.gender !== null && user.value?.gender !== undefined &&
   partnerModal.partnerGender === user.value.gender
 )
 

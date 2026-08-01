@@ -2,7 +2,7 @@
  * Integration tests for Kkiapay payment webhook.
  * Verifies HMAC-SHA256 signature validation and idempotent processing.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { verifyWebhookSignature, handleWebhook } from '../../server/services/payments.service'
 import crypto from 'crypto'
 

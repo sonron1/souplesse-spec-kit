@@ -20,6 +20,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = getRouterParam(event, 'id')!
   const raw = await readBody(event)
   const parsed = bodySchema.safeParse(raw)

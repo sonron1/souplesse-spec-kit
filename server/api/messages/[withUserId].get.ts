@@ -17,6 +17,7 @@ import { prisma } from '../../utils/prisma'
  */
 export default defineEventHandler(async (event) => {
   const me = await requireAuth(event)
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const withUserId = getRouterParam(event, 'withUserId')!
   const query = getQuery(event)
   const page = query.page ? Math.max(1, parseInt(String(query.page), 10)) : undefined
