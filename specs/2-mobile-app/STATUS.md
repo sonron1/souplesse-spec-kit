@@ -31,6 +31,21 @@ connexion/inscription, 4 dashboards). Le code n'a pas encore commencé.
 - Identité visuelle validée : couleur de marque `#EAB308` (celle du site), thème
   sombre, typographies Manrope (titres) + Inter (texte).
 
+  ## BLOC A 
+ 
+- **Authentification mobile** : réutilise telle quelle l'API JWT existante
+  (`/api/auth/register`, `/api/auth/login`, `/api/auth/refresh`,
+  `/api/auth/logout`) — aucune nouvelle route d'auth à créer.
+- **Stockage des tokens sur l'appareil** : `expo-secure-store` (jamais
+  `AsyncStorage` pour les tokens — AsyncStorage n'est pas chiffré).
+- **URL de base de l'API** : `https://souplessefitness.com/api` en production,
+  configurable via la variable d'environnement Expo `EXPO_PUBLIC_API_URL`
+  (voir `mobile/.env.example`). Ne jamais coder cette URL en dur dans le code.
+- **Routage par rôle après connexion** : `CLIENT` → `ClientDashboardScreen`,
+  `COACH` → `CoachDashboardScreen`, `MODERATOR` → `ModeratorDashboardScreen`,
+  `ADMIN` → `AdminDashboardScreen`. Le rôle vient du champ `role` renvoyé par
+  `/api/auth/login`.
+
 ## Fichiers de référence
 
 - `specs/2-mobile-app/cahier-des-charges.md` — cahier des charges complet (v2)
