@@ -136,11 +136,6 @@
   definePageMeta({ middleware: ['auth', 'coach'] })
   const { user, accessToken } = useAuth()
 
-  const initials = computed(() => {
-    if (!user.value?.name) return '?'
-    return user.value.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
-  })
-
   interface Session {
     id: string
     dateTime: string

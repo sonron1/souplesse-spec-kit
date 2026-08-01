@@ -17,7 +17,7 @@ vi.mock('h3', () => {
   }
 })
 
-function makeEvent(method: string, headers: Record<string, string | undefined> = {}) {
+function makeEvent(method: string) {
   return {
     node: { req: { method, url: '/api/some-route' } },
   }
