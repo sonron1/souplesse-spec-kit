@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest:*)",
+      "Bash(npm test:*)",
+      "Bash(sed -i 's/v-if=\"\"activeSub\\\\.subscriptionPlan?\\\\.maxPauses\"\" class=\"\"mt-4/v-if=\"\"activeSub.maxPauses > 0\"\" class=\"\"mt-4/g' app/pages/dashboard/subscriptions.vue)",
+      "Bash(sed -i 's/{{ activeSub\\\\.subscriptionPlan\\\\.maxPauses }}<\\\\/span>/{{ activeSub.maxPauses }}<\\\\/span>/g' app/pages/dashboard/subscriptions.vue)",
+      "Bash(sed -i 's/v-else-if=\"\"activeSub\\\\.pauseCount < activeSub\\\\.subscriptionPlan\\\\.maxPauses\"\"/v-else-if=\"\"activeSub.pauseCount < activeSub.maxPauses\"\"/g' app/pages/dashboard/subscriptions.vue)",
+      "Bash(sed -i 's/\\(detail\\\\.activeSubscription\\\\.subscriptionPlan?\\\\.maxPauses ?? 0\\) > 0/\\(detail.activeSubscription.maxPauses ?? 0\\) > 0/g' app/pages/admin/users.vue)",
+      "Bash(sed -i 's/{{ detail\\\\.activeSubscription\\\\.subscriptionPlan?\\\\.maxPauses }}/{{ detail.activeSubscription.maxPauses ?? 0 }}/g' app/pages/admin/users.vue)",
+      "Bash(npx prisma:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)"
+    ]
+  }
+}
