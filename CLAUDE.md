@@ -138,5 +138,32 @@ KKIAPAY_WEBHOOK_SECRET= # HMAC-SHA256 webhook signing secret
 - **Sessions page fixes**: (1) `/api/bookings` returns `Booking[]` directly — fixed `sessions/index.vue` and `profile.vue` to use `bkData` as array (not `bkData.bookings`); `bookedSessionIds` now correctly persists across page refresh. (2) Date filter end-of-day bug fixed in `server/api/sessions/index.get.ts` — plain `to` date now converts to `T23:59:59.999Z` so sessions throughout the end day are included. (3) Native `confirm()` dialog replaced with a modern in-page confirmation modal (dark card, session details, Confirmer/Annuler).
 - **v3 specs complete (Blocs A–R)**: All 104 tasks implemented — user model extended, profile page, session unique, idle timeout, subscription catalogue, booking guard, expiration cron, J-3 reminder, pause/resume subscriptions, couple validation, session permissions, date filters, pagination, messaging scroll+edit, polling, full test coverage.
 - **Coverage phase 3** (2026-03-17): 267 tests / 32 files — services 94.9%, `utils/email` 100%, `utils/jwt` 100%, `api/bookings` 100%, `api/sessions` 100%, `api/subscriptions` 100%. New test files: `email.util.spec.ts`, `jwt.util.spec.ts`, `auth.middleware.spec.ts`, `profile.routes.spec.ts`, `sessions.routes.spec.ts`, `bookings.routes.spec.ts`, `subscription-handlers.routes.spec.ts`.
-
 <!-- MANUAL ADDITIONS END -->
+
+<!-- Extrait à AJOUTER dans le CLAUDE.md existant Ã  la racine du dépôt (ne remplace pas le fichier, on l'ajoute à la suite du contenu actuel).-->
+
+
+## Application mobile — protocole de session (important)
+
+Ce dépôt contient un chantier en cours : l'application mobile autonome
+(iOS/Android) décrite dans `specs/2-mobile-app/cahier-des-charges.md`.
+
+Le travail sur ce chantier se fait à la fois depuis Claude Code (ici, dans
+VS Code) et depuis une session de chat Claude.ai séparée. Pour rester
+synchronisé entre les deux :
+
+1. **Avant toute action** liée à l'app mobile, lire entièrement
+   `specs/2-mobile-app/STATUS.md`. Ne pas supposer le contexte d'une
+   conversation précédente — ce fichier est la seule source fiable de
+   "où on en est".
+2. **Après toute action significative** (fichier créé, décision prise,
+   fonctionnalité terminée, choix technique tranché), mettre à jour
+   `specs/2-mobile-app/STATUS.md` :
+   - la section "Dernière session"
+   - la section "Prochaine étape"
+   - ajouter une ligne dans "Historique" (date — surface — résumé court)
+3. Ne jamais rouvrir une décision listée dans "Décisions actées" sans que
+   l'utilisateur le demande explicitement.
+4. Committer ce fichier dans le même commit que le travail qu'il décrit,
+   pas séparément — pour qu'il ne se désynchronise jamais du code.
+

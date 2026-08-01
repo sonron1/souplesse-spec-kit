@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Souplesse Fitness — Auth & Dashboards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0C;
+    --surface:#16161A;
+    --surface-2:#1E1E23;
+    --border:#2B2B31;
+    --brand:#EAB308;
+    --brand-soft:rgba(234,179,8,.14);
+    --text:#F5F5F4;
+    --muted:#96959D;
+    --good:#22C55E;
+    --good-soft:rgba(34,197,94,.14);
+    --bad:#EF4444;
+    --bad-soft:rgba(239,68,68,.14);
+    --info:#3B82F6;
+    --info-soft:rgba(59,130,246,.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(700px 500px at 50% -10%, #1a1509 0%, var(--bg) 60%);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    padding:32px 14px;
+  }
+  .stage{ display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; max-width:420px; }
+
+  .switcher{
+    display:flex; gap:6px; overflow-x:auto; max-width:380px; width:100%;
+    padding-bottom:2px; scrollbar-width:none;
+  }
+  .switcher::-webkit-scrollbar{ display:none; }
+  .switcher button{
+    flex-shrink:0;
+    font-size:11.5px; font-weight:700;
+    padding:8px 13px; border-radius:20px;
+    background:var(--surface); border:1px solid var(--border); color:var(--muted);
+    cursor:pointer; transition:all .2s ease;
+    white-space:nowrap;
+  }
+  .switcher button.on{ background:var(--brand); color:#1a1400; border-color:var(--brand); }
+
+  .phone{
+    width:100%; max-width:378px; aspect-ratio:9/19.3;
+    background:linear-gradient(160deg,#1c1c20,#0d0d0f);
+    border-radius:46px; padding:12px; position:relative;
+    box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 40px 80px -30px rgba(0,0,0,.85);
+  }
+  .island{ position:absolute; top:16px; left:50%; transform:translateX(-50%); width:96px; height:26px; background:#000; border-radius:16px; z-index:5; }
+  .screen{
+    width:100%; height:100%; background:var(--bg); border-radius:36px;
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+    border:1px solid #232227;
+  }
+  .glow{ position:absolute; top:-60px; left:50%; transform:translateX(-50%); width:260px; height:160px;
+    background:radial-gradient(closest-side, var(--brand-soft), transparent); pointer-events:none; }
+
+  .view{ flex:1; padding:2px 20px 16px; overflow-y:auto; display:none; flex-direction:column; position:relative; z-index:2; }
+  .view.active{ display:flex; animation:enter .4s cubic-bezier(.16,1,.3,1); }
+  @keyframes enter{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ===== AUTH SCREENS ===== */
+  .auth-view{ justify-content:center; padding-top:40px; }
+  .auth-logo{ text-align:center; margin-bottom:22px; }
+  .auth-logo .mark{
+    width:46px; height:46px; border-radius:14px; background:var(--brand);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 12px;
+    font-family:'Manrope',sans-serif; font-weight:800; font-size:20px; color:#1a1400;
+  }
+  .auth-logo .name{ font-family:'Manrope',sans-serif; font-weight:800; font-size:17px; }
+  .auth-logo .tag{ font-size:11px; color:var(--muted); margin-top:2px; }
+  h1.title{ font-family:'Manrope',sans-serif; font-weight:800; font-size:22px; letter-spacing:-.02em; margin:4px 0 4px; }
+  p.sub{ font-size:12.5px; color:var(--muted); margin:0 0 16px; line-height:1.5; }
+  .field{ margin-bottom:12px; }
+  .field label{ font-size:11.5px; color:var(--muted); display:block; margin-bottom:6px; font-weight:500; }
+  .field input, .field select{
+    width:100%; background:var(--surface); border:1px solid var(--border); border-radius:11px;
+    padding:11px 12px; color:var(--text); font-size:13.5px; font-family:'Inter',sans-serif;
+  }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--brand); }
+  .row2{ display:flex; gap:10px; }
+  .row2 .field{ flex:1; }
+  .btn{
+    background:var(--brand); color:#1a1400; border:none; border-radius:14px; padding:14px;
+    font-weight:700; font-size:14.5px; cursor:pointer; transition:transform .15s, filter .15s;
+    box-shadow:0 8px 20px -8px rgba(234,179,8,.55);
+  }
+  .btn:hover{ filter:brightness(1.05); }
+  .btn:active{ transform:scale(.97); }
+  .btn.ghost{ background:transparent; border:1px solid var(--border); color:var(--text); box-shadow:none; font-weight:600; }
+  .btn.block{ width:100%; }
+  .link-row{ text-align:center; font-size:12.5px; color:var(--muted); margin-top:14px; }
+  .link-row a{ color:var(--brand); font-weight:600; text-decoration:none; cursor:pointer; }
+
+  /* ===== DASHBOARD SHARED ===== */
+  .dash-header{ display:flex; align-items:center; justify-content:space-between; padding:36px 20px 12px; position:relative; z-index:2; }
+  .greet .hi{ font-size:11.5px; color:var(--muted); font-weight:500; }
+  .greet .who{ font-family:'Manrope',sans-serif; font-weight:800; font-size:18px; }
+  .avatar{
+    width:38px; height:38px; border-radius:50%; background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:var(--brand);
+    flex-shrink:0;
+  }
+  .role-pill{
+    font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    padding:3px 9px; border-radius:20px; background:var(--surface-2); color:var(--muted); border:1px solid var(--border);
+  }
+
+  .kpi-row{ display:flex; gap:8px; padding:10px 20px 4px; position:relative; z-index:2; }
+  .kpi-card{ flex:1; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 12px; }
+  .kpi-card .v{ font-family:'Manrope',sans-serif; font-weight:800; font-size:18px; font-variant-numeric:tabular-nums; }
+  .kpi-card .l{ font-size:10px; color:var(--muted); margin-top:2px; font-weight:500; }
+  .kpi-card.accent .v{ color:var(--brand); }
+
+  .section-title{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted);
+    margin:18px 0 10px;
+  }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:10px; }
+
+  .ring-svg{ width:100px; height:100px; }
+  .ring-track{ fill:none; stroke:var(--surface-2); stroke-width:7; }
+  .ring-fill{ fill:none; stroke:var(--brand); stroke-width:7; stroke-linecap:round; transform-origin:50% 50%; transform:rotate(-90deg); }
+
+  .list-item{ display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .list-item:last-child{ border-bottom:none; }
+  .li-main{ flex:1; min-width:0; }
+  .li-title{ font-size:13px; font-weight:600; }
+  .li-meta{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .chev{ color:var(--muted); flex-shrink:0; }
+
+  .pill{ font-size:10px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+  .pill.pending{ background:var(--brand-soft); color:var(--brand); }
+  .pill.ok{ background:var(--good-soft); color:var(--good); }
+  .pill.no{ background:var(--bad-soft); color:var(--bad); }
+  .pill.info{ background:var(--info-soft); color:var(--info); }
+
+  .action-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:4px 0 6px; }
+  .action-btn{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:13px 10px;
+    display:flex; flex-direction:column; gap:7px; cursor:pointer; transition:border-color .2s;
+  }
+  .action-btn:hover{ border-color:var(--brand); }
+  .action-btn svg{ width:18px; height:18px; color:var(--brand); }
+  .action-btn span{ font-size:12px; font-weight:600; }
+
+  /* Moderator queue */
+  .queue-card{ display:flex; gap:11px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px; margin-bottom:9px; }
+  .thumb{
+    width:52px; height:52px; border-radius:11px; background:var(--surface-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--muted);
+  }
+  .thumb svg{ width:20px; height:20px; }
+  .queue-info{ flex:1; min-width:0; }
+  .queue-info .top{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .queue-info .name{ font-size:13px; font-weight:700; }
+  .queue-info .time{ font-size:10px; color:var(--muted); flex-shrink:0; }
+  .queue-info .meta{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .queue-info .meta b{ color:var(--text); font-weight:600; }
+  .qa-row{ display:flex; gap:6px; margin-top:9px; }
+  .qa-btn{
+    flex:1; padding:7px 4px; border-radius:9px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text); transition:background .15s;
+  }
+  .qa-btn.ok{ color:var(--good); }
+  .qa-btn.no{ color:var(--bad); }
+  .qa-btn:hover{ background:#28282f; }
+
+  /* Bottom tab bar */
+  .tabbar{
+    display:flex; border-top:1px solid var(--border); background:var(--bg);
+    padding:9px 8px 12px; position:relative; z-index:3;
+  }
+  .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--muted); font-size:9.5px; font-weight:600; cursor:pointer;
+  }
+  .tab.on{ color:var(--brand); }
+  .tab svg{ width:19px; height:19px; }
+
+  .caption{ text-align:center; max-width:340px; font-size:11.5px; color:var(--muted); line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="switcher" id="switcher">
+    <button data-s="login" class="on">Connexion</button>
+    <button data-s="register">Inscription</button>
+    <button data-s="client">Dashboard Client</button>
+    <button data-s="coach">Dashboard Coach</button>
+    <button data-s="moderator">Dashboard Modérateur</button>
+    <button data-s="admin">Dashboard Admin</button>
+  </div>
+
+  <div class="phone">
+    <div class="island"></div>
+    <div class="screen">
+      <div class="glow"></div>
+
+      <!-- LOGIN -->
+      <div class="view active auth-view" id="s-login">
+        <div class="auth-logo">
+          <div class="mark">S</div>
+          <div class="name">Souplesse Fitness</div>
+          <div class="tag">Stabilité — Progrès — Réussite</div>
+        </div>
+        <h1 class="title">Connexion</h1>
+        <p class="sub">Retrouvez votre abonnement, vos séances et votre programme.</p>
+        <div class="field"><label>Email</label><input type="text" placeholder="vous@exemple.com"></div>
+        <div class="field"><label>Mot de passe</label><input type="password" placeholder="••••••••"></div>
+        <div class="link-row" style="text-align:right;margin:-4px 0 14px;"><a>Mot de passe oublié ?</a></div>
+        <button class="btn block" onclick="go('client')">Se connecter</button>
+        <div class="link-row">Pas encore de compte ? <a onclick="go('register')">S'inscrire</a></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="view auth-view" id="s-register">
+        <h1 class="title">Créer un compte</h1>
+        <p class="sub">Rejoignez Souplesse Fitness en quelques secondes.</p>
+        <div class="field"><label>Nom complet</label><input type="text" placeholder="Ex. Fabrice Adjovi"></div>
+        <div class="field"><label>Email</label><input type="text" placeholder="vous@exemple.com"></div>
+        <div class="field"><label>Numéro de téléphone</label><input type="text" placeholder="01 90 00 00 00"></div>
+        <div class="row2">
+          <div class="field"><label>Mot de passe</label><input type="password" placeholder="••••••••"></div>
+          <div class="field"><label>Confirmer</label><input type="password" placeholder="••••••••"></div>
+        </div>
+        <button class="btn block" onclick="go('client')">Créer mon compte</button>
+        <div class="link-row">Déjà inscrit ? <a onclick="go('login')">Se connecter</a></div>
+      </div>
+
+      <!-- DASHBOARD CLIENT -->
+      <div class="view" id="s-client">
+        <div class="dash-header">
+          <div class="greet"><div class="hi">Bonjour</div><div class="who">Fabrice A.</div></div>
+          <div class="avatar">FA</div>
+        </div>
+        <div style="padding:6px 20px 0;">
+          <div class="card" style="display:flex;align-items:center;gap:16px;">
+            <svg class="ring-svg" viewBox="0 0 100 100">
+              <circle class="ring-track" cx="50" cy="50" r="43"/>
+              <circle class="ring-fill" cx="50" cy="50" r="43" stroke-dasharray="270" stroke-dashoffset="60"/>
+              <text x="50" y="47" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="20" fill="#F5F5F4">42</text>
+              <text x="50" y="63" text-anchor="middle" font-size="8" fill="#96959D">JOURS</text>
+            </svg>
+            <div>
+              <span class="pill ok">Abonnement actif</span>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.5;">Formule <b style="color:var(--text)">6 mois</b><br>Expire le 12 sept. 2026</div>
+            </div>
+          </div>
+
+          <div class="section-title">Prochaine séance</div>
+          <div class="card">
+            <div class="list-item" style="border:none;padding:0;">
+              <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 8v4l3 2" stroke-linecap="round"/><circle cx="12" cy="12" r="9"/></svg></div>
+              <div class="li-main">
+                <div class="li-title">Musculation — Groupe</div>
+                <div class="li-meta">Lun. 04 août · 18:00 · Coach Rachelle M.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">Actions rapides</div>
+          <div class="action-grid">
+            <div class="action-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke-linecap="round"/></svg><span>Réserver une séance</span></div>
+            <div class="action-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2H6a2 2 0 01-2-2z"/><path d="M14 3v6h6" /></svg><span>Voir mon programme</span></div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg>Accueil</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>Séances</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2H6a2 2 0 01-2-2z"/></svg>Programme</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil</div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD COACH -->
+      <div class="view" id="s-coach">
+        <div class="dash-header">
+          <div class="greet"><div class="hi">Bonjour Coach</div><div class="who">Rachelle M.</div></div>
+          <div class="avatar">RM</div>
+        </div>
+        <div style="padding:6px 20px 0;">
+          <div class="kpi-row" style="padding:0 0 4px;">
+            <div class="kpi-card accent"><div class="v">8</div><div class="l">Clients assignés</div></div>
+            <div class="kpi-card"><div class="v">3</div><div class="l">Séances aujourd'hui</div></div>
+          </div>
+
+          <div class="section-title">Mes clients assignés</div>
+          <div class="card" style="padding:6px 16px;">
+            <div class="list-item">
+              <div class="avatar" style="width:32px;height:32px;font-size:11px;">FA</div>
+              <div class="li-main"><div class="li-title">Fabrice A.</div><div class="li-meta">Programme mis à jour hier</div></div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="list-item">
+              <div class="avatar" style="width:32px;height:32px;font-size:11px;">JK</div>
+              <div class="li-main"><div class="li-title">Judith K.</div><div class="li-meta">3 séances / semaine</div></div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+            <div class="list-item">
+              <div class="avatar" style="width:32px;height:32px;font-size:11px;">SO</div>
+              <div class="li-main"><div class="li-title">Steve O.</div><div class="li-meta">Nouveau client</div></div>
+              <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <div class="section-title">Séances à venir</div>
+          <div class="card">
+            <div class="list-item"><div class="li-main"><div class="li-title">Musculation — Groupe</div><div class="li-meta">Aujourd'hui · 18:00 · 6/10 places</div></div><span class="pill info">Confirmé</span></div>
+            <div class="list-item"><div class="li-main"><div class="li-title">Cardio-training</div><div class="li-meta">Demain · 07:30 · 3/8 places</div></div><span class="pill info">Confirmé</span></div>
+          </div>
+          <button class="btn ghost block">+ Créer une séance</button>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></svg>Accueil</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20v-1a5 5 0 0110 0v1M14 20v-.5a4 4 0 018 0v.5"/></svg>Clients</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>Séances</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil</div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD MODERATEUR -->
+      <div class="view" id="s-moderator">
+        <div class="dash-header">
+          <div class="greet"><div class="hi">Modération</div><div class="who">File d'attente</div></div>
+          <span class="role-pill">Modérateur</span>
+        </div>
+        <div style="padding:6px 20px 0;">
+          <div class="kpi-row" style="padding:0 0 4px;">
+            <div class="kpi-card accent"><div class="v">3</div><div class="l">En attente</div></div>
+            <div class="kpi-card"><div class="v">18 min</div><div class="l">Délai moyen</div></div>
+          </div>
+
+          <div class="section-title">Preuves à vérifier</div>
+
+          <div class="queue-card">
+            <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <div class="queue-info">
+              <div class="top"><span class="name">Fabrice A.</span><span class="time">il y a 4 min</span></div>
+              <div class="meta">6 mois · <b>75 000 FCFA</b> · MTN MoMo</div>
+              <div class="qa-row">
+                <button class="qa-btn ok" onclick="decide(this)">✓ Valider</button>
+                <button class="qa-btn no" onclick="decide(this)">✕ Rejeter</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="queue-card">
+            <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <div class="queue-info">
+              <div class="top"><span class="name">Judith K.</span><span class="time">il y a 12 min</span></div>
+              <div class="meta">1 mois · <b>15 000 FCFA</b> · Moov Money</div>
+              <div class="qa-row">
+                <button class="qa-btn ok" onclick="decide(this)">✓ Valider</button>
+                <button class="qa-btn no" onclick="decide(this)">✕ Rejeter</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="queue-card">
+            <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <div class="queue-info">
+              <div class="top"><span class="name">Steve O.</span><span class="time">il y a 26 min</span></div>
+              <div class="meta">12 mois · <b>140 000 FCFA</b> · Celtiis</div>
+              <div class="qa-row">
+                <button class="qa-btn ok" onclick="decide(this)">✓ Valider</button>
+                <button class="qa-btn no" onclick="decide(this)">✕ Rejeter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>File</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Historique</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil</div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD ADMIN -->
+      <div class="view" id="s-admin">
+        <div class="dash-header">
+          <div class="greet"><div class="hi">Administration</div><div class="who">Vue d'ensemble</div></div>
+          <span class="role-pill">Admin</span>
+        </div>
+        <div style="padding:6px 20px 0;">
+          <div class="kpi-row" style="padding:0 0 4px;">
+            <div class="kpi-card accent"><div class="v">214</div><div class="l">Membres actifs</div></div>
+            <div class="kpi-card"><div class="v">187</div><div class="l">Abonnements actifs</div></div>
+          </div>
+          <div class="kpi-row" style="padding-top:0;">
+            <div class="kpi-card"><div class="v">1,24M</div><div class="l">Revenu (FCFA) ce mois</div></div>
+            <div class="kpi-card"><div class="v">5</div><div class="l">Coachs actifs</div></div>
+          </div>
+
+          <div class="section-title">Derniers paiements validés</div>
+          <div class="card">
+            <div class="list-item"><div class="li-main"><div class="li-title">Fabrice A.</div><div class="li-meta">6 mois · MTN MoMo</div></div><span class="pill ok">75 000 F</span></div>
+            <div class="list-item"><div class="li-main"><div class="li-title">Judith K.</div><div class="li-meta">1 mois · Moov Money</div></div><span class="pill ok">15 000 F</span></div>
+            <div class="list-item"><div class="li-main"><div class="li-title">Steve O.</div><div class="li-meta">12 mois · Celtiis</div></div><span class="pill ok">140 000 F</span></div>
+          </div>
+
+          <div class="section-title">Actions</div>
+          <div class="action-grid">
+            <div class="action-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a5 5 0 0110 0v1M16 11l2 2 4-4"/></svg><span>Assigner un coach</span></div>
+            <div class="action-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0110 0v1M17 8v6M20 11h-6"/></svg><span>Gérer les utilisateurs</span></div>
+            <div class="action-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Exporter (CSV)</span></div>
+            <div class="action-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span>Statistiques</span></div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Aperçu</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0110 0v1M17 8v6M20 11h-6"/></svg>Utilisateurs</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Paiements</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>Profil</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="caption">Données d'exemple (noms, montants, KPI) — à remplacer par les vraies données une fois le backend branché.</p>
+</div>
+
+<script>
+function go(s){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById('s-'+s).classList.add('active');
+  document.querySelectorAll('.switcher button').forEach(function(b){ b.classList.toggle('on', b.dataset.s===s); });
+}
+document.getElementById('switcher').addEventListener('click', function(e){
+  var b = e.target.closest('button');
+  if(b) go(b.dataset.s);
+});
+function decide(btn){
+  var card = btn.closest('.queue-card');
+  card.style.transition = 'opacity .25s ease, transform .25s ease';
+  card.style.opacity = '0';
+  card.style.transform = 'translateX(20px)';
+  setTimeout(function(){ card.remove(); }, 250);
+}
+</script>
+
+</body>
+</html>
