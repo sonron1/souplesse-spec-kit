@@ -82,6 +82,11 @@ enum Gender {
   FEMALE
 }
 
+enum RegisteredVia {
+  WEB
+  MOBILE
+}
+
 // ---------------------------------------------------------------------------
 // Core User Model
 // ---------------------------------------------------------------------------
@@ -111,6 +116,14 @@ model User {
   emailVerified                   Boolean   @default(false)
   emailVerificationToken          String?   @unique
   emailVerificationTokenCreatedAt DateTime? // TTL anchor — tokens older than 24h are rejected
+
+  // Origin + SMS/OTP verification (mobile accounts only)
+  registeredVia                   RegisteredVia @default(WEB)
+  phoneVerified                   Boolean       @default(false)
+  phoneVerificationCodeHash       String?
+  phoneVerificationCodeCreatedAt  DateTime?     // TTL anchor — 10 min
+  phoneVerificationAttempts       Int           @default(0)
+  phoneVerificationLockedUntil    DateTime?
 
   // Session token (v3 — single session, multi-device revocation)
   sessionToken          String?   @unique
