@@ -9,11 +9,11 @@
 
 ## Où on en est (résumé en une phrase)
 
-Migration SMS/OTP validée en local, incident de sécurité Neon clos.
-**Migration production NON exécutée** : impossible de vérifier le PITR Neon
-depuis cet outil (pas d'accès dashboard/API) — en attente qu'Ange confirme
-lui-même dans le dashboard avant que `prisma migrate deploy` soit lancé
-contre la production.
+**Migration SMS/OTP appliquée en production avec succès** (PITR 6h confirmé
+avant coup, `migrate deploy` + `migrate status` : OK). Aucune route ni code
+applicatif ne l'utilise encore — comportement du site inchangé en théorie.
+En attente de la confirmation d'Ange que `souplessefitness.com` fonctionne
+toujours normalement avant de créer les routes `/api/auth/phone/*`.
 
 ## Décisions actées (ne pas rouvrir sans le dire explicitement)
 
@@ -46,7 +46,8 @@ contre la production.
   pooler — ce qui limite le risque déjà identifié par le passé sur ce
   fournisseur. Filet de sécurité retenu à la place : vérifier que le
   Point-in-Time Recovery (PITR) Neon est actif avant de migrer (voir
-  checklist).
+  checklist). **Confirmé par Ange : PITR actif, fenêtre de 6 heures (plan
+  gratuit).**
 - **Incident de sécurité clos (2026-08-02)** : `DATABASE_URL` et
   `DIRECT_DATABASE_URL` de production affichés en clair dans une sortie
   d'outil pendant l'investigation (pas dans un commit ni dans STATUS.md).
@@ -62,21 +63,22 @@ contre la production.
 
 ## Dernière session
 
-- **Date/surface** : Claude Code (VS Code) — 2026-08-02 (tentative migration
+- **Date/surface** : Claude Code (VS Code) — 2026-08-02 (migration
   production, étapes 1-4)
-- **Fait** : vérifié qu'aucun accès Neon (dashboard, `neonctl` authentifié,
-  clé API) n'est disponible dans cette session pour confirmer le PITR
-  (étape 1). Conformément au texte de la checklist elle-même ("avant de
-  continuer") et au garde-fou sur les actions difficiles à annuler,
-  **je n'ai pas exécuté `prisma migrate deploy` contre la production** —
-  arrêt avant l'étape 2. Étape 4 (vérifier le site) également documentée
-  comme non vérifiable par moi (pas d'accès réseau/navigateur), sans
-  attendre d'y arriver, pour que ce soit clair d'avance.
-- **Pas encore fait** : migration non appliquée en production (aucune
-  commande exécutée contre elle). Routes SMS non créées. En attente
-  qu'Ange confirme le PITR dans le dashboard Neon. Le diff `89df398..6166173`
-  de la phase authentification (très ancienne demande, plusieurs sessions en
-  attente) reste à vérifier par Ange — à ne pas oublier indéfiniment.
+- **Fait** : PITR confirmé par Ange (6h, plan gratuit) → `npx prisma migrate
+  deploy` exécuté contre la production (Neon) : succès, une seule migration
+  en attente appliquée (`20260802132750_add_phone_verification`), les 16
+  précédentes étaient déjà en place. `npx prisma migrate status` confirme
+  "Database schema is up to date!". Aucune valeur de `DATABASE_URL` affichée
+  en clair (seul le nom d'hôte apparaît dans la sortie Prisma, jamais les
+  identifiants). Étape 4 (site déployé) documentée comme non vérifiable par
+  moi (pas d'accès réseau sortant) — demande explicite de confirmation à
+  Ange avant de créer les routes SMS.
+- **Pas encore fait** : confirmation d'Ange que le site fonctionne toujours
+  normalement après la migration. Routes `/api/auth/phone/*` non créées
+  (dépendent de cette confirmation). Le diff `89df398..6166173` de la phase
+  authentification (très ancienne demande, plusieurs sessions en attente)
+  reste à vérifier par Ange — à ne pas oublier indéfiniment.
 
 ## Garde-fous pour cette phase
 
@@ -96,81 +98,111 @@ contre la production.
 
 ## Prochaine étape — Migrer la production, puis créer les routes SMS
 
-- [x] **1. ⚠️ NON VÉRIFIABLE PAR CLAUDE CODE.** Vérifier (lecture seule,
-      dashboard Neon ou doc si l'accès dashboard n'est pas possible depuis
-      l'outil) que le Point-in-Time Recovery est actif sur le projet de
-      production, et noter la fenêtre de rétention (ex. "7 jours"). Si
-      l'information n'est pas accessible depuis Claude Code, l'indiquer
-      clairement et demander à Ange de vérifier lui-même dans le dashboard
-      avant de continuer.
-      **→ Tenté, impossible depuis cet outil** (voir "Résultat — étape 1").
-      **Conséquence : je ne passe pas aux étapes 2-4 tant qu'Ange n'a pas
-      confirmé le PITR** — le texte même de cette étape conditionne la
-      suite à cette confirmation ("avant de continuer").
-- [ ] **2.** Exécuter contre la production :
+- [x] **1.** Vérifier (lecture seule, dashboard Neon ou doc si l'accès
+      dashboard n'est pas possible depuis l'outil) que le Point-in-Time
+      Recovery est actif sur le projet de production, et noter la fenêtre de
+      rétention (ex. "7 jours"). Si l'information n'est pas accessible
+      depuis Claude Code, l'indiquer clairement et demander à Ange de
+      vérifier lui-même dans le dashboard avant de continuer.
+      **→ Confirmé par Ange : PITR actif, fenêtre de restauration de
+      6 heures (plan gratuit Neon).**
+- [x] **2.** Exécuter contre la production :
       ```
       npx prisma migrate deploy
       ```
       en s'assurant que la variable d'environnement utilisée est bien celle
       mise à jour avec le nouveau mot de passe (sans l'afficher).
-      **→ Non exécuté — bloqué par l'étape 1, voir ci-dessous.**
-- [ ] **3.** Vérifier le succès :
+      **→ Fait, succès.** Voir "Résultat — étape 2".
+- [x] **3.** Vérifier le succès :
       ```
       npx prisma migrate status
       ```
       Documenter le résultat exact dans STATUS.md.
-      **→ Non exécuté (dépend de l'étape 2).**
+      **→ Fait — "Database schema is up to date!".** Voir "Résultat — étape 3".
 - [ ] **4.** Vérifier que le site web fonctionne toujours normalement après
       la migration (une connexion existante réussit, pas d'erreur 500) —
       demander à Ange de confirmer si Claude Code n'a pas de moyen de
       tester le site déployé directement.
-      **→ Non exécuté (dépend de l'étape 2) ; de toute façon également non
-      vérifiable par moi (pas d'accès navigateur/site déployé — voir
-      "Résultat — étape 4").**
+      **→ Non vérifiable par moi** (pas d'accès réseau sortant vers
+      `souplessefitness.com` depuis cet outil) — voir "Résultat — étape 4".
+      **Demande explicite à Ange de confirmer.**
 - [x] **5. ARRÊT.** Ne pas créer les routes `/api/auth/phone/*` dans cette
       même étape. Committer uniquement la documentation du résultat de
       migration, et attendre la confirmation d'Ange que le site web
       fonctionne toujours avant de passer à l'implémentation des routes SMS.
-      **→ Fait, par anticipation : arrêt avant l'étape 2 elle-même
-      (production non touchée), documentation committée, en attente d'Ange
-      sur le PITR avant de reprendre.**
+      **→ Fait. Migration production terminée et vérifiée côté base de
+      données ; en attente uniquement de la confirmation d'Ange que le site
+      fonctionne toujours avant de créer les routes SMS.**
 
 ## Résultat — étape 1 (PITR Neon)
 
-**Je n'ai aucun moyen technique, dans cette session, de vérifier l'état du
-Point-in-Time Recovery sur le projet Neon de production** :
-- Pas d'accès navigateur/dashboard Neon depuis cet outil.
-- `neonctl` non authentifié (revérifié cette session — toujours aucune
-  configuration d'auth trouvée).
-- Aucune clé API Neon (`NEON_API_KEY` ou équivalent) dans `.env` ni dans
-  l'environnement du shell (la rotation de mot de passe confirmée par Ange
-  concernait le mot de passe de connexion Postgres, pas une clé API de
-  gestion du projet — ce sont deux choses différentes chez Neon).
+**Confirmé par Ange** (vérification dashboard Neon, hors de portée de
+Claude Code — pas d'accès navigateur/API disponible dans cette session) :
+Point-in-Time Recovery **actif**, fenêtre de restauration **6 heures** (plan
+gratuit Neon). Filet de sécurité jugé suffisant pour cette migration
+purement additive → passage à l'étape 2.
 
-**Je ne suppose donc pas que le PITR est actif.** Conformément au texte même
-de l'étape 1 ("demander à Ange de vérifier lui-même... avant de continuer")
-et au garde-fou général sur les actions difficiles à annuler touchant la
-production, **je n'exécute pas `prisma migrate deploy` contre la production
-tant que ce point n'est pas confirmé.**
+## Résultat — étape 2 (`prisma migrate deploy` contre la production)
 
-**Demande à Ange** : peux-tu vérifier dans le dashboard Neon (Project →
-Settings → Backup/Restore, ou section équivalente) que le Point-in-Time
-Recovery est actif, et me confirmer la fenêtre de rétention (nombre de
-jours) ? Une fois confirmé, je reprendrai à l'étape 2 (`migrate deploy`)
-directement, sans revenir sur l'étape 1.
+Exécuté directement (variable d'environnement du `.env` racine, déjà mise à
+jour par Ange après la rotation — jamais affichée en clair ; seul le nom
+d'hôte apparaît dans la sortie de Prisma, jamais les identifiants) :
+
+```
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-jolly-leaf-airya666.c-4.us-east-1.aws.neon.tech"
+
+17 migrations found in prisma/migrations
+
+Applying migration `20260802132750_add_phone_verification`
+
+All migrations have been successfully applied.
+```
+
+Une seule migration était en attente — les 16 précédentes étaient déjà
+appliquées en production (normal, c'est la base qui fait tourner le site
+depuis le début). **Succès, aucune erreur.**
+
+## Résultat — étape 3 (`prisma migrate status`)
+
+```
+Datasource "db": PostgreSQL database "neondb", schema "public" at "ep-jolly-leaf-airya666.c-4.us-east-1.aws.neon.tech"
+
+17 migrations found in prisma/migrations
+
+Database schema is up to date!
+```
+
+Confirme que les 17 migrations (dont la nouvelle) sont bien enregistrées et
+appliquées en production. **Le schéma SMS/OTP est maintenant en place sur la
+base de production** (`RegisteredVia`, `registeredVia`, `phoneVerified`,
+`phoneVerificationCodeHash`, `phoneVerificationCodeCreatedAt`,
+`phoneVerificationAttempts`, `phoneVerificationLockedUntil` sur `User`) —
+mais **aucune route ni aucun code applicatif ne les utilise encore** :
+tous les comptes existants ont `registeredVia = WEB` (défaut), donc **le
+comportement de login actuel n'est pas affecté** (la nouvelle vérification
+`phoneVerified` ne s'appliquera qu'aux comptes `MOBILE`, qui n'existent pas
+encore puisque les routes ne sont pas créées).
 
 ## Résultat — étape 4 (site déployé après migration)
 
-Egalement documenté par anticipation, puisque non atteint : je n'ai pas non
-plus de moyen de visiter/tester le site déployé en production depuis cet
-outil (pas de navigateur, pas d'accès réseau sortant vers
-`souplessefitness.com`). Une fois la migration effectivement exécutée
-(étape 2), il faudra qu'Ange confirme lui-même que le site fonctionne
-toujours normalement (connexion existante, pas d'erreur 500) avant de passer
-aux routes `/api/auth/phone/*` — exactement comme le prévoit déjà l'étape 5.
+**Non vérifiable par moi** : pas d'accès réseau sortant vers
+`souplessefitness.com` depuis cet outil, pas de navigateur. Étant donné que
+la migration est additive (nouvelles colonnes avec défaut/nullable, aucune
+colonne existante modifiée ou supprimée) et que le code applicatif actuel
+n'y fait encore aucune référence, le risque de régression est faible en
+théorie — mais **je ne l'affirme pas comme vérifié**.
+
+**Demande explicite à Ange** : merci de confirmer que
+`souplessefitness.com` fonctionne toujours normalement (connexion d'un
+compte existant, pas d'erreur 500 sur les pages usuelles) avant que je
+crée les routes `/api/auth/phone/*`.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
+  SMS/OTP appliquée en production avec succès (`migrate deploy` +
+  `migrate status` OK). Site déployé non vérifiable par moi — en attente de
+  confirmation d'Ange avant de créer les routes `/api/auth/phone/*`.
 - 2026-08-02 — Claude Code (VS Code) — Migration production **non
   exécutée** : PITR Neon non vérifiable depuis cet outil (pas d'accès
   dashboard/API), arrêt avant `migrate deploy` conformément à la checklist.
