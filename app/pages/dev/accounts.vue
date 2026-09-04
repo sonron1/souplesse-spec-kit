@@ -80,7 +80,7 @@
     ],
   })
 
-  const { logout, user: currentUser, accessToken } = useAuth()
+  const { logout, user: currentUser } = useAuth()
 
   const loggingIn = ref<string | null>(null)
   const loginError = ref('')

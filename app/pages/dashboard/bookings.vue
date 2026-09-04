@@ -70,9 +70,6 @@ function weekDay(dt?: string) {
 function timeStr(dt?: string) {
   return dt ? new Date(dt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
 }
-function isUpcoming(dt?: string) {
-  return dt ? new Date(dt) >= now.value : false
-}
 
 const cancelError = ref('')
 const cancelling = ref<string | null>(null)
@@ -80,7 +77,7 @@ const confirmId = ref<string | null>(null)
 
 // Q002/Q004: Poll bookings every 30s
 const pollingActive = ref(false)
-const { isPolling } = usePolling(async () => {
+usePolling(async () => {
   if (pending.value) return
   pollingActive.value = true
   await refresh()
@@ -119,7 +116,8 @@ async function cancelBooking(id: string) {
         <h1 class="text-2xl font-extrabold text-gray-900">Mes réservations</h1>
         <p class="text-sm text-gray-400 mt-0.5">{{ totalCount }} au total</p>
       </div>
-      <NuxtLink to="/sessions"
+      <NuxtLink
+to="/sessions"
         class="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Réserver

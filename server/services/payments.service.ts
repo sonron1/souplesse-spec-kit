@@ -15,6 +15,7 @@ const MAX_TX_RETRIES = 3
  */
 async function withSerializableRetry<T>(fn: () => Promise<T>): Promise<T> {
   let attempt = 0
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       return await fn()
@@ -177,7 +178,7 @@ export async function createPaymentOrder(opts: {
   if (!plan) throw new Error('SubscriptionPlan not found')
 
   const isCouplePlan = plan.planType?.includes('COUPLE') ?? false
-  const amount = (isCouplePlan && plan.priceCouple != null) ? plan.priceCouple : plan.priceSingle
+  const amount = (isCouplePlan && plan.priceCouple !== null && plan.priceCouple !== undefined) ? plan.priceCouple : plan.priceSingle
   const currency = 'XOF'
 
   const order = await prisma.paymentOrder.create({

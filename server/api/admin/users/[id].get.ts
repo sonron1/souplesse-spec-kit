@@ -11,6 +11,7 @@ export default defineEventHandler(async (event) => {
   const admin = await requireAuth(event)
   requireAdmin(admin)
 
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const id = getRouterParam(event, 'id')!
 
   const user = await prisma.user.findUnique({
