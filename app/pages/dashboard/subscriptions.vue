@@ -207,13 +207,15 @@
             </div>
             <div class="flex items-center gap-2">
               <p v-if="pauseError" class="text-xs text-red-600">{{ pauseError }}</p>
-              <button v-if="activeSub.pausedAt" :disabled="pauseLoading"
+              <button
+v-if="activeSub.pausedAt" :disabled="pauseLoading"
                 class="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
                 @click="resumeSub">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 {{ pauseLoading ? 'En cours…' : 'Reprendre' }}
               </button>
-              <button v-else-if="activeSub.pauseCount < activeSub.maxPauses" :disabled="pauseLoading"
+              <button
+v-else-if="activeSub.pauseCount < activeSub.maxPauses" :disabled="pauseLoading"
                 class="flex items-center gap-1.5 text-xs font-semibold text-yellow-700 bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
                 @click="pauseSub">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -248,7 +250,8 @@
           <div class="h-px flex-1 bg-gray-100" />
         </div>
         <div class="space-y-2">
-          <div v-for="sub in pastSubs" :key="sub.id"
+          <div
+v-for="sub in pastSubs" :key="sub.id"
             class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 min-w-0">
               <div class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">

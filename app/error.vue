@@ -60,6 +60,8 @@
 </template>
 
 <script setup lang="ts">
+  import { clearError } from '#app'
+
   interface NuxtError {
     statusCode?: number
     statusMessage?: string

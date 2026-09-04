@@ -20,7 +20,10 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
 
-  const id = getRouterParam(event, 'id')!
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({ statusCode: 400, message: 'Paramètre id manquant.' })
+  }
   const raw = await readBody(event)
   const parsed = bodySchema.safeParse(raw)
   if (!parsed.success) {

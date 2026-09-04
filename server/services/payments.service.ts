@@ -14,8 +14,7 @@ const MAX_TX_RETRIES = 3
  * (serialization failure / concurrent transaction conflict).
  */
 async function withSerializableRetry<T>(fn: () => Promise<T>): Promise<T> {
-  let attempt = 0
-  while (true) {
+  for (let attempt = 0; attempt <= MAX_TX_RETRIES; attempt++) {
     try {
       return await fn()
     } catch (e) {
@@ -24,13 +23,13 @@ async function withSerializableRetry<T>(fn: () => Promise<T>): Promise<T> {
         e instanceof Prisma.PrismaClientKnownRequestError &&
         e.code === 'P2034'
       ) {
-        attempt++
-        logger.warn({ attempt, code: e.code }, '[withSerializableRetry] Serialization failure — retrying')
+        logger.warn({ attempt: attempt + 1, code: e.code }, '[withSerializableRetry] Serialization failure — retrying')
         continue
       }
       throw e
     }
   }
+  throw new Error('withSerializableRetry exceeded retry loop')
 }
 
 const _isSandbox = (process.env.NUXT_PUBLIC_KKIAPAY_IS_SANDBOX || '').trim().toLowerCase() === 'true'
@@ -177,7 +176,7 @@ export async function createPaymentOrder(opts: {
   if (!plan) throw new Error('SubscriptionPlan not found')
 
   const isCouplePlan = plan.planType?.includes('COUPLE') ?? false
-  const amount = (isCouplePlan && plan.priceCouple != null) ? plan.priceCouple : plan.priceSingle
+  const amount = (isCouplePlan && plan.priceCouple !== null && plan.priceCouple !== undefined) ? plan.priceCouple : plan.priceSingle
   const currency = 'XOF'
 
   const order = await prisma.paymentOrder.create({
