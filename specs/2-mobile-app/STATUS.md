@@ -13,8 +13,9 @@
 extrait dans un nouveau dépôt indépendant `souplesse-api` (NestJS)**, hébergé sur
 Render.com (offre gratuite) le temps de la démo. L'app mobile reste dans ce monorepo
 (`mobile/`). Dépôt créé et poussé : https://github.com/sonron1/souplesse-api (privé).
-Étapes 0 à 3 du handoff terminées (doc consolidée, scaffold NestJS, modules Auth
-et Subscriptions complets et testés) ; prochaine étape : module Payments (étape 4).
+Étapes 0 à 4 du handoff terminées (doc consolidée, scaffold NestJS, modules Auth,
+Subscriptions et Payments complets et testés) ; prochaine étape : module Coaching
+(étape 5, best-effort) ou déploiement Render.com (étape 6).
 
 La migration SMS/OTP appliquée en production le 2026-08-02 (voir "Archive" plus bas)
 reste valide au niveau du schéma Prisma partagé — mais les routes `/api/auth/phone/*`
@@ -110,6 +111,29 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   "genre opposé" pour les couples (Bloc L de CLAUDE.md) n'a pas été
   demandée pour le mobile et n'a pas été ajoutée — à signaler si c'est un
   oubli plutôt qu'un choix voulu.
+- **Module Payments (`souplesse-api`) — 2026-09-20** : rôle `MODERATOR`
+  ajouté au schéma (mobile uniquement, pas d'équivalent web) ; nouveau
+  modèle `PaymentProof` (preuve de paiement) et `DeviceToken` (token Expo
+  Push par appareil — comble le manque signalé dans le commit Auth : la
+  résolution userId→token pour le push n'existait pas encore).
+  `POST /payments/proof` (upload multipart, stockage **disque local**,
+  5 Mo max, JPEG/PNG/WebP uniquement — **aucun compte S3/R2 provisionné**
+  conformément au garde-fou "pas de ressource payante sans validation").
+  `GET /payments/pending` (file du Modérateur), `GET /payments/:id/screenshot`,
+  `PATCH /payments/:id/validate` (active l'abonnement — et celui du
+  partenaire couple le cas échéant — notifie SMS+push, supprime la capture),
+  `PATCH /payments/:id/reject` (motif obligatoire, notifie, supprime la
+  capture, l'abonnement reste `PENDING` pour permettre une nouvelle
+  soumission). **Limite connue à surveiller** : le stockage disque local est
+  éphémère sur Render.com — un redéploiement entre la soumission et la
+  décision du modérateur ferait perdre le fichier. Acceptable pour cette
+  phase de démo (fichier supprimé de toute façon juste après décision), mais
+  **pas une solution valable au-delà** — à remplacer par S3/R2/Cloudinary
+  avant toute mise en production réelle. 9 tests unitaires (49 au total sur
+  `souplesse-api`) + vérification manuelle complète de bout en bout (upload
+  réel, contrôle des rôles, récupération de la capture, validation avec
+  activation + suppression fichier + garde-fou anti double-traitement,
+  rejet avec motif obligatoire).
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -180,13 +204,16 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   26 tests sur le module (40 au total sur `souplesse-api`), vérification
   manuelle bout en bout des deux fonctionnalités. Commit `souplesse-api@6077664`,
   poussé.
-- **Pas encore fait** : module Payments (étape 4), Coaching (étape 5, best-effort),
-  déploiement Render.com (étape 6), branchement du frontend mobile sur
-  `souplesse-api` (étape 7), build APK (étape 8), test manuel bout en bout sur
-  device réel (étape 9). Compte Africa's Talking toujours pas créé —
-  `AfricasTalkingProvider` fonctionne en mode "stub log" en attendant. Aucun
-  modèle `DeviceToken` dans le schéma — la résolution userId→token Expo Push est
-  différée à l'étape 4.
+- **Fait (étape 4)** : Module Payments implémenté et testé — voir décision
+  "Module Payments" ci-dessus pour le détail complet. `DeviceToken` +
+  `POST /notifications/register-device` ajoutés au passage (comblent le
+  manque signalé au commit Auth). 49 tests au total sur `souplesse-api`.
+  Commit `souplesse-api@8c5c2c2`, poussé.
+- **Pas encore fait** : Coaching (étape 5, best-effort), déploiement Render.com
+  (étape 6), branchement du frontend mobile sur `souplesse-api` (étape 7),
+  build APK (étape 8), test manuel bout en bout sur device réel (étape 9).
+  Compte Africa's Talking toujours pas créé — `AfricasTalkingProvider`
+  fonctionne en mode "stub log" en attendant.
 
 ## Questions en attente
 
@@ -194,7 +221,14 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   cette règle (Bloc L de CLAUDE.md) ; elle n'a pas été demandée pour le mobile
   et n'a donc pas été ajoutée dans `souplesse-api`. À confirmer si c'est
   volontaire (le mobile pourrait vouloir être plus permissif, ex. couples de
-  même sexe) ou un oubli à corriger avant l'étape Payments.
+  même sexe) ou un oubli à corriger.
+- **Stockage des captures de paiement (`souplesse-api`)** : disque local,
+  éphémère sur Render.com. Suffisant pour la démo (fichier supprimé juste
+  après décision du modérateur) mais **pas une solution de production** —
+  un redéploiement entre soumission et décision ferait perdre le fichier.
+  À remplacer par un stockage persistant (S3/R2/Cloudinary) avant tout usage
+  au-delà de la démo — nécessitera une ressource externe, donc validation
+  explicite d'Ange avant de la provisionner (garde-fou #4).
 
 ## Garde-fous permanents — migrations de schéma production
 
@@ -237,14 +271,14 @@ Détail complet dans `handoff.md` section 3. Résumé :
       — voir "Dernière session" et le commit initial de `souplesse-api`.
 - [x] **3. Module Subscriptions** : formules 1/2/3/6/12 mois, statut actif/en
       pause/expiré, règle de non-renouvellement tant qu'actif **ou en pause**
-      (vérifiée explicitement à la demande d'Ange). Fait et testé — voir
-      "Dernière session" et "Questions en attente" (prix + maxPauses 2 mois à
-      confirmer).
-- [ ] **4. Module Payments** (prochaine étape) : soumission de preuve, file de modération,
+      (vérifiée explicitement à la demande d'Ange). Corrigé le même jour avec
+      les vrais tarifs + liaison couple (voir décisions ci-dessus). Fait et testé.
+- [x] **4. Module Payments** : soumission de preuve, file de modération,
       validation/rejet, notification SMS + push via `PushProvider`, suppression de
-      la capture après traitement.
-- [ ] **5. Module Coaching** (si le temps le permet pour cette démo — sinon
-      signaler comme non couvert plutôt que de le bâcler).
+      la capture après traitement. Fait et testé — voir décision "Module Payments"
+      ci-dessus (limite de stockage disque local à surveiller).
+- [ ] **5. Module Coaching** (prochaine étape, si le temps le permet pour cette
+      démo — sinon signaler comme non couvert plutôt que de le bâcler).
 - [ ] **6. Déployer `souplesse-api` sur Render.com** (offre gratuite).
 - [ ] **7. Brancher l'app mobile** (`EXPO_PUBLIC_API_URL`) sur cette instance Render.
 - [ ] **8. Générer l'APK** via `eas build --platform android --profile preview`.
@@ -336,8 +370,18 @@ dans ce backend.
   PENDING liés via `partnerUserId`, blocage actif/en pause vérifié sur les deux
   comptes). 26 tests sur le module (40 au total), vérifié manuellement de bout
   en bout. Commit `souplesse-api@6077664`. Une question ouverte : validation
-  genre opposé (non reprise du web, à confirmer). Prochaine étape : module
-  Payments.
+  genre opposé (non reprise du web, à confirmer).
+- 2026-09-20 — Claude Code (VS Code) — Module Payments (étape 4) : rôle
+  `MODERATOR` et modèles `PaymentProof`/`DeviceToken` ajoutés au schéma ;
+  upload de preuve (disque local, 5 Mo, JPEG/PNG/WebP), file de modération,
+  validation (active l'abonnement + le partenaire couple, notifie SMS+push,
+  supprime la capture), rejet (motif obligatoire, abonnement reste PENDING).
+  `POST /notifications/register-device` ajouté pour le push. 49 tests au
+  total, vérifié manuellement de bout en bout (upload réel, rôles, capture,
+  validation, rejet). Commit `souplesse-api@8c5c2c2`, poussé. Limite
+  documentée : stockage disque éphémère sur Render.com, à remplacer avant
+  toute production réelle. Prochaine étape : module Coaching (best-effort)
+  ou déploiement Render.com.
 - 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
   SMS/OTP appliquée en production avec succès (`migrate deploy` +
   `migrate status` OK). Site déployé non vérifiable par moi — en attente de
