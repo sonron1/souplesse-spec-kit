@@ -77,15 +77,39 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   pas de valeur d'enum `PAUSED` séparée). Vérifié par test unitaire +
   vérification manuelle bout en bout (actif → bloqué, mis en pause → toujours
   bloqué, repris → toujours bloqué tant qu'actif).
-- **Catalogue de formules mobile (`souplesse-api`)** : 5 formules (1/2/3/6/12
-  mois, spec.md F02), avec `maxPauses` par formule (0 = pas de pause
-  autorisée) : 1 mois=0, 2 mois=0, 3 mois=2, 6 mois=2, 12 mois=3. Valeurs
-  1/3/6/12 mois reprises du catalogue web validé (table "Subscription Plans"
-  de CLAUDE.md). **[À CONFIRMER PAR ANGE]** : la formule 2 mois n'a pas
-  d'équivalent web — `maxPauses=0` est une hypothèse par analogie avec la
-  formule 1 mois, pas une valeur validée. Prix (`priceSingle`) pas encore
-  définis pour aucune des 5 formules mobile — laissés à 0 en attendant une
-  grille tarifaire mobile (aucune mentionnée dans spec.md à ce jour).
+- **Catalogue de formules mobile — corrigé le 2026-09-20 avec les vrais tarifs
+  de la salle (Ange).** La formule "2 mois" (placeholder de la session
+  précédente) est retirée — elle n'existe pas dans l'offre réelle. Catalogue
+  définitif (Simple / Couple FCFA, validité, `maxPauses`) :
+  - 1 mois : 15 000 / 25 000, 30j, maxPauses=0
+  - Suivi personnel : 20 000 / 40 000, 30j, maxPauses=1
+  - 3 mois : 40 000 / 75 000, 90j, maxPauses=2
+  - 6 mois : 70 000 / 120 000, 180j, maxPauses=2
+  - 1 an : 120 000 / 200 000, 365j, maxPauses=3
+
+  Carnets de séances, Séance unique et formules sportives (Fit Dance,
+  Taekwondo, Boxe) restent **hors périmètre pour cette phase de démo**
+  (décision explicite d'Ange). "Report" = exactement le mécanisme de pause
+  déjà codé — confirmé, rien à changer sur cette logique.
+- **Abonnement Couple (mobile) — nouveau, 2026-09-20** : à la création d'une
+  demande, le souscripteur fournit le numéro de téléphone de son partenaire.
+  Ce numéro doit correspondre à un compte `MOBILE` déjà vérifié par SMS,
+  sinon la demande est rejetée (400, code `partner_not_eligible` — message
+  volontairement générique, ne distingue pas "numéro inconnu" de "non
+  vérifié", pour ne pas permettre l'énumération de comptes, comme le fait
+  déjà `resend-otp`). Si trouvé, **deux** abonnements `PENDING` sont créés
+  et liés via `partnerUserId` (champ déjà présent sur le schéma partagé,
+  pas de nouvelle table) — même principe que la liaison couple déjà en
+  place côté web (`payments.service.ts`). La règle "actif ou en pause"
+  bloque désormais la demande si **l'un ou l'autre** des deux comptes est
+  concerné (réponse 409 avec `who: 'self' | 'partner'` pour indiquer lequel).
+  `activate()` active les deux abonnements liés en une seule fois. Vérifié
+  par test (26 tests sur le catalogue/couple) et manuellement de bout en
+  bout (deux comptes réels créés, liés, activés, blocage confirmé des deux
+  côtés après activation). **Non repris depuis le web** : la validation
+  "genre opposé" pour les couples (Bloc L de CLAUDE.md) n'a pas été
+  demandée pour le mobile et n'a pas été ajoutée — à signaler si c'est un
+  oubli plutôt qu'un choix voulu.
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -146,32 +170,31 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   unitaires/e2e + smoke test manuel (curl) tous verts.
 - **Fait (étape 3)** : Ange a demandé, avant de commencer, une vérification explicite
   de la règle "actif OU en pause" — confirmée correcte et testée (voir décision
-  ci-dessus). Module Subscriptions implémenté : catalogue auto-seedé des 5 formules
-  mobile, `POST /subscriptions` (bloqué si abonnement actif/en pause), `GET
-  /subscriptions/me`, `PATCH /subscriptions/:id/{pause,resume}`. 11 nouveaux tests
-  unitaires + vérification manuelle bout en bout (25/25 tests verts, lint propre).
-  Commit `souplesse-api@527755d`, poussé.
+  ci-dessus). Module Subscriptions implémenté : catalogue auto-seedé, `POST
+  /subscriptions` (bloqué si abonnement actif/en pause), `GET /subscriptions/me`,
+  `PATCH /subscriptions/:id/{pause,resume}`. 11 tests. Commit `souplesse-api@527755d`.
+- **Fait (étape 3, correction)** : Ange a fourni les vrais tarifs de la salle
+  et le mécanisme d'abonnement couple — catalogue corrigé (formule "2 mois"
+  supprimée, "Suivi personnel" ajoutée, prix Simple/Couple réels) et liaison
+  de comptes couple implémentée (voir décisions ci-dessus pour le détail).
+  26 tests sur le module (40 au total sur `souplesse-api`), vérification
+  manuelle bout en bout des deux fonctionnalités. Commit `souplesse-api@6077664`,
+  poussé.
 - **Pas encore fait** : module Payments (étape 4), Coaching (étape 5, best-effort),
   déploiement Render.com (étape 6), branchement du frontend mobile sur
   `souplesse-api` (étape 7), build APK (étape 8), test manuel bout en bout sur
   device réel (étape 9). Compte Africa's Talking toujours pas créé —
   `AfricasTalkingProvider` fonctionne en mode "stub log" en attendant. Aucun
   modèle `DeviceToken` dans le schéma — la résolution userId→token Expo Push est
-  différée à l'étape 4. **Deux points à confirmer par Ange** (voir "Questions en
-  attente" ci-dessous) : `maxPauses` de la formule 2 mois, et grille tarifaire
-  des 5 formules mobile (actuellement `priceSingle=0` partout, aucun prix mobile
-  trouvé dans `spec.md`).
+  différée à l'étape 4.
 
 ## Questions en attente
 
-- **Grille tarifaire des 5 formules mobile (1/2/3/6/12 mois)** : `spec.md` F02
-  mentionne juste "le tarif correspondant s'affiche" sans donner de montants
-  FCFA pour le mobile (contrairement à la table complète du web dans
-  `CLAUDE.md`). Toutes les formules `souplesse-api` ont actuellement
-  `priceSingle=0`. Bloquant avant l'étape 4 (Payments) si le montant doit être
-  vérifié par le modérateur contre la preuve de paiement — sinon peut attendre.
-- **`maxPauses` de la formule "Mobile — 2 mois"** : fixé à 0 par analogie avec
-  la formule 1 mois (aucun équivalent web à copier). À confirmer ou corriger.
+- **Validation "genre opposé" pour l'abonnement Couple mobile** : le web impose
+  cette règle (Bloc L de CLAUDE.md) ; elle n'a pas été demandée pour le mobile
+  et n'a donc pas été ajoutée dans `souplesse-api`. À confirmer si c'est
+  volontaire (le mobile pourrait vouloir être plus permissif, ex. couples de
+  même sexe) ou un oubli à corriger avant l'étape Payments.
 
 ## Garde-fous permanents — migrations de schéma production
 
@@ -304,8 +327,17 @@ dans ce backend.
   smoke test manuel). Ange a demandé une vérification explicite de la règle
   "actif ou en pause" avant Subscriptions — confirmée et testée. Module
   Subscriptions complet et testé (catalogue 5 formules, requête bloquée si
-  actif/en pause, pause/reprise). Deux questions ouvertes : prix mobile et
-  maxPauses de la formule 2 mois. Prochaine étape : module Payments.
+  actif/en pause, pause/reprise).
+- 2026-09-20 — Claude Code (VS Code) — Correction du catalogue Subscriptions avec
+  les vrais tarifs de la salle fournis par Ange : formule "2 mois" supprimée
+  (n'existe pas), "Suivi personnel" ajoutée, prix Simple/Couple réels pour les 5
+  formules. Ajout de la liaison de comptes pour l'abonnement Couple (numéro de
+  téléphone du partenaire, vérifié MOBILE + phoneVerified, deux abonnements
+  PENDING liés via `partnerUserId`, blocage actif/en pause vérifié sur les deux
+  comptes). 26 tests sur le module (40 au total), vérifié manuellement de bout
+  en bout. Commit `souplesse-api@6077664`. Une question ouverte : validation
+  genre opposé (non reprise du web, à confirmer). Prochaine étape : module
+  Payments.
 - 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
   SMS/OTP appliquée en production avec succès (`migrate deploy` +
   `migrate status` OK). Site déployé non vérifiable par moi — en attente de
