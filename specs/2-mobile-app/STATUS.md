@@ -14,8 +14,10 @@ extrait dans un nouveau dépôt indépendant `souplesse-api` (NestJS)**, héberg
 Render.com (offre gratuite) le temps de la démo. L'app mobile reste dans ce monorepo
 (`mobile/`). Dépôt créé et poussé : https://github.com/sonron1/souplesse-api (privé).
 Étapes 0 à 4 du handoff terminées (doc consolidée, scaffold NestJS, modules Auth,
-Subscriptions et Payments complets et testés) ; prochaine étape : module Coaching
-(étape 5, best-effort) ou déploiement Render.com (étape 6).
+Subscriptions et Payments complets et testés). Validation genre opposé couple
+ajoutée. **Étape 6 (déploiement Render.com) préparée à 100% côté code**
+(`render.yaml`, migration au démarrage) **mais bloquée sans accès Render/Neon
+depuis cet outil** — voir "ARRÊT — action requise d'Ange" ci-dessous.
 
 La migration SMS/OTP appliquée en production le 2026-08-02 (voir "Archive" plus bas)
 reste valide au niveau du schéma Prisma partagé — mais les routes `/api/auth/phone/*`
@@ -107,10 +109,14 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   `activate()` active les deux abonnements liés en une seule fois. Vérifié
   par test (26 tests sur le catalogue/couple) et manuellement de bout en
   bout (deux comptes réels créés, liés, activés, blocage confirmé des deux
-  côtés après activation). **Non repris depuis le web** : la validation
-  "genre opposé" pour les couples (Bloc L de CLAUDE.md) n'a pas été
-  demandée pour le mobile et n'a pas été ajoutée — à signaler si c'est un
-  oubli plutôt qu'un choix voulu.
+  côtés après activation). **Validation genre opposé ajoutée le 2026-09-20**
+  (demande explicite d'Ange) : réplique exactement le Bloc L du web
+  (`server/api/payments/create-session.post.ts` L001) — rejet 400
+  (`incompatible_genders`) si l'un des deux genres est manquant ou si les
+  deux comptes ont le même genre. Le contrôle web complémentaire ("partenaire
+  déjà dans un abonnement couple actif") n'est pas répliqué séparément : le
+  blocage actif/en pause déjà en place le couvre plus largement (bloque sur
+  n'importe quel abonnement actif du partenaire, pas seulement un couple).
 - **Module Payments (`souplesse-api`) — 2026-09-20** : rôle `MODERATOR`
   ajouté au schéma (mobile uniquement, pas d'équivalent web) ; nouveau
   modèle `PaymentProof` (preuve de paiement) et `DeviceToken` (token Expo
@@ -134,6 +140,22 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   réel, contrôle des rôles, récupération de la capture, validation avec
   activation + suppression fichier + garde-fou anti double-traitement,
   rejet avec motif obligatoire).
+- **Déploiement Render.com préparé — 2026-09-20** : `render.yaml` (Blueprint,
+  un seul service gratuit, pas de séparation staging/prod pour cette phase,
+  région Frankfurt). `start:prod` exécute désormais `prisma migrate deploy`
+  avant de démarrer (idempotent, sûr à chaque redémarrage y compris après
+  mise en veille du plan gratuit). Secrets JWT auto-générés par Render
+  (`generateValue: true`) ; `DATABASE_URL`/`DIRECT_DATABASE_URL` et les
+  identifiants Africa's Talking marqués `sync: false` (jamais dans le dépôt,
+  demandés par Render au moment du déploiement). Bug CORS trouvé et corrigé
+  au passage : `origin: ['*']` ne fait PAS office de wildcard pour le
+  package `cors` (seul `origin: true` reflète n'importe quelle origine) —
+  aurait bloqué silencieusement toutes les requêtes une fois déployé. Node
+  épinglé en version 22 (`.node-version` + `engines`) plutôt que la 24.13
+  utilisée en local, par prudence sur la disponibilité côté Render.
+  **Aucun accès Render/Neon (CLI ou API) depuis cet outil** — même
+  contrainte que la vérification PITR Neon précédente. Voir section
+  "ARRÊT — action requise d'Ange" ci-dessous pour la suite.
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -170,7 +192,8 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 
 ## Dernière session
 
-- **Date/surface** : Claude Code (VS Code) — 2026-09-20 — étapes 0 à 3 du handoff
+- **Date/surface** : Claude Code (VS Code) — 2026-09-20 — étapes 0 à 4 du handoff
+  + validation genre couple + préparation étape 6 (déploiement)
 - **Fait (étape 0)** : Lecture complète de `handoff.md`, `spec.md`, `architecture.md`. Conflit
   détecté et signalé à Ange entre le pivot décrit dans ces documents et la décision
   actée dans ce fichier (backend = extension Nitro, monorepo) — **confirmé par Ange
@@ -209,19 +232,41 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   `POST /notifications/register-device` ajoutés au passage (comblent le
   manque signalé au commit Auth). 49 tests au total sur `souplesse-api`.
   Commit `souplesse-api@8c5c2c2`, poussé.
-- **Pas encore fait** : Coaching (étape 5, best-effort), déploiement Render.com
-  (étape 6), branchement du frontend mobile sur `souplesse-api` (étape 7),
-  build APK (étape 8), test manuel bout en bout sur device réel (étape 9).
-  Compte Africa's Talking toujours pas créé — `AfricasTalkingProvider`
-  fonctionne en mode "stub log" en attendant.
+- **Fait (correctifs demandés)** : validation genre opposé pour le couple
+  ajoutée (voir décision ci-dessus). Déploiement Render.com **préparé à 100%
+  côté code** (`render.yaml`, migration au démarrage, bug CORS corrigé) mais
+  **l'exécution réelle est bloquée** : aucun accès Render/Neon (CLI ou API)
+  depuis cet outil. Voir "ARRÊT — action requise d'Ange" ci-dessous.
+- **Pas encore fait** : Coaching (étape 5, best-effort), exécution réelle du
+  déploiement Render.com (étape 6, bloquée — voir ARRÊT), branchement du
+  frontend mobile sur `souplesse-api` (étape 7), build APK (étape 8), test
+  manuel bout en bout sur device réel (étape 9). Compte Africa's Talking
+  toujours pas créé — `AfricasTalkingProvider` fonctionne en mode "stub log"
+  en attendant.
+
+## ARRÊT — action requise d'Ange avant de poursuivre l'étape 6
+
+Même contrainte que pour la vérification PITR Neon en 2026-08-02 : pas
+d'accès CLI/API à Render.com ni à Neon depuis cet outil (pas de navigateur,
+pas de clé API configurée). Tout le travail automatisable est fait et poussé
+(`souplesse-api@9d22525`) ; il reste deux actions qui nécessitent un accès
+compte direct :
+
+1. **Créer un nouveau projet Neon**, distinct de la production (ex.
+   "souplesse-api-demo"), et récupérer dans "Connection Details" la chaîne
+   poolée et la chaîne directe.
+2. **Sur Render.com** : *New +* → *Blueprint* → sélectionner
+   `sonron1/souplesse-api`. Render détecte `render.yaml` et demande les
+   variables `sync: false` : coller les deux chaînes Neon de l'étape 1 ;
+   les identifiants Africa's Talking peuvent rester vides. Lancer le déploiement.
+
+Détail complet et ordre exact dans le `README.md` de `souplesse-api` (section
+"Déploiement"). **Une fois l'URL publique obtenue, la communiquer** pour
+qu'elle serve d'`EXPO_PUBLIC_API_URL` côté mobile (étape 7) et qu'un premier
+build EAS de test puisse être lancé (étape 8).
 
 ## Questions en attente
 
-- **Validation "genre opposé" pour l'abonnement Couple mobile** : le web impose
-  cette règle (Bloc L de CLAUDE.md) ; elle n'a pas été demandée pour le mobile
-  et n'a donc pas été ajoutée dans `souplesse-api`. À confirmer si c'est
-  volontaire (le mobile pourrait vouloir être plus permissif, ex. couples de
-  même sexe) ou un oubli à corriger.
 - **Stockage des captures de paiement (`souplesse-api`)** : disque local,
   éphémère sur Render.com. Suffisant pour la démo (fichier supprimé juste
   après décision du modérateur) mais **pas une solution de production** —
@@ -277,9 +322,11 @@ Détail complet dans `handoff.md` section 3. Résumé :
       validation/rejet, notification SMS + push via `PushProvider`, suppression de
       la capture après traitement. Fait et testé — voir décision "Module Payments"
       ci-dessus (limite de stockage disque local à surveiller).
-- [ ] **5. Module Coaching** (prochaine étape, si le temps le permet pour cette
+- [ ] **5. Module Coaching** (si le temps le permet pour cette
       démo — sinon signaler comme non couvert plutôt que de le bâcler).
-- [ ] **6. Déployer `souplesse-api` sur Render.com** (offre gratuite).
+- [~] **6. Déployer `souplesse-api` sur Render.com** (offre gratuite). Code
+      prêt (`render.yaml`, commit `9d22525`) ; **exécution bloquée sans accès
+      Render/Neon** — voir "ARRÊT — action requise d'Ange" ci-dessus.
 - [ ] **7. Brancher l'app mobile** (`EXPO_PUBLIC_API_URL`) sur cette instance Render.
 - [ ] **8. Générer l'APK** via `eas build --platform android --profile preview`.
 - [ ] **9. Valider manuellement le parcours complet** sur un appareil Android réel
@@ -380,8 +427,18 @@ dans ce backend.
   total, vérifié manuellement de bout en bout (upload réel, rôles, capture,
   validation, rejet). Commit `souplesse-api@8c5c2c2`, poussé. Limite
   documentée : stockage disque éphémère sur Render.com, à remplacer avant
-  toute production réelle. Prochaine étape : module Coaching (best-effort)
-  ou déploiement Render.com.
+  toute production réelle.
+- 2026-09-20 — Claude Code (VS Code) — Validation genre opposé ajoutée pour
+  l'abonnement Couple (réplique exacte du Bloc L web, demande explicite
+  d'Ange), 51 tests au total. Déploiement Render.com préparé à 100% côté
+  code (`render.yaml`, migration au démarrage, bug CORS `origin: ['*']`
+  trouvé et corrigé, Node épinglé en 22) — commit `souplesse-api@9d22525`,
+  poussé. **Exécution bloquée** : aucun accès Render/Neon (CLI/API) depuis
+  cet outil, même contrainte que pour la vérification PITR Neon du
+  2026-08-02. Checklist précise laissée à Ange dans STATUS.md et le README
+  de `souplesse-api` : créer un nouveau projet Neon (jamais celui du web) et
+  déployer via Render Blueprint. En attente de l'URL publique avant de
+  pouvoir avancer sur les étapes 7 (branchement mobile) et 8 (build EAS).
 - 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
   SMS/OTP appliquée en production avec succès (`migrate deploy` +
   `migrate status` OK). Site déployé non vérifiable par moi — en attente de
