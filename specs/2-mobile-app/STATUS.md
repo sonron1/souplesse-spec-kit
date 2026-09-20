@@ -295,9 +295,10 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 - **Fait (2026-09-20, suite)** : Audit complet de `mobile/` (voir Historique) ;
   reconstruction lancée selon le plan d'Ange — voir "Plan de construction
   mobile" ci-dessous pour le détail bloc par bloc (1 à 4 faits à ce stade).
-- **Pas encore fait** : Coaching (étape 5 du handoff, best-effort), suite du
-  plan mobile (blocs 5-7), build APK (étape 8), test manuel bout en bout sur
-  device réel (étape 9). Compte Africa's Talking toujours pas créé —
+- **Pas encore fait** : Coaching (étape 5 du handoff, best-effort — signalé
+  non couvert plutôt que bâclé), build APK (étape 8), test manuel bout en
+  bout sur device réel (étape 9, prévu par Ange sur Samsung A56 après ce
+  qui suit). Compte Africa's Talking toujours pas créé —
   `AfricasTalkingProvider` fonctionne en mode "stub log" en attendant.
 - **Fait (2026-09-20, correctifs bloc 3 suite au test d'Ange sur Samsung
   A56)** : deux bugs remontés par Ange après test réel du `ChooseFormulaScreen`.
@@ -347,6 +348,32 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   bug). Vérifié par `tsc --noEmit` + `expo export --platform android` (841
   modules) ; `git status` racine vérifié propre après coup (pas de récidive
   de l'effet de bord précédent). En attente du retest d'Ange sur Samsung A56.
+- **Fait (2026-09-20, blocs 5-7 — parcours paiement/modération complet)** :
+  réalisés d'affilée sans validation manuelle intermédiaire, à la demande
+  explicite d'Ange (un seul test complet prévu à la fin sur Samsung A56).
+  Détail complet dans "Plan de construction mobile" ci-dessus. Résumé : Bloc
+  5 upload de preuve (`expo-image-picker` installé, `UploadProofScreen`,
+  bouton "J'ai payé" du bloc 4 câblé) ; Bloc 6 dashboard Client réel +
+  écran de confirmation (`GET /subscriptions/me`, jours restants,
+  `useFocusEffect`) ; Bloc 7 dashboard Modérateur réel (nouveau
+  `ModeratorNavigator` à deux écrans, file + détail/validation/rejet,
+  affichage de capture via blob authentifié → `data:` URI). **Aucune route
+  backend nouvelle** : les 6 endpoints consommés existaient déjà et étaient
+  déjà testés côté `souplesse-api` — vérifié en lisant directement le
+  contrôleur/service/DTO source, pas seulement `architecture.md`. Décision
+  UX prise en autonomie : "S'abonner" masqué aussi pour un abonnement
+  PENDING (pas seulement Actif comme le fait la règle serveur) pour éviter
+  d'empiler des demandes en double faute d'écran de reprise. Pas d'UI
+  pause/reprise sur le dashboard (hors périmètre explicite du bloc 6).
+  Aucun framework de test mobile n'existe (`mobile/package.json` n'a ni
+  script `lint` ni `test`, cohérent avec spec.md section 28) — vérification
+  `tsc --noEmit` (propre) + `expo export --platform android` (849 modules,
+  build OK) après chaque étape, comme pour tous les blocs précédents ;
+  `git status` racine vérifié propre après chaque commande (aucune récidive
+  de l'effet de bord `package.json` déjà rencontré). Toujours pas de
+  vérification visuelle possible depuis cet outil — en attente du test
+  complet d'Ange (inscription → paiement → upload → validation modérateur →
+  dashboard Client à jour).
 
 ## Questions en attente
 
@@ -411,8 +438,9 @@ Détail complet dans `handoff.md` section 3. Résumé :
       Ange le 2026-09-20, après correctif `render.yaml` (JWT_SECRET/
       JWT_REFRESH_SECRET, voir décision ci-dessus). URL :
       `https://souplesse-api.onrender.com`.
-- [~] **7. Brancher l'app mobile** (`EXPO_PUBLIC_API_URL`) sur cette instance Render.
-      **En cours** — voir "Plan de construction mobile" ci-dessous (bloc 1 fait).
+- [x] **7. Brancher l'app mobile** (`EXPO_PUBLIC_API_URL`) sur cette instance Render.
+      Fait — voir "Plan de construction mobile" ci-dessous (blocs 1 à 7 tous faits ;
+      Coaching hors périmètre, point 5 ci-dessus).
 - [ ] **8. Générer l'APK** via `eas build --platform android --profile preview`.
 - [ ] **9. Valider manuellement le parcours complet** sur un appareil Android réel
       avant de livrer l'APK.
@@ -447,20 +475,96 @@ Historique). Plan de reconstruction défini par Ange, dans cet ordre strict
       quand Ange aura les vrais numéros. Le bouton "J'ai payé" n'est pas
       encore câblé (dépend de `UploadProofScreen`, bloc 5) — écran
       volontairement autonome/testable pour ce jalon.
-- [ ] **Bloc 5 — Écran upload de preuve (E08)** : `expo-image-picker` à
-      installer, formulaire + upload multipart vers `POST /payments/proof`.
-- [ ] **Bloc 6 — Dashboard Client réel (E05) + écran statut (E09)** :
-      `GET /subscriptions/me`, compteur de jours restants.
-- [ ] **Bloc 7 — Dashboard Modérateur réel (E10/E11)** : `GET /payments/pending`,
-      affichage image (`<Image>` RN n'envoie pas l'en-tête `Authorization` —
-      récupérer le blob via fetch authentifié), boutons valider/rejeter.
+- [x] **Bloc 5 — Écran upload de preuve (E08)** : `expo-image-picker` installé
+      (`~57.0.19`, via `npx expo install` — résolution auto de la version
+      compatible SDK 57 ; `mediaTypes: ['images']`, plus l'ancien enum
+      `MediaTypeOptions` déprécié en SDK 57, vérifié sur la doc versionnée
+      avant d'écrire le code comme demandé par `mobile/AGENTS.md`).
+      `UploadProofScreen` : formulaire montant déclaré (préempli avec le
+      montant attendu, modifiable)/téléphone émetteur/opérateur (sélecteur
+      MTN/Moov/Celtiis) + sélection d'image (`quality: 0.7` — compression
+      pour rester sous la limite serveur de 5 Mo et limiter la consommation
+      data, spec.md section 23) ; upload multipart vers `POST /payments/proof`
+      (nouveau fichier `api/payments.ts`, champs alignés sur `SubmitProofDto`
+      côté `souplesse-api` : `subscriptionId`, `amountDeclared`, `senderPhone`,
+      `operator`, fichier `screenshot`). Le bouton "J'ai payé" de
+      `PaymentInstructionsScreen` (laissé non câblé au bloc 4) navigue
+      maintenant vers cet écran. Après envoi réussi : `navigation.reset` vers
+      `[ClientDashboard, PaymentStatus]` (index 1) — vide l'historique
+      ChooseFormula/PaymentInstructions/UploadProof, dashboard reste en
+      dessous pour que le retour matériel depuis PaymentStatus y atterrisse
+      directement plutôt que de revenir dans un formulaire déjà soumis.
+- [x] **Bloc 6 — Dashboard Client réel (E05) + écran statut (E09)** :
+      `ClientDashboardScreen` réécrit — `GET /subscriptions/me` +
+      `GET /subscriptions/plans` (jointure côté mobile pour le nom de
+      formule, `getMine()` ne renvoie pas la relation `subscriptionPlan`),
+      badge de statut (Actif/En attente/Expiré/Annulé), compteur de jours
+      restants si Actif, refetch automatique à chaque focus de l'écran
+      (`useFocusEffect`, confirmé exporté par `@react-navigation/native` avant
+      de l'utiliser) — donc mise à jour au retour de n'importe quel écran du
+      parcours paiement sans reload manuel. `PaymentStatusScreen` (E09) :
+      écran de confirmation uniquement — `souplesse-api` n'expose aucune
+      route pour qu'un client interroge le statut de sa propre preuve (seule
+      la file du Modérateur existe), donc pas de suivi en direct possible,
+      juste la confirmation d'envoi + retour au dashboard. **Décision UX prise
+      en autonomie** : le bouton "S'abonner" est masqué non seulement si un
+      abonnement est Actif (règle serveur réelle, `assertNotBlocked`) mais
+      aussi s'il y a une demande PENDING — le serveur autorise en réalité
+      plusieurs demandes PENDING simultanées (aucune règle métier ne l'en
+      empêche), mais comme il n'existe aucun écran pour reprendre une demande
+      PENDING précise, laisser retaper "S'abonner" empilerait des doublons
+      dans la file du Modérateur. Pas de bouton pause/reprise sur le
+      dashboard (hors périmètre du bloc tel que défini — `PATCH
+      /subscriptions/:id/{pause,resume}` existe et est testé côté
+      `souplesse-api` mais n'a pas d'UI mobile pour l'instant).
+- [x] **Bloc 7 — Dashboard Modérateur réel (E10/E11)** : nouveau
+      `ModeratorStackParamList`/`ModeratorNavigator` (le rôle MODERATOR avait
+      un unique écran placeholder dans le stack générique — insuffisant pour
+      un flux liste → détail). `ModeratorDashboardScreen` (E10) :
+      `GET /payments/pending`, refetch au focus. `PaymentReviewScreen` (E11) :
+      pas de route `GET /payments/:id` côté serveur (seules la liste et la
+      capture existent), donc l'objet `PendingPaymentProof` complet est passé
+      en paramètre de navigation depuis la liste plutôt que re-fetché par id.
+      Affichage de la capture : `<Image>` RN n'envoie pas l'en-tête
+      `Authorization` pour une uri distante — récupérée via `apiFetch` en
+      `blob()` puis convertie en `data:` URI par `FileReader.readAsDataURL`
+      (nouvelle fonction `fetchScreenshotDataUri` dans `api/payments.ts`).
+      Boutons Valider (`PATCH /payments/:id/validate`) / Rejeter (motif
+      obligatoire ≥ 3 caractères, aligné sur `RejectProofDto`,
+      `PATCH /payments/:id/reject`) ; retour à la liste après décision, qui
+      se rafraîchit au focus. Ajout mineur : avertissement non bloquant si le
+      montant déclaré ne correspond à aucun tarif connu de la formule
+      (inspiré de l'exemple de rejet du prototype validé
+      `souplesse-prototype-paiement-v3.html`, "le montant ne correspond pas à
+      la formule choisie") — purement informatif, ne bloque pas les boutons.
+
+**Aucune route backend nouvelle nécessaire pour les blocs 5-7** : les six
+endpoints utilisés (`POST /payments/proof`, `GET /payments/pending`,
+`GET /payments/:id/screenshot`, `PATCH /payments/:id/validate`,
+`PATCH /payments/:id/reject`, `GET /subscriptions/me`) existaient déjà et
+étaient déjà testés côté `souplesse-api` (modules Payments/Subscriptions,
+voir décisions plus haut) — vérifié en lisant directement le contrôleur/
+service/DTO source avant d'écrire le code mobile, pas seulement `architecture.md`
+(qui ne donne que la liste des routes, pas leur contrat exact). Ces trois
+blocs sont donc purement frontend mobile.
 
 **Vérification à chaque bloc** : `npx tsc --noEmit` (aucune erreur) +
 `npx expo export --platform android` (le bundle Metro se construit sans
-erreur, ~840 modules) après chaque bloc. Ces deux vérifications ne remplacent
-pas un test visuel sur device — je n'ai pas d'accès à un téléphone/émulateur
-depuis cet outil. **Le jalon bloc 1-4 attend la vérification manuelle d'Ange
-via Expo Go** avant de continuer sur les blocs 5-7.
+erreur — 841 modules après bloc 1-4, 849 après bloc 5-7 avec
+`expo-image-picker`) après chaque bloc. **Aucun framework de test mobile
+n'existe dans `mobile/`** (pas de config Jest, pas de script `lint`/`test`
+dans `mobile/package.json`) — confirmé en vérifiant `package.json` avant de
+conclure, cohérent avec `spec.md` section 28 ("Aucune stratégie de test
+mobile formalisée à ce stade"). Ces deux vérifications de compilation restent
+donc, comme pour tous les blocs précédents, le seul filet automatisé
+disponible ; elles ne remplacent pas un test visuel sur device — je n'ai pas
+d'accès à un téléphone/émulateur depuis cet outil.
+
+**Blocs 5-7 réalisés d'affilée, sans validation manuelle intermédiaire**, à
+la demande explicite d'Ange (un seul test complet de bout en bout prévu sur
+Samsung A56 : inscription → paiement → upload → validation modérateur →
+retour dashboard client à jour) — contrairement aux blocs 1-4 qui
+attendaient une validation à chaque jalon.
 
 Definition of done complète : voir `handoff.md` section 5.
 
@@ -529,6 +633,17 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-09-20 — Claude Code (VS Code) — Blocs 5-7 réalisés d'affilée (upload
+  preuve, dashboard Client réel, dashboard Modérateur réel) sans validation
+  manuelle intermédiaire, à la demande d'Ange. `expo-image-picker` installé.
+  Nouveaux fichiers : `api/payments.ts`, `UploadProofScreen`,
+  `PaymentStatusScreen`, `PaymentReviewScreen`, `ModeratorNavigator`.
+  `ClientDashboardScreen`/`ModeratorDashboardScreen` réécrits (étaient des
+  squelettes). Aucune route backend nouvelle (les 6 endpoints consommés
+  existaient déjà et étaient déjà testés côté `souplesse-api`). `tsc
+  --noEmit` + `expo export --platform android` verts (849 modules), `git
+  status` racine vérifié propre après chaque commande. Handoff étape 7
+  marquée faite. En attente du test complet d'Ange sur Samsung A56.
 - 2026-09-20 — Claude Code (VS Code) — Correctif bloc 3 (`ChooseFormulaScreen`) :
   le toggle Solo/Couple n'apparaissait qu'après sélection d'une carte
   (bloc conditionné à `selectedPlan`, absent du rendu et non juste masqué).

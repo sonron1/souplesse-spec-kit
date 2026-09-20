@@ -1,24 +1,24 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MOBILE_MONEY_NUMBERS, MOBILE_MONEY_OPERATOR_LABELS } from '../config/mobileMoneyNumbers';
 import { colors, radii, spacing } from '../theme/tokens';
 import type { ClientStackParamList } from '../navigation/RootNavigator';
 
 type PaymentInstructionsRouteProp = RouteProp<ClientStackParamList, 'PaymentInstructions'>;
+type PaymentInstructionsNavigationProp = NativeStackNavigationProp<ClientStackParamList, 'PaymentInstructions'>;
 
 function formatFcfa(amount: number): string {
   return `${amount.toLocaleString('fr-FR')} FCFA`;
 }
 
-// L'écran d'upload de preuve (E08) sera ajouté au bloc 5 — cet écran reste
-// une étape informative autonome pour l'instant (bouton "J'ai payé" ajouté
-// lors du branchement avec UploadProofScreen).
 export default function PaymentInstructionsScreen() {
+  const navigation = useNavigation<PaymentInstructionsNavigationProp>();
   const { params } = useRoute<PaymentInstructionsRouteProp>();
-  const { planName, amount } = params;
+  const { subscriptionId, planName, amount } = params;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>Instructions de paiement</Text>
 
       <View style={styles.summaryCard}>
@@ -44,13 +44,26 @@ export default function PaymentInstructionsScreen() {
         capture d'écran de confirmation — votre abonnement sera activé après
         vérification par un modérateur.
       </Text>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('UploadProof', { subscriptionId, amount, planName })}
+      >
+        <Text style={styles.buttonText}>J'ai payé</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: colors.bg,
+  },
   container: {
     flexGrow: 1,
+    width: '100%',
     backgroundColor: colors.bg,
     padding: spacing.xxl,
   },
@@ -112,5 +125,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: spacing.lg,
     lineHeight: 18,
+  },
+  button: {
+    width: '100%',
+    backgroundColor: colors.brand,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.xl,
+  },
+  buttonText: {
+    color: colors.bg,
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
