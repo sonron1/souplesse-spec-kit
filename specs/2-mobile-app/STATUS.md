@@ -12,8 +12,9 @@
 **Pivot architectural confirmé (2026-09-20) : le backend consommé par l'app mobile est
 extrait dans un nouveau dépôt indépendant `souplesse-api` (NestJS)**, hébergé sur
 Render.com (offre gratuite) le temps de la démo. L'app mobile reste dans ce monorepo
-(`mobile/`). Documentation consolidée (étape 0 du handoff terminée) ; prochaine étape :
-créer le dépôt `souplesse-api` et y scaffolder NestJS (étape 1).
+(`mobile/`). Dépôt créé et poussé : https://github.com/sonron1/souplesse-api (privé).
+Étapes 0, 1 et 2 du handoff terminées (doc consolidée, scaffold NestJS, module Auth
+complet et testé) ; prochaine étape : module Subscriptions (étape 3).
 
 La migration SMS/OTP appliquée en production le 2026-08-02 (voir "Archive" plus bas)
 reste valide au niveau du schéma Prisma partagé — mais les routes `/api/auth/phone/*`
@@ -52,10 +53,22 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   modération → dashboard), pour une démo investisseurs — pas encore un lancement
   public. Aucune ressource payante à provisionner sans validation explicite.
 - Identité visuelle validée : `#EAB308`, thème sombre, Manrope + Inter.
-- **Authentification mobile** câblée (login/register/logout, navigation par
-  rôle, tokens via `expo-secure-store`) — **dans l'ancien backend Nitro** ; à
-  **réimplémenter** dans `souplesse-api` (référence fonctionnelle, pas à
-  reprendre telle quelle).
+- **Authentification mobile** câblée côté ancien backend Nitro (référence
+  fonctionnelle) — **réimplémentée dans `souplesse-api`** le 2026-09-20 :
+  register/resend-otp/verify-otp/login/refresh/logout, JWT (access 15m +
+  refresh 7d), lockout compte (5 tentatives/15min) et lockout OTP (5
+  tentatives/15min), révocation de session unique (sessionToken) au logout.
+  13 tests unitaires + 1 e2e, plus un test manuel de bout en bout via curl.
+  Le frontend mobile (`mobile/`) pointe encore vers l'ancien backend — le
+  rebranchement vers `souplesse-api` est l'étape 7 du handoff.
+- **Prisma pinné à 5.22.0 dans `souplesse-api`** (pas la 7.x/8.x par défaut
+  du moment) : Prisma 7 a supprimé `url`/`directUrl` du bloc `datasource` au
+  profit d'un nouveau `prisma.config.ts` + driver-adapters — changement
+  cassant jugé hors scope pour cette phase démo. 5.22.0 = même version que
+  le backend web, schéma copié tel quel, zéro adaptation nécessaire.
+- **`souplesse-api` a sa propre base Postgres locale de dev** (docker-compose,
+  port 5433, séparée de celle du web qui utilise 5432) — jamais connectée à
+  la production Neon pendant cette phase (garde-fou #2).
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -77,6 +90,10 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 
 ## Fichiers de référence
 
+- **`souplesse-api`** (dépôt séparé, https://github.com/sonron1/souplesse-api,
+  privé) — backend NestJS de l'app mobile. Cloné localement dans
+  `C:\Users\Ange\Documents\Dev\souplesse-api` (sibling de ce monorepo, pas un
+  sous-dossier). Son propre README documente le démarrage local.
 - `specs/2-mobile-app/spec.md` — cahier des charges fonctionnel (source de vérité actuelle)
 - `specs/2-mobile-app/architecture.md` — architecture technique cible backend/mobile (source de vérité actuelle)
 - `specs/2-mobile-app/handoff.md` — note de passation en cours ; **en cas de divergence avec ce fichier STATUS.md, `handoff.md` + `spec.md` + `architecture.md` priment** (voir section 0 de `handoff.md`)
@@ -88,25 +105,36 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 
 ## Dernière session
 
-- **Date/surface** : Claude Code (VS Code) — 2026-09-20 — consolidation documentaire (étape 0 du handoff)
-- **Fait** : Lecture complète de `handoff.md`, `spec.md`, `architecture.md`. Conflit
+- **Date/surface** : Claude Code (VS Code) — 2026-09-20 — étapes 0, 1, 2 du handoff
+- **Fait (étape 0)** : Lecture complète de `handoff.md`, `spec.md`, `architecture.md`. Conflit
   détecté et signalé à Ange entre le pivot décrit dans ces documents et la décision
   actée dans ce fichier (backend = extension Nitro, monorepo) — **confirmé par Ange
   comme un pivot intentionnel et déjà tranché** dans la session de chat séparée.
-  Inventaire de `docs/` et `specs/2-mobile-app/` : doublons exacts identifiés entre
-  `docs/cahier-des-charges.md` ↔ `specs/2-mobile-app/cahier-des-charges.md`,
-  `docs/note-passation-claude-code.md` ↔ `specs/2-mobile-app/compliance/note-passation-claude-code.md`,
-  `docs/architecture-cible-souplesse-backend.md` ↔ `specs/2-mobile-app/compliance/architecture-cible-souplesse-backend.md`.
-  Consolidation effectuée : versions de référence conservées dans `spec.md`/`architecture.md`/`handoff.md` ;
-  anciennes versions déplacées (une seule copie canonique) dans `specs/2-mobile-app/legacy/` ;
-  doublons redondants supprimés ; les deux fichiers `.md` égarés retirés de
-  `compliance/` (qui ne contient plus que les `.docx`) ; `docs/security-audit.md`
-  conservé à la racine (web/monorepo général, sans rapport avec le mobile).
-  STATUS.md mis à jour pour refléter le pivot.
-- **Pas encore fait** : création du dépôt `souplesse-api` (étape 1 du périmètre) —
-  non lancée dans cette session, en attente de vérification de faisabilité
-  (accès `gh` CLI authentifié) et de confirmation du nom/visibilité du dépôt avec Ange
-  avant de créer une ressource externe visible sur son compte GitHub.
+  Doublons exacts entre `docs/` et `specs/2-mobile-app/` consolidés : versions de
+  référence dans `spec.md`/`architecture.md`/`handoff.md`, anciennes versions dans
+  `specs/2-mobile-app/legacy/`, `compliance/` nettoyé (ne garde que les `.docx`).
+  Commit `5c55d81`.
+- **Fait (étape 1)** : `gh` CLI vérifié disponible et authentifié (compte `sonron1`).
+  Ange a confirmé de procéder en autonome avec check-ins par module. Dépôt
+  `souplesse-api` créé (privé, sans historique) et poussé. Scaffold NestJS 12
+  (ESM) avec la structure de `architecture.md` section 4 : `auth/`, `users/`,
+  `subscriptions/`, `payments/`, `coaching/`, `notifications/` (avec
+  `providers/sms/` et `providers/push/`), `prisma/`, `common/`. Schéma Prisma
+  copié tel quel depuis ce monorepo, pinné en 5.22.0 (voir décision ci-dessus).
+  Docker Compose local (Postgres port 5433, séparé du web). `@nestjs/mau`
+  retiré (vulnérabilités transitives inutiles, non utilisé — déploiement prévu
+  sur Render.com directement).
+- **Fait (étape 2)** : Module Auth entièrement implémenté et testé — voir décision
+  "Authentification mobile" ci-dessus pour le détail. Build + lint + 14 tests
+  unitaires/e2e + smoke test manuel (curl) tous verts.
+- **Pas encore fait** : module Subscriptions (étape 3), Payments (étape 4),
+  Coaching (étape 5, best-effort), déploiement Render.com (étape 6), branchement
+  du frontend mobile sur `souplesse-api` (étape 7), build APK (étape 8), test
+  manuel bout en bout sur device réel (étape 9). Compte Africa's Talking
+  toujours pas créé — `AfricasTalkingProvider` fonctionne en mode "stub log"
+  en attendant. Aucun modèle `DeviceToken` dans le schéma — la résolution
+  userId→token Expo Push est différée à l'étape 4 (voir commit `souplesse-api`
+  pour le détail de cette décision structurante, garde-fou #7 du handoff).
 
 ## Garde-fous permanents — migrations de schéma production
 
@@ -141,16 +169,13 @@ Détail complet dans `handoff.md` section 3. Résumé :
 
 ## Prochaine étape — Périmètre du handoff (`handoff.md` section 4)
 
-- [x] **0. Consolider la documentation existante.** Fait dans cette session — voir
-      "Dernière session" ci-dessus. Commit dédié séparé du reste.
-- [ ] **1. Créer le dépôt `souplesse-api`** (nouveau, sans historique), scaffold
-      NestJS selon `architecture.md` section 4 (modules : auth, users, subscriptions,
-      payments, coaching, notifications). **Avant de créer une ressource GitHub
-      externe visible sur le compte d'Ange, vérifier la disponibilité/authentification
-      de `gh` CLI et confirmer le nom exact + la visibilité (public/privé) du dépôt.**
-- [ ] **2. Module Auth** : inscription, connexion, vérification OTP SMS, en réutilisant
-      le schéma Prisma existant, Africa's Talking derrière `SmsProvider`.
-- [ ] **3. Module Subscriptions** : formules 1/2/3/6/12 mois, statut actif/en
+- [x] **0. Consolider la documentation existante.** Fait — voir "Dernière session".
+      Commit `5c55d81`.
+- [x] **1. Créer le dépôt `souplesse-api`**, scaffold NestJS selon `architecture.md`
+      section 4. Fait — https://github.com/sonron1/souplesse-api (privé).
+- [x] **2. Module Auth** : inscription, connexion, vérification OTP SMS. Fait et testé
+      — voir "Dernière session" et le commit initial de `souplesse-api`.
+- [ ] **3. Module Subscriptions** (prochaine étape) : formules 1/2/3/6/12 mois, statut actif/en
       pause/expiré, règle de non-renouvellement tant qu'actif.
 - [ ] **4. Module Payments** : soumission de preuve, file de modération,
       validation/rejet, notification SMS + push via `PushProvider`, suppression de
@@ -230,12 +255,13 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
-- 2026-09-20 — Claude Code (VS Code) — Pivot architectural confirmé par Ange
-  (backend extrait vers `souplesse-api`, NestJS, nouveau dépôt indépendant ;
-  Render.com pendant la démo ; mobile inchangé dans ce monorepo). Documentation
-  consolidée (étape 0 du handoff) : doublons `docs/` ↔ `specs/2-mobile-app/`
-  résolus, anciennes versions déplacées dans `legacy/`, `compliance/` nettoyé.
-  STATUS.md mis à jour. Prochaine étape : créer le dépôt `souplesse-api`.
+- 2026-09-20 — Claude Code (VS Code) — Étapes 0-2 du handoff. Pivot architectural
+  confirmé par Ange (backend extrait vers `souplesse-api`, NestJS, nouveau dépôt
+  indépendant ; Render.com pendant la démo ; mobile inchangé dans ce monorepo).
+  Documentation consolidée (commit `5c55d81`). Dépôt `souplesse-api` créé et
+  poussé (https://github.com/sonron1/souplesse-api, privé), scaffold NestJS,
+  module Auth complet et testé (register/OTP/login/refresh/logout, 14 tests +
+  smoke test manuel). Prochaine étape : module Subscriptions.
 - 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
   SMS/OTP appliquée en production avec succès (`migrate deploy` +
   `migrate status` OK). Site déployé non vérifiable par moi — en attente de
