@@ -80,6 +80,37 @@ export default function ChooseFormulaScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>Choisir une formule</Text>
 
+      <View style={styles.optionsBlock}>
+        <View style={styles.segmentRow}>
+          <TouchableOpacity
+            style={[styles.segmentButton, !isCouple && styles.segmentButtonActive]}
+            onPress={() => setIsCouple(false)}
+            disabled={isSubmitting}
+          >
+            <Text style={[styles.segmentText, !isCouple && styles.segmentTextActive]}>Solo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.segmentButton, isCouple && styles.segmentButtonActive]}
+            onPress={() => setIsCouple(true)}
+            disabled={isSubmitting}
+          >
+            <Text style={[styles.segmentText, isCouple && styles.segmentTextActive]}>Couple</Text>
+          </TouchableOpacity>
+        </View>
+
+        {isCouple ? (
+          <TextInput
+            style={styles.input}
+            placeholder="Téléphone du partenaire (compte mobile déjà vérifié)"
+            placeholderTextColor={colors.muted}
+            value={partnerPhone}
+            onChangeText={setPartnerPhone}
+            keyboardType="phone-pad"
+            editable={!isSubmitting}
+          />
+        ) : null}
+      </View>
+
       {plans.map((plan) => {
         const isSelected = plan.id === selectedPlanId;
         const showCouplePrice = isCouple && plan.priceCouple != null;
@@ -104,39 +135,6 @@ export default function ChooseFormulaScreen() {
           </TouchableOpacity>
         );
       })}
-
-      {selectedPlan ? (
-        <View style={styles.optionsBlock}>
-          <View style={styles.segmentRow}>
-            <TouchableOpacity
-              style={[styles.segmentButton, !isCouple && styles.segmentButtonActive]}
-              onPress={() => setIsCouple(false)}
-              disabled={isSubmitting}
-            >
-              <Text style={[styles.segmentText, !isCouple && styles.segmentTextActive]}>Solo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.segmentButton, isCouple && styles.segmentButtonActive]}
-              onPress={() => setIsCouple(true)}
-              disabled={isSubmitting}
-            >
-              <Text style={[styles.segmentText, isCouple && styles.segmentTextActive]}>Couple</Text>
-            </TouchableOpacity>
-          </View>
-
-          {isCouple ? (
-            <TextInput
-              style={styles.input}
-              placeholder="Téléphone du partenaire (compte mobile déjà vérifié)"
-              placeholderTextColor={colors.muted}
-              value={partnerPhone}
-              onChangeText={setPartnerPhone}
-              keyboardType="phone-pad"
-              editable={!isSubmitting}
-            />
-          ) : null}
-        </View>
-      ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 

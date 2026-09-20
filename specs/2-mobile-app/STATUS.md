@@ -329,6 +329,24 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   retombe sur le `package.json` racine quand une dépendance n'est pas
   jugée satisfaisante localement — à surveiller dans les prochains blocs,
   toujours vérifier `git status` à la racine après ces deux commandes.
+- **Fait (2026-09-20, correctif bloc 3 — toggle Solo/Couple caché par
+  défaut)** : Ange a remonté que le bascule Solo/Couple n'apparaissait
+  qu'après avoir sélectionné une carte de formule, alors qu'elle le veut
+  visible dès l'arrivée sur l'écran. Comportement exact confirmé par
+  lecture du code : le bloc du toggle (`optionsBlock`, un seul toggle
+  global, pas un par carte) était entièrement conditionné à
+  `{selectedPlan ? (...) : null}` — absent du rendu tant qu'aucune carte
+  n'était tapée, pas seulement replié/masqué visuellement. Corrigé en
+  déplaçant ce bloc (inchangé sinon) juste après le titre, avant la liste
+  des cartes, rendu sans condition — il apparaît donc au tout premier
+  rendu de l'écran, et comme `isCouple` est un état global déjà partagé par
+  toutes les cartes (corrigé dans le correctif précédent), basculer
+  Solo/Couple change immédiatement le prix affiché sur toutes les cartes en
+  même temps, sans avoir à en sélectionner une d'abord. Le champ téléphone
+  partenaire reste conditionné à `isCouple` (comportement voulu, pas un
+  bug). Vérifié par `tsc --noEmit` + `expo export --platform android` (841
+  modules) ; `git status` racine vérifié propre après coup (pas de récidive
+  de l'effet de bord précédent). En attente du retest d'Ange sur Samsung A56.
 
 ## Questions en attente
 
@@ -511,6 +529,13 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-09-20 — Claude Code (VS Code) — Correctif bloc 3 (`ChooseFormulaScreen`) :
+  le toggle Solo/Couple n'apparaissait qu'après sélection d'une carte
+  (bloc conditionné à `selectedPlan`, absent du rendu et non juste masqué).
+  Déplacé au-dessus de la liste des cartes, rendu sans condition — visible
+  dès le premier rendu, s'applique à toutes les cartes à la fois. `tsc
+  --noEmit` + `expo export --platform android` verts, `git status` racine
+  vérifié propre (pas de récidive de l'effet de bord package.json).
 - 2026-09-20 — Claude Code (VS Code) — Correctifs bloc 3 (`ChooseFormulaScreen`)
   suite au test réel d'Ange sur Samsung A56 : prix de carte non réactif au
   toggle Solo/Couple corrigé (calcul par carte à partir de `isCouple`), et
