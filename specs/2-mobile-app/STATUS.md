@@ -13,8 +13,8 @@
 extrait dans un nouveau dépôt indépendant `souplesse-api` (NestJS)**, hébergé sur
 Render.com (offre gratuite) le temps de la démo. L'app mobile reste dans ce monorepo
 (`mobile/`). Dépôt créé et poussé : https://github.com/sonron1/souplesse-api (privé).
-Étapes 0, 1 et 2 du handoff terminées (doc consolidée, scaffold NestJS, module Auth
-complet et testé) ; prochaine étape : module Subscriptions (étape 3).
+Étapes 0 à 3 du handoff terminées (doc consolidée, scaffold NestJS, modules Auth
+et Subscriptions complets et testés) ; prochaine étape : module Payments (étape 4).
 
 La migration SMS/OTP appliquée en production le 2026-08-02 (voir "Archive" plus bas)
 reste valide au niveau du schéma Prisma partagé — mais les routes `/api/auth/phone/*`
@@ -69,6 +69,23 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 - **`souplesse-api` a sa propre base Postgres locale de dev** (docker-compose,
   port 5433, séparée de celle du web qui utilise 5432) — jamais connectée à
   la production Neon pendant cette phase (garde-fou #2).
+- **Règle "pas de nouvelle demande tant qu'actif OU en pause"** (confirmée par
+  Ange le 2026-09-20 avant l'étape Subscriptions) : implémentée et **testée
+  explicitement** dans `souplesse-api` — un abonnement `status: 'ACTIVE'`
+  bloque une nouvelle demande, qu'il soit en pause ou non, car la pause ne
+  change jamais `status` (elle pose seulement `pausedAt`, comme sur le web —
+  pas de valeur d'enum `PAUSED` séparée). Vérifié par test unitaire +
+  vérification manuelle bout en bout (actif → bloqué, mis en pause → toujours
+  bloqué, repris → toujours bloqué tant qu'actif).
+- **Catalogue de formules mobile (`souplesse-api`)** : 5 formules (1/2/3/6/12
+  mois, spec.md F02), avec `maxPauses` par formule (0 = pas de pause
+  autorisée) : 1 mois=0, 2 mois=0, 3 mois=2, 6 mois=2, 12 mois=3. Valeurs
+  1/3/6/12 mois reprises du catalogue web validé (table "Subscription Plans"
+  de CLAUDE.md). **[À CONFIRMER PAR ANGE]** : la formule 2 mois n'a pas
+  d'équivalent web — `maxPauses=0` est une hypothèse par analogie avec la
+  formule 1 mois, pas une valeur validée. Prix (`priceSingle`) pas encore
+  définis pour aucune des 5 formules mobile — laissés à 0 en attendant une
+  grille tarifaire mobile (aucune mentionnée dans spec.md à ce jour).
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -105,7 +122,7 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 
 ## Dernière session
 
-- **Date/surface** : Claude Code (VS Code) — 2026-09-20 — étapes 0, 1, 2 du handoff
+- **Date/surface** : Claude Code (VS Code) — 2026-09-20 — étapes 0 à 3 du handoff
 - **Fait (étape 0)** : Lecture complète de `handoff.md`, `spec.md`, `architecture.md`. Conflit
   détecté et signalé à Ange entre le pivot décrit dans ces documents et la décision
   actée dans ce fichier (backend = extension Nitro, monorepo) — **confirmé par Ange
@@ -127,14 +144,34 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 - **Fait (étape 2)** : Module Auth entièrement implémenté et testé — voir décision
   "Authentification mobile" ci-dessus pour le détail. Build + lint + 14 tests
   unitaires/e2e + smoke test manuel (curl) tous verts.
-- **Pas encore fait** : module Subscriptions (étape 3), Payments (étape 4),
-  Coaching (étape 5, best-effort), déploiement Render.com (étape 6), branchement
-  du frontend mobile sur `souplesse-api` (étape 7), build APK (étape 8), test
-  manuel bout en bout sur device réel (étape 9). Compte Africa's Talking
-  toujours pas créé — `AfricasTalkingProvider` fonctionne en mode "stub log"
-  en attendant. Aucun modèle `DeviceToken` dans le schéma — la résolution
-  userId→token Expo Push est différée à l'étape 4 (voir commit `souplesse-api`
-  pour le détail de cette décision structurante, garde-fou #7 du handoff).
+- **Fait (étape 3)** : Ange a demandé, avant de commencer, une vérification explicite
+  de la règle "actif OU en pause" — confirmée correcte et testée (voir décision
+  ci-dessus). Module Subscriptions implémenté : catalogue auto-seedé des 5 formules
+  mobile, `POST /subscriptions` (bloqué si abonnement actif/en pause), `GET
+  /subscriptions/me`, `PATCH /subscriptions/:id/{pause,resume}`. 11 nouveaux tests
+  unitaires + vérification manuelle bout en bout (25/25 tests verts, lint propre).
+  Commit `souplesse-api@527755d`, poussé.
+- **Pas encore fait** : module Payments (étape 4), Coaching (étape 5, best-effort),
+  déploiement Render.com (étape 6), branchement du frontend mobile sur
+  `souplesse-api` (étape 7), build APK (étape 8), test manuel bout en bout sur
+  device réel (étape 9). Compte Africa's Talking toujours pas créé —
+  `AfricasTalkingProvider` fonctionne en mode "stub log" en attendant. Aucun
+  modèle `DeviceToken` dans le schéma — la résolution userId→token Expo Push est
+  différée à l'étape 4. **Deux points à confirmer par Ange** (voir "Questions en
+  attente" ci-dessous) : `maxPauses` de la formule 2 mois, et grille tarifaire
+  des 5 formules mobile (actuellement `priceSingle=0` partout, aucun prix mobile
+  trouvé dans `spec.md`).
+
+## Questions en attente
+
+- **Grille tarifaire des 5 formules mobile (1/2/3/6/12 mois)** : `spec.md` F02
+  mentionne juste "le tarif correspondant s'affiche" sans donner de montants
+  FCFA pour le mobile (contrairement à la table complète du web dans
+  `CLAUDE.md`). Toutes les formules `souplesse-api` ont actuellement
+  `priceSingle=0`. Bloquant avant l'étape 4 (Payments) si le montant doit être
+  vérifié par le modérateur contre la preuve de paiement — sinon peut attendre.
+- **`maxPauses` de la formule "Mobile — 2 mois"** : fixé à 0 par analogie avec
+  la formule 1 mois (aucun équivalent web à copier). À confirmer ou corriger.
 
 ## Garde-fous permanents — migrations de schéma production
 
@@ -175,9 +212,12 @@ Détail complet dans `handoff.md` section 3. Résumé :
       section 4. Fait — https://github.com/sonron1/souplesse-api (privé).
 - [x] **2. Module Auth** : inscription, connexion, vérification OTP SMS. Fait et testé
       — voir "Dernière session" et le commit initial de `souplesse-api`.
-- [ ] **3. Module Subscriptions** (prochaine étape) : formules 1/2/3/6/12 mois, statut actif/en
-      pause/expiré, règle de non-renouvellement tant qu'actif.
-- [ ] **4. Module Payments** : soumission de preuve, file de modération,
+- [x] **3. Module Subscriptions** : formules 1/2/3/6/12 mois, statut actif/en
+      pause/expiré, règle de non-renouvellement tant qu'actif **ou en pause**
+      (vérifiée explicitement à la demande d'Ange). Fait et testé — voir
+      "Dernière session" et "Questions en attente" (prix + maxPauses 2 mois à
+      confirmer).
+- [ ] **4. Module Payments** (prochaine étape) : soumission de preuve, file de modération,
       validation/rejet, notification SMS + push via `PushProvider`, suppression de
       la capture après traitement.
 - [ ] **5. Module Coaching** (si le temps le permet pour cette démo — sinon
@@ -255,13 +295,17 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
-- 2026-09-20 — Claude Code (VS Code) — Étapes 0-2 du handoff. Pivot architectural
+- 2026-09-20 — Claude Code (VS Code) — Étapes 0-3 du handoff. Pivot architectural
   confirmé par Ange (backend extrait vers `souplesse-api`, NestJS, nouveau dépôt
   indépendant ; Render.com pendant la démo ; mobile inchangé dans ce monorepo).
   Documentation consolidée (commit `5c55d81`). Dépôt `souplesse-api` créé et
   poussé (https://github.com/sonron1/souplesse-api, privé), scaffold NestJS,
   module Auth complet et testé (register/OTP/login/refresh/logout, 14 tests +
-  smoke test manuel). Prochaine étape : module Subscriptions.
+  smoke test manuel). Ange a demandé une vérification explicite de la règle
+  "actif ou en pause" avant Subscriptions — confirmée et testée. Module
+  Subscriptions complet et testé (catalogue 5 formules, requête bloquée si
+  actif/en pause, pause/reprise). Deux questions ouvertes : prix mobile et
+  maxPauses de la formule 2 mois. Prochaine étape : module Payments.
 - 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
   SMS/OTP appliquée en production avec succès (`migrate deploy` +
   `migrate status` OK). Site déployé non vérifiable par moi — en attente de
