@@ -23,7 +23,6 @@ export default function RegisterScreen() {
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
 
   async function handleSubmit() {
     setError(null);
@@ -37,37 +36,26 @@ export default function RegisterScreen() {
       return;
     }
 
+    const trimmedPhone = phone.trim();
     setIsSubmitting(true);
     try {
       await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        phone: phone.trim(),
+        phone: trimmedPhone,
         gender,
         password,
         confirmPassword,
       });
-      setIsRegistered(true);
+      // souplesse-api sends the SMS OTP as part of registration — the account
+      // is unusable until it's verified (see VerifyOtpScreen).
+      navigation.navigate('VerifyOtp', { phone: trimmedPhone });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (isRegistered) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Compte créé</Text>
-        <Text style={styles.info}>
-          Vérifiez votre boîte mail pour valider votre adresse avant de vous connecter.
-        </Text>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.buttonText}>Retour à la connexion</Text>
-        </TouchableOpacity>
-      </View>
-    );
   }
 
   return (
@@ -179,10 +167,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     marginBottom: spacing.xl,
-  },
-  info: {
-    color: colors.muted,
-    marginBottom: spacing.xxl,
   },
   input: {
     backgroundColor: colors.surface,

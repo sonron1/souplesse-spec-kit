@@ -30,7 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await apiFetch('/auth/me');
+      // souplesse-api exposes the current user at /users/me (not /auth/me,
+      // which doesn't exist on this backend).
+      const response = await apiFetch('/users/me');
       if (!response.ok) throw new Error('Session expirée');
       const me: AuthUser = await response.json();
       setUser(me);
@@ -47,8 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(loggedInUser);
   }
 
-  // No tokens are issued by the server on register (email verification
-  // required first) — the caller does not get logged in automatically.
+  // No tokens are issued by the server on register (SMS/OTP verification
+  // required first, see VerifyOtpScreen) — the caller does not get logged in automatically.
   async function register(input: RegisterInput) {
     return authApi.register(input);
   }

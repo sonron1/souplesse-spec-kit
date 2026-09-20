@@ -13,11 +13,14 @@
 extrait dans un nouveau dépôt indépendant `souplesse-api` (NestJS)**, hébergé sur
 Render.com (offre gratuite) le temps de la démo. L'app mobile reste dans ce monorepo
 (`mobile/`). Dépôt créé et poussé : https://github.com/sonron1/souplesse-api (privé).
-Étapes 0 à 4 du handoff terminées (doc consolidée, scaffold NestJS, modules Auth,
-Subscriptions et Payments complets et testés). Validation genre opposé couple
-ajoutée. **Étape 6 (déploiement Render.com) préparée à 100% côté code**
-(`render.yaml`, migration au démarrage) **mais bloquée sans accès Render/Neon
-depuis cet outil** — voir "ARRÊT — action requise d'Ange" ci-dessous.
+Étapes 0 à 4 du handoff terminées côté `souplesse-api` (doc consolidée, scaffold
+NestJS, modules Auth, Subscriptions et Payments complets et testés, validation
+genre opposé couple ajoutée). Render.com déployé par Ange (étape 6) après
+correctif `render.yaml` (JWT_SECRET/JWT_REFRESH_SECRET). **Travail en cours,
+2026-09-20 : reconstruction de l'app mobile** (`mobile/`, restée figée depuis
+la phase Authentification d'avant le pivot) selon le plan détaillé d'Ange —
+voir section "Plan de construction mobile" ci-dessous pour le détail
+bloc par bloc.
 
 La migration SMS/OTP appliquée en production le 2026-08-02 (voir "Archive" plus bas)
 reste valide au niveau du schéma Prisma partagé — mais les routes `/api/auth/phone/*`
@@ -154,8 +157,8 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   épinglé en version 22 (`.node-version` + `engines`) plutôt que la 24.13
   utilisée en local, par prudence sur la disponibilité côté Render.
   **Aucun accès Render/Neon (CLI ou API) depuis cet outil** — même
-  contrainte que la vérification PITR Neon précédente. Voir section
-  "ARRÊT — action requise d'Ange" ci-dessous pour la suite.
+  contrainte que la vérification PITR Neon précédente ; Ange a réalisé les
+  étapes manuelles (projet Neon + déploiement Blueprint) elle-même.
 - **Bug `render.yaml` corrigé — 2026-09-20** : après déploiement, seules
   `DATABASE_URL`/`DIRECT_DATABASE_URL` sont apparues dans l'onglet
   *Environment* du service Render — `JWT_SECRET` jamais généré → crash au
@@ -215,7 +218,8 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
 ## Dernière session
 
 - **Date/surface** : Claude Code (VS Code) — 2026-09-20 — étapes 0 à 4 du handoff
-  + validation genre couple + préparation étape 6 (déploiement)
+  + validation genre couple + déploiement Render.com résolu + reconstruction
+  mobile blocs 1-4
 - **Fait (étape 0)** : Lecture complète de `handoff.md`, `spec.md`, `architecture.md`. Conflit
   détecté et signalé à Ange entre le pivot décrit dans ces documents et la décision
   actée dans ce fichier (backend = extension Nitro, monorepo) — **confirmé par Ange
@@ -255,37 +259,18 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   manque signalé au commit Auth). 49 tests au total sur `souplesse-api`.
   Commit `souplesse-api@8c5c2c2`, poussé.
 - **Fait (correctifs demandés)** : validation genre opposé pour le couple
-  ajoutée (voir décision ci-dessus). Déploiement Render.com **préparé à 100%
-  côté code** (`render.yaml`, migration au démarrage, bug CORS corrigé) mais
-  **l'exécution réelle est bloquée** : aucun accès Render/Neon (CLI ou API)
-  depuis cet outil. Voir "ARRÊT — action requise d'Ange" ci-dessous.
-- **Pas encore fait** : Coaching (étape 5, best-effort), exécution réelle du
-  déploiement Render.com (étape 6, bloquée — voir ARRÊT), branchement du
-  frontend mobile sur `souplesse-api` (étape 7), build APK (étape 8), test
-  manuel bout en bout sur device réel (étape 9). Compte Africa's Talking
-  toujours pas créé — `AfricasTalkingProvider` fonctionne en mode "stub log"
-  en attendant.
-
-## ARRÊT — action requise d'Ange avant de poursuivre l'étape 6
-
-Même contrainte que pour la vérification PITR Neon en 2026-08-02 : pas
-d'accès CLI/API à Render.com ni à Neon depuis cet outil (pas de navigateur,
-pas de clé API configurée). Tout le travail automatisable est fait et poussé
-(`souplesse-api@9d22525`) ; il reste deux actions qui nécessitent un accès
-compte direct :
-
-1. **Créer un nouveau projet Neon**, distinct de la production (ex.
-   "souplesse-api-demo"), et récupérer dans "Connection Details" la chaîne
-   poolée et la chaîne directe.
-2. **Sur Render.com** : *New +* → *Blueprint* → sélectionner
-   `sonron1/souplesse-api`. Render détecte `render.yaml` et demande les
-   variables `sync: false` : coller les deux chaînes Neon de l'étape 1 ;
-   les identifiants Africa's Talking peuvent rester vides. Lancer le déploiement.
-
-Détail complet et ordre exact dans le `README.md` de `souplesse-api` (section
-"Déploiement"). **Une fois l'URL publique obtenue, la communiquer** pour
-qu'elle serve d'`EXPO_PUBLIC_API_URL` côté mobile (étape 7) et qu'un premier
-build EAS de test puisse être lancé (étape 8).
+  ajoutée (voir décision ci-dessus). Déploiement Render.com résolu : Ange a
+  créé le projet Neon et déployé via Blueprint, correctif `render.yaml`
+  (JWT_SECRET/JWT_REFRESH_SECRET) appliqué pour un crash au démarrage — voir
+  décision "Bug `render.yaml` corrigé" ci-dessus. **URL publique confirmée :
+  `https://souplesse-api.onrender.com`.**
+- **Fait (2026-09-20, suite)** : Audit complet de `mobile/` (voir Historique) ;
+  reconstruction lancée selon le plan d'Ange — voir "Plan de construction
+  mobile" ci-dessous pour le détail bloc par bloc (1 à 4 faits à ce stade).
+- **Pas encore fait** : Coaching (étape 5 du handoff, best-effort), suite du
+  plan mobile (blocs 5-7), build APK (étape 8), test manuel bout en bout sur
+  device réel (étape 9). Compte Africa's Talking toujours pas créé —
+  `AfricasTalkingProvider` fonctionne en mode "stub log" en attendant.
 
 ## Questions en attente
 
@@ -346,13 +331,60 @@ Détail complet dans `handoff.md` section 3. Résumé :
       ci-dessus (limite de stockage disque local à surveiller).
 - [ ] **5. Module Coaching** (si le temps le permet pour cette
       démo — sinon signaler comme non couvert plutôt que de le bâcler).
-- [~] **6. Déployer `souplesse-api` sur Render.com** (offre gratuite). Code
-      prêt (`render.yaml`, commit `9d22525`) ; **exécution bloquée sans accès
-      Render/Neon** — voir "ARRÊT — action requise d'Ange" ci-dessus.
-- [ ] **7. Brancher l'app mobile** (`EXPO_PUBLIC_API_URL`) sur cette instance Render.
+- [x] **6. Déployer `souplesse-api` sur Render.com** (offre gratuite). Fait par
+      Ange le 2026-09-20, après correctif `render.yaml` (JWT_SECRET/
+      JWT_REFRESH_SECRET, voir décision ci-dessus). URL :
+      `https://souplesse-api.onrender.com`.
+- [~] **7. Brancher l'app mobile** (`EXPO_PUBLIC_API_URL`) sur cette instance Render.
+      **En cours** — voir "Plan de construction mobile" ci-dessous (bloc 1 fait).
 - [ ] **8. Générer l'APK** via `eas build --platform android --profile preview`.
 - [ ] **9. Valider manuellement le parcours complet** sur un appareil Android réel
       avant de livrer l'APK.
+
+## Plan de construction mobile (`mobile/`) — 2026-09-20
+
+Le dossier `mobile/` était resté figé depuis la phase Authentification
+d'avant le pivot (commits `94dd2a2`/`89df398`/`6166173`) : seuls Login/Register
+existaient, contre l'ancien backend web. Audit complet fait le 2026-09-20 (voir
+Historique). Plan de reconstruction défini par Ange, dans cet ordre strict
+(chaque bloc dépend du précédent) :
+
+- [x] **Bloc 1 — Rebranchement API** : `EXPO_PUBLIC_API_URL` →
+      `https://souplesse-api.onrender.com` ; `AuthContext.restoreSession()`
+      corrigé (`/auth/me` → `/users/me`, qui n'existe pas sur `souplesse-api`) ;
+      gestion du refresh token ajoutée dans `api/client.ts` (absente
+      auparavant) — `apiFetch()` rafraîchit automatiquement sur un 401 et
+      rejoue la requête une fois ; si le refresh échoue aussi, les tokens sont
+      effacés et l'appelant retombe sur son traitement d'erreur existant (ex.
+      `restoreSession()` déconnecte proprement).
+- [x] **Bloc 2 — Écran OTP (E04)** : `VerifyOtpScreen` (saisie code 6 chiffres,
+      bouton "Renvoyer le code"). `RegisterScreen` redirige désormais vers cet
+      écran (au lieu du message "vérifiez votre email", qui décrivait
+      l'ancien flux web).
+- [x] **Bloc 3 — Écran choix de formule (E06)** : `ChooseFormulaScreen`,
+      `GET /subscriptions/plans`, sélection Solo/Couple (champ téléphone
+      partenaire si Couple). Nouveau fichier `api/subscriptions.ts`.
+- [x] **Bloc 4 — Écran instructions de paiement (E07)** : `PaymentInstructionsScreen`,
+      affiche la formule/montant récapitulés + les 3 numéros Mobile Money.
+      **Numéros PROVISOIRES** (`+229 00 00 00 01/02/03`) isolés dans
+      `src/config/mobileMoneyNumbers.ts` — **seul ce fichier à modifier**
+      quand Ange aura les vrais numéros. Le bouton "J'ai payé" n'est pas
+      encore câblé (dépend de `UploadProofScreen`, bloc 5) — écran
+      volontairement autonome/testable pour ce jalon.
+- [ ] **Bloc 5 — Écran upload de preuve (E08)** : `expo-image-picker` à
+      installer, formulaire + upload multipart vers `POST /payments/proof`.
+- [ ] **Bloc 6 — Dashboard Client réel (E05) + écran statut (E09)** :
+      `GET /subscriptions/me`, compteur de jours restants.
+- [ ] **Bloc 7 — Dashboard Modérateur réel (E10/E11)** : `GET /payments/pending`,
+      affichage image (`<Image>` RN n'envoie pas l'en-tête `Authorization` —
+      récupérer le blob via fetch authentifié), boutons valider/rejeter.
+
+**Vérification à chaque bloc** : `npx tsc --noEmit` (aucune erreur) +
+`npx expo export --platform android` (le bundle Metro se construit sans
+erreur, ~840 modules) après chaque bloc. Ces deux vérifications ne remplacent
+pas un test visuel sur device — je n'ai pas d'accès à un téléphone/émulateur
+depuis cet outil. **Le jalon bloc 1-4 attend la vérification manuelle d'Ange
+via Expo Go** avant de continuer sur les blocs 5-7.
 
 Definition of done complète : voir `handoff.md` section 5.
 
@@ -421,6 +453,21 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-09-20 — Claude Code (VS Code) — Render.com déployé par Ange, résolu après
+  correctif `render.yaml` (JWT_SECRET/JWT_REFRESH_SECRET jamais générés via
+  `generateValue: true` sur un service existant → passage à `sync: false`).
+  URL confirmée : `https://souplesse-api.onrender.com`. Audit complet de
+  `mobile/` : figé depuis la phase Authentification pré-pivot, seuls
+  Login/Register existent (contre l'ancien backend web), les 4 dashboards
+  sont des squelettes vides, aucun écran OTP/formule/paiement/upload/
+  modération n'existe. Ange a fourni un plan de reconstruction en 7 blocs
+  ordonnés (voir "Plan de construction mobile"). Blocs 1 à 4 réalisés dans
+  cette session : rebranchement API (`souplesse-api`, `/users/me`, refresh
+  token), écran OTP, écran choix de formule (solo/couple), écran instructions
+  de paiement (numéros provisoires isolés dans `mobileMoneyNumbers.ts`).
+  Vérifié par `tsc --noEmit` + `expo export` (aucun accès device/émulateur
+  depuis cet outil — vérification visuelle sur Expo Go laissée à Ange, comme
+  demandé pour ce jalon). En attente de son retour avant blocs 5-7.
 - 2026-09-20 — Claude Code (VS Code) — Étapes 0-3 du handoff. Pivot architectural
   confirmé par Ange (backend extrait vers `souplesse-api`, NestJS, nouveau dépôt
   indépendant ; Render.com pendant la démo ; mobile inchangé dans ce monorepo).
