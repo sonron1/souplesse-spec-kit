@@ -77,11 +77,13 @@ export default function ChooseFormulaScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>Choisir une formule</Text>
 
       {plans.map((plan) => {
         const isSelected = plan.id === selectedPlanId;
+        const showCouplePrice = isCouple && plan.priceCouple != null;
+        const displayPrice = showCouplePrice ? plan.priceCouple! : plan.priceSingle;
         return (
           <TouchableOpacity
             key={plan.id}
@@ -89,11 +91,12 @@ export default function ChooseFormulaScreen() {
             onPress={() => setSelectedPlanId(plan.id)}
             disabled={isSubmitting}
           >
-            <Text style={styles.cardName}>{plan.name}</Text>
-            <Text style={styles.cardPrice}>{formatFcfa(plan.priceSingle)} (Solo)</Text>
-            {plan.priceCouple != null ? (
-              <Text style={styles.cardPriceCouple}>{formatFcfa(plan.priceCouple)} (Couple)</Text>
-            ) : null}
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardName}>{plan.name}</Text>
+              <Text style={styles.cardPrice}>
+                {formatFcfa(displayPrice)} <Text style={styles.cardPriceMode}>({showCouplePrice ? 'Couple' : 'Solo'})</Text>
+              </Text>
+            </View>
             <Text style={styles.cardMeta}>
               Validité : {plan.validityDays} jours
               {plan.maxPauses > 0 ? ` · ${plan.maxPauses} report(s) possible(s)` : ' · pas de report'}
@@ -153,13 +156,20 @@ export default function ChooseFormulaScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: colors.bg,
+  },
   container: {
     flexGrow: 1,
+    width: '100%',
     backgroundColor: colors.bg,
     padding: spacing.xxl,
   },
   centered: {
     flex: 1,
+    width: '100%',
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -172,6 +182,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   card: {
+    width: '100%',
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderWidth: 1,
@@ -183,31 +194,45 @@ const styles = StyleSheet.create({
     borderColor: colors.brand,
     backgroundColor: colors.brandSoft,
   },
+  cardHeaderRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   cardName: {
+    flexShrink: 1,
     color: colors.text,
     fontSize: 17,
     fontWeight: '700',
-    marginBottom: spacing.xs,
   },
   cardPrice: {
+    flexShrink: 1,
     color: colors.text,
     fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'right',
   },
-  cardPriceCouple: {
+  cardPriceMode: {
     color: colors.muted,
-    fontSize: 14,
-    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '500',
   },
   cardMeta: {
+    width: '100%',
     color: colors.muted,
     fontSize: 13,
     marginTop: spacing.sm,
   },
   optionsBlock: {
+    width: '100%',
     marginTop: spacing.md,
     marginBottom: spacing.lg,
   },
   segmentRow: {
+    width: '100%',
     flexDirection: 'row',
     gap: spacing.md,
     marginBottom: spacing.md,
@@ -233,6 +258,7 @@ const styles = StyleSheet.create({
     color: colors.brand,
   },
   input: {
+    width: '100%',
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderWidth: 1,
@@ -245,6 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   button: {
+    width: '100%',
     backgroundColor: colors.brand,
     borderRadius: radii.md,
     padding: spacing.lg,

@@ -299,6 +299,36 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   plan mobile (blocs 5-7), build APK (étape 8), test manuel bout en bout sur
   device réel (étape 9). Compte Africa's Talking toujours pas créé —
   `AfricasTalkingProvider` fonctionne en mode "stub log" en attendant.
+- **Fait (2026-09-20, correctifs bloc 3 suite au test d'Ange sur Samsung
+  A56)** : deux bugs remontés par Ange après test réel du `ChooseFormulaScreen`.
+  (1) Le prix affiché dans chaque carte de formule restait celui du Solo
+  quel que soit le mode sélectionné — la carte affichait auparavant les deux
+  prix (Solo et Couple) empilés en permanence au lieu de réagir au toggle.
+  Corrigé : chaque carte calcule désormais `displayPrice`/`showCouplePrice`
+  à partir de l'état global `isCouple`, donc le prix ET le libellé
+  "(Solo)"/"(Couple)" basculent ensemble sur toutes les cartes dès que le
+  toggle change (pas seulement sur la carte sélectionnée). (2) Responsivité :
+  aucune largeur fixe en px n'a été trouvée dans le fichier, mais aucune
+  largeur explicite n'était déclarée non plus (le composant comptait
+  entièrement sur le stretch implicite de flexbox) — durci en ajoutant
+  `width: '100%'` (pourcentage) explicite sur `ScrollView`, `card`,
+  `segmentRow`, `optionsBlock`, `input` et `button`, plus un nouveau layout
+  en ligne (`cardHeaderRow`, flexDirection row + flexWrap + space-between)
+  pour le nom et le prix de la carte, avec `flexShrink` des deux côtés pour
+  éviter tout débordement horizontal. Vérifié par `tsc --noEmit` (aucune
+  erreur) + `expo export --platform android` (841 modules, build OK) —
+  toujours pas de vérification visuelle possible depuis cet outil, en
+  attente du retest d'Ange sur son Samsung A56. **Effet de bord détecté et
+  annulé** : lancer `npx expo export`/`npx tsc` depuis `mobile/` a modifié
+  `package.json`/`package-lock.json` à la racine du monorepo (ajout de
+  `expo`/`@types/react` en dépendances racine, `.expo/` créé à la racine) —
+  contraire au garde-fou "ne jamais toucher au `package.json` racine".
+  Détecté via `git status` avant tout commit, changements annulés
+  (`git checkout -- package.json package-lock.json`, suppression de
+  `.expo/` racine), rien commité. Cause probable : résolution npx qui
+  retombe sur le `package.json` racine quand une dépendance n'est pas
+  jugée satisfaisante localement — à surveiller dans les prochains blocs,
+  toujours vérifier `git status` à la racine après ces deux commandes.
 
 ## Questions en attente
 
@@ -481,6 +511,15 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-09-20 — Claude Code (VS Code) — Correctifs bloc 3 (`ChooseFormulaScreen`)
+  suite au test réel d'Ange sur Samsung A56 : prix de carte non réactif au
+  toggle Solo/Couple corrigé (calcul par carte à partir de `isCouple`), et
+  largeurs durcies en `width: '100%'`/flex explicite (ScrollView, cartes,
+  toggle, input, bouton) au lieu du stretch implicite. `tsc --noEmit` +
+  `expo export --platform android` verts. Effet de bord détecté et annulé :
+  les commandes de vérification avaient modifié `package.json`/
+  `package-lock.json` à la racine (garde-fou violé par inadvertance) —
+  repéré via `git status`, annulé avant tout commit.
 - 2026-09-20 — Claude Code (VS Code) — Root cause confirmée pour l'incident
   JWT_SECRET (Ange avait ajouté les variables à la main avant le déploiement
   manuel réussi — ce n'était pas un comportement différent entre auto-deploy
