@@ -156,6 +156,28 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   **Aucun accès Render/Neon (CLI ou API) depuis cet outil** — même
   contrainte que la vérification PITR Neon précédente. Voir section
   "ARRÊT — action requise d'Ange" ci-dessous pour la suite.
+- **Bug `render.yaml` corrigé — 2026-09-20** : après déploiement, seules
+  `DATABASE_URL`/`DIRECT_DATABASE_URL` sont apparues dans l'onglet
+  *Environment* du service Render — `JWT_SECRET` jamais généré → crash au
+  démarrage (`JwtStrategy` appelle `config.getOrThrow('JWT_SECRET')` dans son
+  constructeur, exécuté dès le boot d'`AuthModule`, avant toute requête).
+  Audit de tous les `getOrThrow`/`process.env` du code : seules 4 variables
+  sont réellement requises au démarrage — `JWT_SECRET`, `JWT_REFRESH_SECRET`,
+  `DATABASE_URL`, `DIRECT_DATABASE_URL` — les 9 autres ont toutes un
+  fallback (`?? '15m'`, mode stub SMS, etc.). Les 4 étaient déjà déclarées
+  dans `render.yaml` ; le problème n'était donc pas une variable manquante
+  de la liste mais `generateValue: true` (utilisé pour les 2 secrets JWT),
+  qui n'est fiable qu'à la toute première création du service depuis le
+  blueprint — pas garanti de se matérialiser sur un service déjà existant.
+  Remplacé par `sync: false` (même mécanisme que les 2 variables DB, qui
+  elles ont bien fonctionné) pour un comportement prévisible dans tous les
+  cas. Commit `souplesse-api@110f544`, poussé. **Correctif de code déployé,
+  mais l'application réelle sur Render reste à faire par Ange** — ajouter
+  directement `JWT_SECRET`/`JWT_REFRESH_SECRET` dans l'onglet *Environment*
+  du service existant est plus rapide et plus certain qu'un redéploiement ou
+  une resynchronisation Blueprint (voir section "Dépannage" du README de
+  `souplesse-api` pour le détail — je ne peux pas vérifier depuis cet outil
+  si Render relit `render.yaml` sur un service déjà créé).
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -439,6 +461,16 @@ dans ce backend.
   de `souplesse-api` : créer un nouveau projet Neon (jamais celui du web) et
   déployer via Render Blueprint. En attente de l'URL publique avant de
   pouvoir avancer sur les étapes 7 (branchement mobile) et 8 (build EAS).
+- 2026-09-20 — Claude Code (VS Code) — Ange a déployé sur Render mais
+  `JWT_SECRET` n'a jamais été généré (crash au démarrage) — seules les 2
+  variables DB étaient présentes. Audit complet des variables requises au
+  démarrage (`getOrThrow`/`process.env`) : 4 requises au total, toutes déjà
+  déclarées dans `render.yaml` — le bug venait de `generateValue: true`,
+  fiable seulement à la création initiale du service, pas sur un service
+  déjà existant. Remplacé par `sync: false` pour les 2 secrets JWT. Commit
+  `souplesse-api@110f544`, poussé. Section "Dépannage" ajoutée au README.
+  Reste à faire par Ange : ajouter `JWT_SECRET`/`JWT_REFRESH_SECRET`
+  directement dans l'onglet Environment du service Render existant.
 - 2026-08-02 — Claude Code (VS Code) — PITR confirmé (6h) par Ange. Migration
   SMS/OTP appliquée en production avec succès (`migrate deploy` +
   `migrate status` OK). Site déployé non vérifiable par moi — en attente de
