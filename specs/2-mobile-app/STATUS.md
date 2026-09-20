@@ -181,6 +181,34 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   une resynchronisation Blueprint (voir section "Dépannage" du README de
   `souplesse-api` pour le détail — je ne peux pas vérifier depuis cet outil
   si Render relit `render.yaml` sur un service déjà créé).
+- **Root cause confirmée — 2026-09-20** : Ange a observé que l'auto-deploy du
+  commit `110f544` avait échoué juste avant que le déploiement manuel du même
+  commit réussisse. Confirmé par Ange : elle avait ajouté `JWT_SECRET`/
+  `JWT_REFRESH_SECRET` à la main dans l'onglet *Environment* **avant** de
+  déclencher le déploiement manuel — ce n'est donc pas "manuel vs automatique"
+  qui a fait la différence, c'est le moment où les variables ont été ajoutées.
+  Ni un déploiement automatique (push) ni un déploiement manuel ne relit
+  `render.yaml` pour une variable sur un service déjà existant — seules la
+  création initiale depuis un Blueprint ou une resynchronisation Blueprint
+  explicite le font. **Conséquence pratique** : les variables déjà réglées ne
+  risquent rien lors d'un futur `git push` classique (elles sont un état
+  persistant du service, jamais recalculées depuis `render.yaml` à chaque
+  déploiement) — mais toute **nouvelle** variable requise ajoutée plus tard
+  au code retombera dans le même piège si elle n'est pas aussi ajoutée à la
+  main (ou via Sync) au moment où on la déclare dans `render.yaml`.
+- **Garde-fou ajouté — 2026-09-20** : `src/env-check.ts` dans `souplesse-api`
+  vérifie les 4 variables requises (`JWT_SECRET`, `JWT_REFRESH_SECRET`,
+  `DATABASE_URL`, `DIRECT_DATABASE_URL`) avant même l'instanciation de Nest,
+  et affiche un message unique et clair listant exactement ce qui manque —
+  au lieu de la trace générique de NestJS qui avait nécessité un audit complet
+  du code pour être décodée la première fois. Vérifié manuellement (fichier
+  `.env` déplacé temporairement + variables JWT retirées de l'environnement
+  du process enfant : sortie immédiate avec le message attendu avant tout log
+  Nest ; comportement normal confirmé une fois restauré). 4 nouveaux tests
+  (55 au total). Commit `souplesse-api@08686bb`, poussé. Ne corrige pas le
+  problème de fond (une nouvelle variable ne se propage toujours pas
+  automatiquement) mais rend le diagnostic immédiat au lieu de nécessiter
+  une nouvelle session d'audit.
 - **Vérification de compte** : email inchangé pour le web ; SMS bloquant
   pour les comptes mobile uniquement (`registeredVia: WEB | MOBILE`).
 - **Schéma SMS/OTP appliqué en local ET en production avec succès** (voir
@@ -453,6 +481,13 @@ dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
 
+- 2026-09-20 — Claude Code (VS Code) — Root cause confirmée pour l'incident
+  JWT_SECRET (Ange avait ajouté les variables à la main avant le déploiement
+  manuel réussi — ce n'était pas un comportement différent entre auto-deploy
+  et déploiement manuel). Garde-fou ajouté : `env-check.ts` fait échouer le
+  démarrage avec un message clair listant les variables manquantes, avant
+  même l'instanciation de Nest. Vérifié manuellement + 4 tests. Commit
+  `souplesse-api@08686bb`, poussé.
 - 2026-09-20 — Claude Code (VS Code) — Render.com déployé par Ange, résolu après
   correctif `render.yaml` (JWT_SECRET/JWT_REFRESH_SECRET jamais générés via
   `generateValue: true` sur un service existant → passage à `sync: false`).
