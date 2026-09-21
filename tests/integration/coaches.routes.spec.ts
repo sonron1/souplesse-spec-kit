@@ -37,7 +37,6 @@ vi.mock('../../server/services/message.service', () => ({
 const mockUserFindMany  = vi.fn()
 const mockUserFindUnique = vi.fn()
 const mockAssignFindFirst = vi.fn()
-const mockAssignFindFirst2 = vi.fn() // separate for different call contexts
 const mockAssignUpsert   = vi.fn()
 const mockAssignUpdate   = vi.fn()
 
@@ -73,7 +72,6 @@ vi.mock('h3', async (importOriginal) => {
 // ── Users ─────────────────────────────────────────────────────────────────────
 const CLIENT_ID = '00000000-0000-0000-0000-000000000001'
 const COACH_ID  = '00000000-0000-0000-0000-000000000002'
-const ADMIN_ID  = '00000000-0000-0000-0000-000000000003'
 
 const CLIENT_USER = { sub: CLIENT_ID, email: 'client@test.com', role: 'CLIENT', type: 'access' }
 const COACH_USER  = { sub: COACH_ID,  email: 'coach@test.com',  role: 'COACH',  type: 'access' }

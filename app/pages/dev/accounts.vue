@@ -68,6 +68,8 @@
 </template>
 
 <script setup lang="ts">
+  import { abortNavigation, createError } from '#app'
+
   // Guard: block this page in production at the router level
   definePageMeta({
     layout: false,
@@ -80,7 +82,7 @@
     ],
   })
 
-  const { logout, user: currentUser, accessToken } = useAuth()
+  const { logout, user: currentUser } = useAuth()
 
   const loggingIn = ref<string | null>(null)
   const loginError = ref('')

@@ -108,7 +108,6 @@ describe('auth middleware handler', () => {
   it('handles non-Error thrown by verifyJwt (logs warn, empty message)', async () => {
     const handler = (await import('../../server/middleware/auth.middleware')).default as any
     mockGetHeader.mockReturnValue('Bearer some.token')
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
     mockVerifyJwt.mockImplementation(() => { throw 'raw-string-error' })
     const event = makeEvent()
     await expect(handler(event)).resolves.not.toThrow()

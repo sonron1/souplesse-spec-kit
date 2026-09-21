@@ -366,6 +366,8 @@
 </template>
 
 <script setup lang="ts">
+  import { usePolling } from '~/composables/usePolling'
+
   definePageMeta({ middleware: ['auth', 'client-only', 'subscription'] })
 
   const { accessToken, isClient, ensureFresh } = useAuth()
@@ -461,7 +463,7 @@
 
   // Q001/Q004: Poll sessions every 30s, skip when a refresh is already running
   const pollingActive = ref(false)
-  const { isPolling } = usePolling(async () => {
+  usePolling(async () => {
     if (pending.value) return
     pollingActive.value = true
     nowTs.value = Date.now() // invalidate queryParams so `from` uses current time

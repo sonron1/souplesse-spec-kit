@@ -25,7 +25,7 @@ export const registerSchema = z.object({
   confirmPassword: z.string().min(1, 'La confirmation du mot de passe est requise'),
 }).refine((d) => {
   // Cross-field date validation: reject impossible day/month combos (e.g. Feb 30)
-  if (d.birthDay == null || d.birthMonth == null) return true
+  if (d.birthDay === null || d.birthDay === undefined || d.birthMonth === null || d.birthMonth === undefined) return true
   const maxDays = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
   return d.birthDay <= maxDays[d.birthMonth]
 }, {
@@ -72,7 +72,7 @@ export const updateProfileSchema = z.object({
   birthMonth: z.number().int().min(1).max(12).optional().nullish(),
   avatarUrl: z.string().url().optional().nullish(),
 }).refine((d) => {
-  if (d.birthDay == null || d.birthMonth == null) return true
+  if (d.birthDay === null || d.birthDay === undefined || d.birthMonth === null || d.birthMonth === undefined) return true
   const maxDays = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
   return d.birthDay <= maxDays[d.birthMonth]
 }, {

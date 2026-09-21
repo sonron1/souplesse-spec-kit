@@ -69,7 +69,8 @@ describe('signAccessToken', () => {
     expect(decoded.exp).toBeDefined()
     // exp should be roughly 1 hour from now
     const inOneHour = Math.floor(Date.now() / 1000) + 3600
-    expect(Math.abs(decoded.exp! - inOneHour)).toBeLessThan(10)
+    const exp = decoded.exp ?? 0
+    expect(Math.abs(exp - inOneHour)).toBeLessThan(10)
   })
 })
 
@@ -98,7 +99,8 @@ describe('signRefreshToken', () => {
     const decoded = verifyRefreshToken(token)
     expect(decoded.exp).toBeDefined()
     const in30days = Math.floor(Date.now() / 1000) + 30 * 86400
-    expect(Math.abs(decoded.exp! - in30days)).toBeLessThan(10)
+    const exp = decoded.exp ?? 0
+    expect(Math.abs(exp - in30days)).toBeLessThan(10)
   })
 })
 

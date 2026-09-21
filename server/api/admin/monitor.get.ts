@@ -71,7 +71,8 @@ export default defineEventHandler(async (event) => {
     if (!coachMap.has(thread.coachId)) {
       coachMap.set(thread.coachId, { coach: thread.coach, threads: [] })
     }
-    coachMap.get(thread.coachId)!.threads.push(thread)
+    const coachEntry = coachMap.get(thread.coachId)
+    if (coachEntry) coachEntry.threads.push(thread)
   }
 
   const byCoach = Array.from(coachMap.values()).sort((a, b) =>
@@ -80,4 +81,3 @@ export default defineEventHandler(async (event) => {
 
   return { byCoach, totalThreads: threads.length }
 })
-

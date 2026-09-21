@@ -29,10 +29,8 @@ export default defineEventHandler(async (event) => {
     return { active: false, planName: null, expiresAt: null, daysLeft: null, isCouple: false, partnerName: null, maxPauses: 0, pauseCount: 0, maxReports: 0 }
   }
 
-  const daysLeft = Math.max(
-    0,
-    Math.ceil((new Date(sub.expiresAt!).getTime() - Date.now()) / 86_400_000)
-  )
+  const expiresAtMs = sub.expiresAt ? new Date(sub.expiresAt).getTime() : Date.now()
+  const daysLeft = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 86_400_000))
 
   // Resolve partner name when it's a couple subscription
   let partnerName: string | null = null

@@ -9,7 +9,8 @@
       class="bg-orange-50 border border-orange-200 text-orange-700 rounded-lg px-4 py-3 mb-4 text-sm flex items-start gap-2"
     >
       <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        <path
+stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
       {{ sessionRevokedMsg }}
@@ -22,7 +23,7 @@
       {{ error }}
     </div>
 
-    <form @submit.prevent="handleLogin" class="space-y-4">
+    <form class="space-y-4" @submit.prevent="handleLogin">
       <div>
         <label class="label" for="email">Adresse email</label>
         <input

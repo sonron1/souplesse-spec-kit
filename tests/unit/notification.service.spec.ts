@@ -104,7 +104,8 @@ describe('notificationService.markRead', () => {
     mockPrisma.notification.update.mockResolvedValue(updatedNotif as never)
 
     const result = await notificationService.markRead('n-1', 'u-1')
-    expect(result!.readAt).not.toBeNull()
+    expect(result).not.toBeNull()
+    expect(result?.readAt).not.toBeNull()
     expect(mockPrisma.notification.update).toHaveBeenCalledOnce()
   })
 
@@ -121,7 +122,8 @@ describe('notificationService.markRead', () => {
     mockPrisma.notification.findUnique.mockResolvedValue(alreadyRead as never)
 
     const result = await notificationService.markRead('n-1', 'u-1')
-    expect(result!.readAt).not.toBeNull()
+    expect(result).not.toBeNull()
+    expect(result?.readAt).not.toBeNull()
     expect(mockPrisma.notification.update).not.toHaveBeenCalled()
   })
 })

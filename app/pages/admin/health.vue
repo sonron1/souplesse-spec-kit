@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { usePolling } from '~/composables/usePolling'
+
 definePageMeta({ path: '/admin-health', middleware: ['auth', 'admin'] })
 
 const { accessToken } = useAuth()

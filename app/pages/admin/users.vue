@@ -33,7 +33,6 @@ const { data, pending, error, refresh } = await useLazyFetch<UsersResponse>('/ap
 
 const users = computed(() => data.value?.users ?? [])
 const total = computed(() => data.value?.total ?? 0)
-const hasNextPage = computed(() => page.value * limit < total.value)
 const totalPages = computed(() => Math.ceil(total.value / limit))
 
 const filteredUsers = computed(() => {
@@ -46,8 +45,6 @@ const filteredUsers = computed(() => {
 
 const clientCount = computed(() => users.value.filter(u => u.role === 'CLIENT').length)
 const coachCount = computed(() => users.value.filter(u => u.role === 'COACH').length)
-
-async function changePage(delta: number) { page.value = Math.max(1, page.value + delta); await refresh() }
 
 function roleClass(role: string) {
   if (role === 'ADMIN') return 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-yellow-400 text-black'
@@ -240,7 +237,8 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
         </svg>
-        <input v-model="search" type="text" placeholder="Rechercher par nom ou email..."
+        <input
+v-model="search" type="text" placeholder="Rechercher par nom ou email..."
           class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"/>
         <button v-if="search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" @click="search = ''">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -248,7 +246,8 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
       </div>
       <!-- Role pills -->
       <div class="flex gap-2 flex-wrap">
-        <button v-for="r in ['ALL', 'CLIENT', 'COACH', 'ADMIN']" :key="r"
+        <button
+v-for="r in ['ALL', 'CLIENT', 'COACH', 'ADMIN']" :key="r"
           :class="['px-4 py-2 rounded-xl text-xs font-bold border transition-all',
             roleFilter === r
               ? 'bg-black text-yellow-400 border-black shadow'
@@ -540,23 +539,27 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
           <div v-else class="px-6 py-6 space-y-4">
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nom complet</label>
-              <input v-model="createModal.name" type="text" placeholder="Jean Dupont"
+              <input
+v-model="createModal.name" type="text" placeholder="Jean Dupont"
                 class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"/>
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-              <input v-model="createModal.email" type="email" placeholder="jean@example.com"
+              <input
+v-model="createModal.email" type="email" placeholder="jean@example.com"
                 class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"/>
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe <span class="text-gray-400 font-normal">(laisser vide pour auto-generer)</span></label>
-              <input v-model="createModal.password" type="password" placeholder="Min. 8 caracteres"
+              <input
+v-model="createModal.password" type="password" placeholder="Min. 8 caracteres"
                 class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition"/>
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">Role</label>
               <div class="flex gap-2">
-                <button v-for="r in ['CLIENT', 'COACH']" :key="r"
+                <button
+v-for="r in ['CLIENT', 'COACH']" :key="r"
                   :class="['flex-1 py-2 text-sm font-bold rounded-xl border-2 transition-all',
                     createModal.role === r
                       ? 'bg-black text-yellow-400 border-black'

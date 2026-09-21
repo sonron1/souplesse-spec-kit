@@ -17,7 +17,8 @@ import { prisma } from '../../utils/prisma'
  */
 export default defineEventHandler(async (event) => {
   const me = await requireAuth(event)
-  const withUserId = getRouterParam(event, 'withUserId')!
+  const withUserId = getRouterParam(event, 'withUserId')
+  if (!withUserId) throw createError({ statusCode: 400, message: 'Paramètre withUserId manquant.' })
   const query = getQuery(event)
   const page = query.page ? Math.max(1, parseInt(String(query.page), 10)) : undefined
   const limit = query.limit ? Math.min(200, Math.max(1, parseInt(String(query.limit), 10))) : undefined
@@ -69,4 +70,3 @@ export default defineEventHandler(async (event) => {
   const { messages, pagination } = unpack(raw)
   return { messages, coachId: withUserId, clientId: me.sub, ...(pagination ? { pagination } : {}) }
 })
-

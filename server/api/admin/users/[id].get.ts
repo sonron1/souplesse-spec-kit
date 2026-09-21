@@ -11,7 +11,8 @@ export default defineEventHandler(async (event) => {
   const admin = await requireAuth(event)
   requireAdmin(admin)
 
-  const id = getRouterParam(event, 'id')!
+  const id = getRouterParam(event, 'id')
+  if (!id) throw createError({ statusCode: 400, message: 'Paramètre id manquant.' })
 
   const user = await prisma.user.findUnique({
     where: { id },

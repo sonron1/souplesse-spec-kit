@@ -17,7 +17,11 @@ export default defineEventHandler(async (event) => {
 
   // Resolve partner display info for couple subscriptions in one query
   type Sub = (typeof subscriptions)[number]
-  const partnerIds = [...new Set(subscriptions.filter((s: Sub) => s.partnerUserId).map((s: Sub) => s.partnerUserId!))]
+  const partnerIds = [...new Set(
+    subscriptions
+      .map((s: Sub) => s.partnerUserId)
+      .filter((id): id is string => Boolean(id))
+  )]
   const partnersMap = new Map<string, { name: string; email: string }>()
 
   if (partnerIds.length > 0) {
