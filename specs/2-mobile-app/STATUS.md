@@ -450,8 +450,60 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   sans manquant/étranger. Vérifié : `tsc --noEmit`, `expo export --platform
   android` (bundle JS identique à avant), `expo-doctor` 21/21, `git status`
   racine propre.
+- **Fait (2026-10-03, diagnostic `npm ci` en échec sur EAS Build —
+  `Missing: typescript@5.9.3 from lock file`)** : **cause exacte** —
+  `eas-cli@24.10.0`, alors en `dependencies`, tirait un arbre `@expo/*` de
+  l'ère SDK 55, dont `@expo/require-utils@55.0.8` qui déclare une peer
+  **optionnelle** `typescript: "^5.0.0 || ^5.0.0-0"`, incompatible avec le
+  `typescript@6.0.3` du projet. Les deux npm traitent ce conflit
+  différemment : **npm 12.2.0 (local)** tolère la peer optionnelle non
+  satisfaite et n'écrit pas (ou supprime) d'entrée `typescript@5.9.3` dans le
+  lockfile ; **npm 10.9.8 (image EAS SDK 57 `latest`, Node 22.23.1)** veut
+  l'installer en imbriqué → `npm ci` compare emplacement par emplacement et
+  échoue. Supprimer `node_modules` + lockfile ne pouvait rien changer : c'est
+  toujours npm 12 qui régénérait. Reproduit à l'identique avec `npx npm@10.9.8
+  ci` sur le lockfile de `a011755`, et sur celui de `f805ee8` après passage de
+  npm 12 (+ `expo-dev-client`, l'état non commité de l'arbre de travail
+  qu'EAS envoyait) — `f805ee8` brut, lui, passait. **Déjà corrigé par
+  `77eacca`** (retrait d'`eas-cli`) : plus aucun conflit, seul déclarant
+  restant `@expo/require-utils@57.0.5` (`^5 || ^6 || ^7`, optionnel).
+  Vérifié sur `77eacca` dans des copies propres : `npm ci --include=dev`
+  (scripts actifs) OK avec npm 10.9.8 **et** 12.2.0 (557 paquets,
+  `typescript@6.0.3`, lockfile inchangé) ; réécriture du lockfile par npm 12
+  → identique à l'octet ; par npm 10 → seuls 4 champs `libc` cosmétiques
+  retirés (binaires optionnels `lightningcss`), `npm ci` croisé OK.
+  **TypeScript non modifié** : le template officiel
+  `expo-template-blank-typescript@sdk-57` (57.0.28) déclare lui-même
+  `typescript ~6.0.3` — épingler 5.9.3 serait une régression. Garde-fou
+  testé : `npx -y npm@10.9.8 ci --dry-run` dans `mobile/` détecte ce type
+  d'écart en < 1 s sans téléchargement (exit 1 sur les anciens lockfiles,
+  exit 0 sur `77eacca`) — ajouté ensuite, voir entrée suivante.
+- **Fait (2026-10-03, garde-fou lockfile EAS — accord d'Ange)** : script
+  `npm run check:lock` (`npx -y npm@10.9.8 ci --dry-run --no-audit
+  --no-fund`) dans `mobile/package.json`, **à lancer avant chaque `eas
+  build`**. Node épinglé à `22.23.1` dans `eas.json` via un profil `base`
+  hérité (`extends`) par `development`/`preview`/`production` — `eas.json`
+  n'a pas de champ `npm` (doc vérifiée), mais Node 22.23.1 embarque
+  précisément npm 10.9.8 (vérifié sur `nodejs.org/dist/index.json`) : le npm
+  d'EAS ne bougera donc plus avec l'image `latest`, et reste celui du
+  script. **Si Node est un jour changé dans `eas.json`, mettre à jour la
+  version npm du script en même temps.** Vérifié : `npm run check:lock` →
+  exit 0 sur l'état actuel, exit 1 (`Missing: typescript@5.9.3`) sur
+  l'ancien état défectueux reconstitué ; `eas config --profile preview`
+  résout bien `"node": "22.23.1"`.
 
 ## Questions en attente
+
+- **`EXPO_PUBLIC_API_URL` absente des builds EAS (signalé 2026-10-03)** :
+  `mobile/.env` est dans `.gitignore`, donc **non envoyé** à EAS Build (pas
+  de `.easignore`), et `eas config` indique qu'aucune variable n'est définie
+  côté EAS pour l'environnement `preview`. Or `src/config/env.ts` lève une
+  erreur au chargement si la variable manque → **l'APK planterait au
+  démarrage**. Deux options : (a) `"env": { "EXPO_PUBLIC_API_URL":
+  "https://souplesse-api.onrender.com" }` dans le profil `base` d'`eas.json`
+  (valeur publique, de toute façon embarquée en clair dans le bundle) ;
+  (b) variable d'environnement EAS (`eas env:create`, côté compte Expo).
+  Non tranché — à décider par Ange avant le build APK (étape 8).
 
 - **Stockage des captures de paiement (`souplesse-api`)** : disque local,
   éphémère sur Render.com. Suffisant pour la démo (fichier supprimé juste
@@ -708,6 +760,21 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — Garde-fou lockfile EAS : script
+  `check:lock` (`npm@10.9.8 ci --dry-run`) + Node épinglé `22.23.1` dans
+  `eas.json` (profil `base`, embarque npm 10.9.8). Vérifié (exit 0 actuel,
+  exit 1 sur l'ancien état, `eas config` OK). Signalé : `EXPO_PUBLIC_API_URL`
+  n'atteint pas EAS (`.env` ignoré) → APK planterait au démarrage, en
+  attente de décision.
+
+- 2026-10-03 — Claude Code (VS Code) — Diagnostic `npm ci` EAS (`Missing:
+  typescript@5.9.3`) : peer optionnelle `typescript ^5` de
+  `@expo/require-utils@55.0.8` (arbre d'`eas-cli`) résolue différemment par
+  npm 12.2.0 (local) et npm 10.9.8 (EAS). Reproduit, puis confirmé corrigé
+  par `77eacca` : `npm ci` OK avec les deux npm sur des copies propres.
+  TypeScript laissé en `~6.0.3` (valeur du template SDK 57). Garde-fou
+  `npm@10.9.8 ci --dry-run` proposé, en attente.
 
 - 2026-10-03 — Claude Code (VS Code) — `eas-cli` retiré des dépendances de
   `mobile/` (signalé par `expo doctor`, à utiliser via `npx`/global), paquet
