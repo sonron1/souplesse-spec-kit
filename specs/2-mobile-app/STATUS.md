@@ -491,19 +491,28 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   exit 0 sur l'état actuel, exit 1 (`Missing: typescript@5.9.3`) sur
   l'ancien état défectueux reconstitué ; `eas config --profile preview`
   résout bien `"node": "22.23.1"`.
+- **Fait (2026-10-03, `EXPO_PUBLIC_API_URL` pour les builds EAS — option (a)
+  choisie par Ange)** : `mobile/.env` étant dans `.gitignore` (non envoyé à
+  EAS) et aucune variable n'étant définie côté compte EAS, l'APK aurait
+  planté au démarrage (`src/config/env.ts` lève une erreur si la variable
+  manque). Ajouté `"env": { "EXPO_PUBLIC_API_URL":
+  "https://souplesse-api.onrender.com" }` dans le profil `base` d'`eas.json`
+  (valeur publique, embarquée en clair dans le bundle de toute façon).
+  En local, `.env` reste utilisé tel quel (`expo start`). Vérifié : `eas
+  config` → `development`/`preview`/`production` héritent tous de la
+  variable ; simulation d'un build EAS (`EXPO_NO_DOTENV=1` + `expo export
+  --platform android --clear`) → URL présente dans le bundle avec la
+  variable, **absente sans** (confirme le plantage qui aurait eu lieu).
 
 ## Questions en attente
 
-- **`EXPO_PUBLIC_API_URL` absente des builds EAS (signalé 2026-10-03)** :
-  `mobile/.env` est dans `.gitignore`, donc **non envoyé** à EAS Build (pas
-  de `.easignore`), et `eas config` indique qu'aucune variable n'est définie
-  côté EAS pour l'environnement `preview`. Or `src/config/env.ts` lève une
-  erreur au chargement si la variable manque → **l'APK planterait au
-  démarrage**. Deux options : (a) `"env": { "EXPO_PUBLIC_API_URL":
-  "https://souplesse-api.onrender.com" }` dans le profil `base` d'`eas.json`
-  (valeur publique, de toute façon embarquée en clair dans le bundle) ;
-  (b) variable d'environnement EAS (`eas env:create`, côté compte Expo).
-  Non tranché — à décider par Ange avant le build APK (étape 8).
+- **[Plus tard, non urgent] URL d'API par environnement (noté par Ange le
+  2026-10-03)** : `EXPO_PUBLIC_API_URL` n'est définie que dans le profil
+  `base` d'`eas.json` (Render, démo). Quand un vrai environnement de
+  production séparé existera (VPS DigitalOcean), il faudra sans doute la
+  **surcharger spécifiquement dans le profil `production`** plutôt que de
+  la laisser uniquement dans `base`. À revoir à ce moment-là — rien à faire
+  d'ici là.
 
 - **Stockage des captures de paiement (`souplesse-api`)** : disque local,
   éphémère sur Render.com. Suffisant pour la démo (fichier supprimé juste
@@ -760,6 +769,13 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — `EXPO_PUBLIC_API_URL`
+  (`https://souplesse-api.onrender.com`) ajoutée au profil `base` d'`eas.json`
+  (option (a), choix d'Ange) — l'APK aurait sinon planté au démarrage
+  (`.env` non envoyé à EAS). Vérifié via `eas config` (3 profils) et
+  simulation de build sans `.env`. Point futur noté : surcharger la valeur
+  dans `production` une fois le VPS de production en place.
 
 - 2026-10-03 — Claude Code (VS Code) — Garde-fou lockfile EAS : script
   `check:lock` (`npm@10.9.8 ci --dry-run`) + Node épinglé `22.23.1` dans

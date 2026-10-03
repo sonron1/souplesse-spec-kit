@@ -5,7 +5,10 @@
   },
   "build": {
     "base": {
-      "node": "22.23.1"
+      "node": "22.23.1",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://souplesse-api.onrender.com"
+      }
     },
     "development": {
       "extends": "base",
