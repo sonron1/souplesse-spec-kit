@@ -134,9 +134,16 @@ export default function ClientDashboardScreen() {
         )
       ) : null}
 
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('CoachingSlots')}>
+        <Text style={styles.buttonText}>Réserver un créneau</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('MyBookings')}>
+        <Text style={styles.secondaryButtonText}>Mes réservations</Text>
+      </TouchableOpacity>
+
       {canSubscribe ? (
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('ChooseFormula')}>
-          <Text style={styles.buttonText}>S'abonner</Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('ChooseFormula')}>
+          <Text style={styles.secondaryButtonText}>S'abonner</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -241,6 +248,20 @@ const styles = StyleSheet.create({
     color: colors.bg,
     fontWeight: '700',
     fontSize: 16,
+  },
+  secondaryButton: {
+    width: '100%',
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 15,
   },
   error: {
     width: '100%',

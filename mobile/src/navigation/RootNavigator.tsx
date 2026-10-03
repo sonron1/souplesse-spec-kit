@@ -13,6 +13,8 @@ import ChooseFormulaScreen from '../screens/ChooseFormulaScreen';
 import PaymentInstructionsScreen from '../screens/PaymentInstructionsScreen';
 import UploadProofScreen from '../screens/UploadProofScreen';
 import PaymentStatusScreen from '../screens/PaymentStatusScreen';
+import CoachingSlotsScreen from '../screens/CoachingSlotsScreen';
+import MyBookingsScreen from '../screens/MyBookingsScreen';
 import CoachDashboardScreen from '../screens/CoachDashboardScreen';
 import ModeratorDashboardScreen from '../screens/ModeratorDashboardScreen';
 import PaymentReviewScreen from '../screens/PaymentReviewScreen';
@@ -32,6 +34,8 @@ export type ClientStackParamList = {
   PaymentInstructions: PaymentFlowParams;
   UploadProof: PaymentFlowParams;
   PaymentStatus: PaymentFlowParams;
+  CoachingSlots: undefined;
+  MyBookings: undefined;
 };
 
 // No GET /payments/:id endpoint exists server-side — only the list
@@ -76,6 +80,8 @@ function ClientNavigator() {
       />
       <ClientStack.Screen name="UploadProof" component={UploadProofScreen} options={{ title: 'Preuve de paiement' }} />
       <ClientStack.Screen name="PaymentStatus" component={PaymentStatusScreen} options={{ title: 'Statut', headerBackVisible: false }} />
+      <ClientStack.Screen name="CoachingSlots" component={CoachingSlotsScreen} options={{ title: 'Réserver un créneau' }} />
+      <ClientStack.Screen name="MyBookings" component={MyBookingsScreen} options={{ title: 'Mes réservations' }} />
     </ClientStack.Navigator>
   );
 }

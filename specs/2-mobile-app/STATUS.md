@@ -657,6 +657,41 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
     `subscription_paused`) ou le 201 de l'API. Épuisement de la Séance
     unique simulé en base pour ce point (réel au point 3 via réservation).
     `tsc` + `expo export` verts.
+  - **[x] Point 3 — Coaching Client** : nouveaux écrans `CoachingSlotsScreen`
+    (« Réserver un créneau ») et `MyBookingsScreen` (« Mes réservations »),
+    accessibles depuis le dashboard Client (« S'abonner » y devient un
+    bouton secondaire). Créneaux groupés par jour (heure début–fin, titre ou
+    activité, coach, places restantes, puce de catégorie). **Filtre « Mes
+    activités » (par défaut) / « Tout voir »** : le premier ne garde que les
+    catégories où le client a un abonnement en vigueur (+ ses créneaux déjà
+    réservés) ; dans « Tout voir », les autres sont **grisés avec le motif
+    exact que donnerait l'API** — calculé dans le même ordre que
+    `CoachingService.book()` : « Abonnement actif nécessaire », « Réservé aux
+    abonnés Box », « Abonnement en pause », « Votre abonnement aura expiré à
+    cette date », « Solde de séances épuisé », « Complet ». Bandeau + lien
+    « Choisir une formule » si aucun abonnement en vigueur ; solde des
+    formules à crédits en tête ; bouton « Réserver (1 séance) » quand la
+    réservation consomme un crédit ; confirmation native (`Alert`) avant
+    réservation et avant annulation (« la séance sera recréditée »). Créneau
+    déjà réservé : « Réservé — annulable depuis Mes réservations ». Nouveaux
+    `src/api/coaching.ts` (6 routes Coaching, types alignés sur
+    `coaching.service.ts`) et `src/lib/coaching.ts` (module pur). Vérifié
+    sur l'API locale : un coach crée 7 créneaux réels (Accès salle ×3 dont
+    un à 1 place, Box ×2 dont un après l'expiration du Box de la cliente,
+    Taekwondo, Fit Dance) ; **35 croisements écran ↔ API** sur 4 clients
+    (Carnet + Box + demande Taekwondo / Suivi en pause / Séance unique /
+    sans abonnement) — chaque motif affiché correspond au code réel
+    (`activity_not_covered`, `no_active_subscription`,
+    `subscription_paused`, `subscription_expires_before_slot`,
+    `no_sessions_left`) ; cycle réel : réservation avec Séance unique →
+    solde « Aucune séance restante » + autres créneaux grisés « Solde
+    épuisé » ; Carnet 10 → 8 après 2 réservations, 9 après annulation
+    (recrédit) ; créneau devenu complet absent de la liste des autres
+    clients (filtré par l'API) ; double annulation → 400 `not_cancellable`.
+    Note : un créneau déjà réservé avec un solde à 0 renvoie
+    `no_sessions_left` (l'API vérifie le solde avant le doublon) — sans
+    impact, l'écran n'offre pas de bouton sur un créneau réservé.
+    `tsc` + `expo export` verts.
 
 ## Questions en attente
 
