@@ -434,6 +434,22 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   `souplesse-api@167b335` (4 correctifs upload), `@31361c9` (`trust proxy`),
   `@113461f` (remplacement de preuve), fusionnés en fast-forward dans `main`
   — **non poussés** (le déploiement Render suivra le push).
+- **Fait (2026-10-03, nettoyage dépendances `mobile/`)** : `expo doctor`
+  signalait `eas-cli` dans `dependencies` — retiré (`npm uninstall`) ; à
+  utiliser via `npx eas-cli …` ou installé globalement (`npm install -g
+  eas-cli`). Le paquet `g` (« Globalize module functions », sans rapport,
+  importé nulle part), ajouté dans le même commit `a011755` — très
+  probablement un `npm install g eas-cli` tapé au lieu de `npm install -g
+  eas-cli` —, retiré aussi avec l'accord d'Ange. **Dépendance signalée** :
+  `expo-dev-client ~57.0.19` (module natif, non listé jusqu'ici), ajouté
+  par Ange hors session et inclus dans le même commit avec son accord —
+  cohérent avec le profil `development` (`developmentClient: true`) d'
+  `eas.json`. Lockfile : 360 paquets retirés (arbre d'`eas-cli`), 7 ajoutés
+  (`expo-dev-client` et ses modules `expo-dev-launcher`/`-menu`/…), aucune
+  version modifiée ; `npm install` relancé → « up to date », `npm ls --all`
+  sans manquant/étranger. Vérifié : `tsc --noEmit`, `expo export --platform
+  android` (bundle JS identique à avant), `expo-doctor` 21/21, `git status`
+  racine propre.
 
 ## Questions en attente
 
@@ -692,6 +708,12 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — `eas-cli` retiré des dépendances de
+  `mobile/` (signalé par `expo doctor`, à utiliser via `npx`/global), paquet
+  `g` ajouté par erreur retiré aussi, `expo-dev-client` (ajout d'Ange)
+  inclus. Lockfile resynchronisé, `npm ls` propre, `tsc` + `expo export` +
+  `expo-doctor` (21/21) verts.
 
 - 2026-10-03 — Claude Code (VS Code) — Durcissement sécurité de
   `POST /payments/proof` (`souplesse-api`) : signature de fichier, extension
