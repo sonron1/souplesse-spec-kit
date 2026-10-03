@@ -594,7 +594,8 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
     uniquement sur un Postgres 17 embarqué local — jamais contre Neon ;
     contrôle final : les 6 migrations reproduisent exactement le schéma.
 
-- **Vague 2 (mobile) — feu vert d'Ange le 2026-10-03, en cours.** Ordre
+- **Vague 2 (mobile) — feu vert d'Ange le 2026-10-03, terminée le même
+  jour (5 points, un commit chacun, non poussés).** Ordre
   imposé : (1) écran de choix de formule, isolément et vérifié avant le
   reste ; (2) dashboard Client multi-abonnements + solde de séances ;
   (3) Coaching Client filtré par catégories actives ; (4) Coaching Coach ;
@@ -716,6 +717,37 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
     chronologique ; créneau créé visible et réservable (1 séance) côté
     cliente, puis visible « 1/10 inscrit : Awa Cliente » côté coach ; un
     client ne peut pas créer de créneau (403). `tsc` + `expo export` verts.
+  - **[x] Point 5 — Écran Admin** (`GET /admin/stats`) : remplace le
+    placeholder vide (sans déconnexion). Carte « Revenu · Octobre 2026 »
+    (montant FCFA + « N paiements validés ce mois-ci »), tuiles Membres
+    (actifs / en pause), Paiements (en attente + ancienneté du plus ancien,
+    délai moyen de modération sur 30 j, validés / rejetés sur 30 j),
+    répartition des formules en cours (nom sans préfixe, nombre, %, barre),
+    heure de mise à jour, **tirer pour actualiser** (`RefreshControl`) +
+    rechargement au focus, déconnexion. Nouveaux `src/api/admin.ts` et
+    `src/lib/admin.ts` (module pur). Vérifié sur l'API locale : état
+    construit uniquement par l'API (5 paiements validés dont un couple — un
+    seul paiement, deux membres —, 1 rejeté avec motif, 1 en attente,
+    1 abonnement en pause, 1 Séance unique épuisée) et chiffres **recalculés
+    indépendamment en base** : l'écran affiche exactement 3 actifs / 1 en
+    pause (Séance épuisée exclue), 66 500 FCFA, 5 validés / 1 rejeté /
+    1 en attente, répartition 1 mois 40 % puis 3 × 20 % ; aucune valeur
+    brute ; client et modérateur → 403. `tsc` + `expo export` verts.
+  - **Non-régression finale** : les 5 scénarios rejoués d'affilée sur le
+    code final → tous verts. Une première passe avait vu le scénario 3
+    planter (puis le 4 échouer en cascade sur l'état incomplet) ; rejoués
+    isolément puis en chaîne complète, tous passent — très probablement la
+    limite globale de l'API (200 requêtes/min par IP) atteinte par le banc
+    de test, dont tous les comptes partagent `127.0.0.1` (non prouvé : l'API
+    ne journalise pas les 429 ; sans objet pour de vrais téléphones).
+  - **Pas fait / limites** : aucun test visuel (rendu, mise en page,
+    gestes) — rien ne remplace l'essai sur le Samsung A56 ; pas d'UI
+    pause/reprise côté Client (hors liste de la vague 2) ; un coach ne peut
+    ni modifier ni supprimer un créneau (aucune route API) ; l'Admin n'a que
+    les statistiques (pas de gestion des comptes/rôles côté mobile) ; la
+    direction visuelle orange/marine évoquée avant la vague 2 n'a pas été
+    appliquée (maquette absente du dépôt, et absente de la liste de la
+    vague 2) — les écrans gardent les tokens validés (`#EAB308`, sombre).
 
 ## Questions en attente
 
@@ -791,8 +823,9 @@ Détail complet dans `handoff.md` section 3. Résumé :
       validation/rejet, notification SMS + push via `PushProvider`, suppression de
       la capture après traitement. Fait et testé — voir décision "Module Payments"
       ci-dessus (limite de stockage disque local à surveiller).
-- [ ] **5. Module Coaching** (si le temps le permet pour cette
-      démo — sinon signaler comme non couvert plutôt que de le bâcler).
+- [x] **5. Module Coaching** — fait : API en vague 1 (`souplesse-api`
+      `593913a`/`faccc6a`), écrans mobiles Client et Coach en vague 2
+      (2026-10-03, voir "Dernière session").
 - [x] **6. Déployer `souplesse-api` sur Render.com** (offre gratuite). Fait par
       Ange le 2026-09-20, après correctif `render.yaml` (JWT_SECRET/
       JWT_REFRESH_SECRET, voir décision ci-dessus). URL :
@@ -991,6 +1024,13 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — Vague 2 mobile terminée (points 1 à
+  5, un commit par point) : choix de formule, dashboard Client
+  multi-abonnements + solde, Coaching Client, Coaching Coach, écran Admin.
+  Chaque point vérifié contre `souplesse-api` `faccc6a` en local (Postgres
+  jetable, jamais Neon) + `tsc` + `expo export` ; non-régression finale
+  verte. En attente du test sur Samsung A56.
 
 - 2026-10-03 — Claude Code (VS Code) — Vague 2 mobile, point 1 :
   `ChooseFormulaScreen` corrigé (sections, catégorie, séances/validité sans
