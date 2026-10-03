@@ -143,6 +143,25 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   réel, contrôle des rôles, récupération de la capture, validation avec
   activation + suppression fichier + garde-fou anti double-traitement,
   rejet avec motif obligatoire).
+  **Durcissement sécurité — 2026-10-03** : type vérifié par signature
+  (magic bytes), plus seulement par le Content-Type déclaré ; extension du
+  fichier stocké déduite du contenu (elle reprenait celle du nom envoyé par
+  le client → XSS stocké possible chez le Modérateur) ; upload gardé en
+  mémoire (5 Mo) et écrit sur disque seulement après toutes les
+  vérifications ; rate limit 5/min sur la route ; `trust proxy` à 1 (Render,
+  un seul proxy) — avant, toutes les limites de débit, auth comprise, étaient
+  partagées entre tous les clients. Une nouvelle soumission pour un
+  abonnement déjà `PENDING` **remplace** la preuve en attente (détails +
+  fichier, l'ancien est supprimé) au lieu d'en créer une seconde, et garde sa
+  place dans la file (décision d'Ange). Verrou `SELECT … FOR UPDATE` sur
+  l'abonnement contre le double appui, vérifié contre la base Neon de démo.
+  **Limite connue acceptée (phase démo, décision d'Ange)** : si le client
+  remplace sa preuve pendant que le Modérateur la consulte, la validation ou
+  le rejet s'applique à la version remplacée, et le nouveau fichier reste
+  orphelin sur le disque (c'est l'ancien chemin, déjà supprimé, que
+  `approve`/`reject` tentent d'effacer). Rare ; à traiter si besoin par un
+  contrôle optimiste (statut + `screenshotPath` attendus) dans
+  `approve`/`reject`.
 - **Déploiement Render.com préparé — 2026-09-20** : `render.yaml` (Blueprint,
   un seul service gratuit, pas de séparation staging/prod pour cette phase,
   région Frankfurt). `start:prod` exécute désormais `prisma migrate deploy`
@@ -404,6 +423,17 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   `expo-image-picker`/`expo-secure-store` en patch) — incluses dans le même
   commit que ce correctif, à la demande explicite d'Ange (bump jugé cohérent
   et légitime). En attente du retest d'Ange sur Samsung A56.
+- **Fait (2026-10-03, durcissement `POST /payments/proof` — `souplesse-api`)** :
+  voir "Durcissement sécurité" dans la décision "Module Payments" ci-dessus
+  (signature de fichier, nom/extension côté serveur, 5 Mo avant écriture,
+  rate limit, `trust proxy`, remplacement de la preuve `PENDING` avec verrou
+  de ligne, limite connue de la course avec le Modérateur). 69 tests
+  unitaires, lint et build verts ; verrou vérifié en réel contre la base
+  Neon de démo (requête bloquée observée dans `pg_stat_activity`, double
+  appui → une seule preuve `PENDING`, données de test supprimées). Commits
+  `souplesse-api@167b335` (4 correctifs upload), `@31361c9` (`trust proxy`),
+  `@113461f` (remplacement de preuve), fusionnés en fast-forward dans `main`
+  — **non poussés** (le déploiement Render suivra le push).
 
 ## Questions en attente
 
@@ -662,6 +692,14 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — Durcissement sécurité de
+  `POST /payments/proof` (`souplesse-api`) : signature de fichier, extension
+  déduite du contenu, upload en mémoire avant écriture, rate limit 5/min,
+  `trust proxy` 1, remplacement de la preuve `PENDING` sous verrou de ligne
+  (testé contre Neon démo). Course Modérateur/remplacement documentée comme
+  limite connue acceptée. Commits `souplesse-api@167b335`, `@31361c9`,
+  `@113461f` sur `main`, non poussés.
 
 - 2026-10-03 — Claude Code (VS Code) — Correctif bloc 5 : upload de preuve en
   échec (`Unsupported FormDataPart implementation`). Cause : le `fetch` global
