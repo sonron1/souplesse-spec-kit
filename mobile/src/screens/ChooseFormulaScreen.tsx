@@ -4,14 +4,20 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as subscriptionsApi from '../api/subscriptions';
 import type { SubscriptionPlan } from '../api/subscriptions';
+import {
+  SECTION_TITLES,
+  categoryKey,
+  categoryLabel,
+  formatFcfa,
+  groupPlans,
+  hasCouplePrice,
+  planDisplayName,
+  planTermsText,
+} from '../lib/plans';
 import { colors, radii, spacing } from '../theme/tokens';
 import type { ClientStackParamList } from '../navigation/RootNavigator';
 
 type ChooseFormulaNavigationProp = NativeStackNavigationProp<ClientStackParamList, 'ChooseFormula'>;
-
-function formatFcfa(amount: number): string {
-  return `${amount.toLocaleString('fr-FR')} FCFA`;
-}
 
 export default function ChooseFormulaScreen() {
   const navigation = useNavigation<ChooseFormulaNavigationProp>();
@@ -36,7 +42,17 @@ export default function ChooseFormulaScreen() {
   }, []);
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
-  const canSubmit = !!selectedPlan && (!isCouple || partnerPhone.trim().length > 0);
+  // The Solo/Couple selector stays visible on arrival (prices of every card
+  // follow it) and disappears once a solo-only formula is picked.
+  const showCoupleSelector = !selectedPlan || hasCouplePrice(selectedPlan);
+  const coupleSelected = isCouple && !!selectedPlan && hasCouplePrice(selectedPlan);
+  const canSubmit = !!selectedPlan && (!coupleSelected || partnerPhone.trim().length > 0);
+
+  function handleSelectPlan(plan: SubscriptionPlan) {
+    setSelectedPlanId(plan.id);
+    // souplesse-api rejects a couple request on a solo-only formula (couple_not_available).
+    if (!hasCouplePrice(plan)) setIsCouple(false);
+  }
 
   async function handleSubmit() {
     if (!selectedPlan) return;
@@ -45,13 +61,13 @@ export default function ChooseFormulaScreen() {
     try {
       const result = await subscriptionsApi.createSubscriptionRequest(
         selectedPlan.id,
-        isCouple ? partnerPhone.trim() : undefined,
+        coupleSelected ? partnerPhone.trim() : undefined,
       );
-      const amount = isCouple ? (selectedPlan.priceCouple ?? selectedPlan.priceSingle) : selectedPlan.priceSingle;
+      const amount = coupleSelected ? selectedPlan.priceCouple! : selectedPlan.priceSingle;
       navigation.navigate('PaymentInstructions', {
         subscriptionId: result.subscription.id,
         amount,
-        planName: selectedPlan.name,
+        planName: planDisplayName(selectedPlan.name),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
@@ -80,61 +96,71 @@ export default function ChooseFormulaScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
       <Text style={styles.title}>Choisir une formule</Text>
 
-      <View style={styles.optionsBlock}>
-        <View style={styles.segmentRow}>
-          <TouchableOpacity
-            style={[styles.segmentButton, !isCouple && styles.segmentButtonActive]}
-            onPress={() => setIsCouple(false)}
-            disabled={isSubmitting}
-          >
-            <Text style={[styles.segmentText, !isCouple && styles.segmentTextActive]}>Solo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentButton, isCouple && styles.segmentButtonActive]}
-            onPress={() => setIsCouple(true)}
-            disabled={isSubmitting}
-          >
-            <Text style={[styles.segmentText, isCouple && styles.segmentTextActive]}>Couple</Text>
-          </TouchableOpacity>
+      {showCoupleSelector ? (
+        <View style={styles.optionsBlock}>
+          <View style={styles.segmentRow}>
+            <TouchableOpacity
+              style={[styles.segmentButton, !isCouple && styles.segmentButtonActive]}
+              onPress={() => setIsCouple(false)}
+              disabled={isSubmitting}
+            >
+              <Text style={[styles.segmentText, !isCouple && styles.segmentTextActive]}>Solo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.segmentButton, isCouple && styles.segmentButtonActive]}
+              onPress={() => setIsCouple(true)}
+              disabled={isSubmitting}
+            >
+              <Text style={[styles.segmentText, isCouple && styles.segmentTextActive]}>Couple</Text>
+            </TouchableOpacity>
+          </View>
+
+          {isCouple ? (
+            <TextInput
+              style={styles.input}
+              placeholder="Téléphone du partenaire (compte mobile déjà vérifié)"
+              placeholderTextColor={colors.muted}
+              value={partnerPhone}
+              onChangeText={setPartnerPhone}
+              keyboardType="phone-pad"
+              editable={!isSubmitting}
+            />
+          ) : null}
         </View>
+      ) : null}
 
-        {isCouple ? (
-          <TextInput
-            style={styles.input}
-            placeholder="Téléphone du partenaire (compte mobile déjà vérifié)"
-            placeholderTextColor={colors.muted}
-            value={partnerPhone}
-            onChangeText={setPartnerPhone}
-            keyboardType="phone-pad"
-            editable={!isSubmitting}
-          />
-        ) : null}
-      </View>
-
-      {plans.map((plan) => {
-        const isSelected = plan.id === selectedPlanId;
-        const showCouplePrice = isCouple && plan.priceCouple != null;
-        const displayPrice = showCouplePrice ? plan.priceCouple! : plan.priceSingle;
-        return (
-          <TouchableOpacity
-            key={plan.id}
-            style={[styles.card, isSelected && styles.cardSelected]}
-            onPress={() => setSelectedPlanId(plan.id)}
-            disabled={isSubmitting}
-          >
-            <View style={styles.cardHeaderRow}>
-              <Text style={styles.cardName}>{plan.name}</Text>
-              <Text style={styles.cardPrice}>
-                {formatFcfa(displayPrice)} <Text style={styles.cardPriceMode}>({showCouplePrice ? 'Couple' : 'Solo'})</Text>
-              </Text>
-            </View>
-            <Text style={styles.cardMeta}>
-              Validité : {plan.validityDays} jours
-              {plan.maxPauses > 0 ? ` · ${plan.maxPauses} report(s) possible(s)` : ' · pas de report'}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+      {groupPlans(plans).map(({ section, plans: sectionPlans }) => (
+        <View key={section} style={styles.section}>
+          <Text style={styles.sectionTitle}>{SECTION_TITLES[section].title}</Text>
+          <Text style={styles.sectionHint}>{SECTION_TITLES[section].hint}</Text>
+          {sectionPlans.map((plan) => {
+            const isSelected = plan.id === selectedPlanId;
+            const showCouplePrice = isCouple && hasCouplePrice(plan);
+            const displayPrice = showCouplePrice ? plan.priceCouple! : plan.priceSingle;
+            return (
+              <TouchableOpacity
+                key={plan.id}
+                style={[styles.card, isSelected && styles.cardSelected]}
+                onPress={() => handleSelectPlan(plan)}
+                disabled={isSubmitting}
+              >
+                <View style={styles.cardHeaderRow}>
+                  <Text style={styles.cardName}>{planDisplayName(plan.name)}</Text>
+                  <Text style={styles.cardPrice}>
+                    {formatFcfa(displayPrice)}{' '}
+                    <Text style={styles.cardPriceMode}>({showCouplePrice ? 'Couple' : 'Solo'})</Text>
+                  </Text>
+                </View>
+                <View style={styles.chipRow}>
+                  <Text style={styles.chip}>{categoryLabel(categoryKey(plan.activityCategory))}</Text>
+                  {!hasCouplePrice(plan) ? <Text style={styles.chipMuted}>Solo uniquement</Text> : null}
+                </View>
+                <Text style={styles.cardMeta}>{planTermsText(plan)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -223,6 +249,48 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     marginTop: spacing.sm,
+  },
+  section: {
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  sectionHint: {
+    color: colors.muted,
+    fontSize: 13,
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  chipRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  chip: {
+    color: colors.brand,
+    backgroundColor: colors.brandSoft,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    overflow: 'hidden',
+  },
+  chipMuted: {
+    color: colors.muted,
+    backgroundColor: colors.surface2,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    overflow: 'hidden',
   },
   optionsBlock: {
     width: '100%',

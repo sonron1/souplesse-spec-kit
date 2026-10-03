@@ -97,6 +97,31 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   Taekwondo, Boxe) restent **hors périmètre pour cette phase de démo**
   (décision explicite d'Ange). "Report" = exactement le mécanisme de pause
   déjà codé — confirmé, rien à changer sur cette logique.
+  **Mis à jour le 2026-10-03 (Ange)** : ces formules sont maintenant
+  ajoutées, solo uniquement, sans report — Séance unique 1 500 (1 séance,
+  sans validité fixe), Carnet 10 séances 10 000 (30j), Carnet 15 séances
+  20 000 (90j), Fit Dance / Taekwondo / Box 10 000 (30j, une formule par
+  activité). Les Carnets/Séance unique sont **à crédits** (une séance par
+  réservation de créneau) ; "Autres activités" est une formule durée avec
+  une catégorie d'activité. Voir "Dernière session".
+- **Vague 1 `souplesse-api` — décisions d'Ange (2026-10-03)** :
+  - **Catégories d'activité indépendantes** : la règle "un seul abonnement
+    en vigueur" s'applique **par catégorie** (accès général — 1/3/6/12 mois,
+    Suivi personnel, Séance unique, Carnets — / Fit Dance / Taekwondo /
+    Box). Un abonné Box peut avoir en même temps une Séance unique ou un
+    abonnement Taekwondo. Le blocage croisé des deux comptes d'un couple
+    reste par catégorie. Les réservations suivent la catégorie du créneau :
+    un abonné Box ne réserve que des créneaux Box (et, catégories
+    indépendantes, un abonné général ne réserve pas de créneau Box).
+  - **Pause > 90 jours = abonnement terminé**, comme le web, vérifié
+    paresseusement sans cron.
+  - Annulation d'une réservation possible jusqu'au début du créneau, sans
+    délai de prévenance ; les créneaux réservés restent acquis pendant une
+    pause.
+  - Revenu Admin = somme des `amountDeclared` des preuves validées du mois.
+  - Pas pour cette phase : métriques conversion / renouvellement /
+    remplissage / échéances, notification admin lors d'une pause, pause
+    déclenchée par un admin.
 - **Abonnement Couple (mobile) — nouveau, 2026-09-20** : à la création d'une
   demande, le souscripteur fournit le numéro de téléphone de son partenaire.
   Ce numéro doit correspondre à un compte `MOBILE` déjà vérifié par SMS,
@@ -503,8 +528,120 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   variable ; simulation d'un build EAS (`EXPO_NO_DOTENV=1` + `expo export
   --platform android --clear`) → URL présente dans le bundle avec la
   variable, **absente sans** (confirme le plantage qui aurait eu lieu).
+- **Fait (2026-10-03, diagnostic « Unable to load script… running Metro »
+  à l'ouverture du build preview)** : hypothèse d'Ange (`developmentClient:
+  true` hérité de `base`) **vérifiée et écartée** — dans `eas.json`
+  (`b6e8a08`, inchangé depuis), `developmentClient: true` n'existe que dans
+  `development` ; `base` ne contient que `node` + `env` ; `eas config
+  --profile preview` ne résout aucun `developmentClient`. **Aucune
+  modification d'`eas.json`** (déjà conforme). Pas de dossier `android/`
+  dans le dépôt (CNG, rien qui surcharge la config). **APK inspectés
+  directement** (téléchargés depuis EAS) : le preview `5d8e7cf9` (11:58,
+  `b6e8a08`) est un vrai release — `assets/index.android.bundle` Hermes
+  embarqué (1,6 Mo), pas de `debuggable`, pas de `DevLauncherActivity`, URL
+  d'API présente dans le bundle (et le `throw` d'`env.ts` éliminé à la
+  compilation) → **il ne peut pas produire ce message**. Le development
+  `27e1fdd1` (11:25), lui, est `debuggable`, contient le dev-launcher et
+  **n'embarque aucun bundle** — profil exact d'un APK qui cherche Metro.
+  Les deux ont le **même package `com.sonron.mobile`**, même nom, même
+  icône, même `versionCode` 1 → indiscernables sur le téléphone, un seul
+  installé à la fois. Conclusion : l'app ouverte sur le Samsung A56 est
+  très probablement un build `development` (pas d'accès au téléphone pour
+  le confirmer). Recommandé à Ange : désinstaller complètement l'app, puis
+  installer l'APK du build preview `5d8e7cf9`.
+- **Fait (2026-10-03, vague 1 `souplesse-api` : catalogue étendu, Coaching,
+  stats Admin, revue pause/reprise) — validée par Ange, complétée et
+  déployée.** Fusionnée dans `main` et poussée (`08686bb..faccc6a`, 9
+  commits : les 6 de la vague 1 + les 3 correctifs sécurité de l'upload
+  qui n'avaient pas encore été poussés). 3 migrations additives
+  (`mobile_catalogue_credits`, `mobile_coaching`,
+  `mobile_slot_activity_category`), appliquées par `prisma migrate deploy`
+  au démarrage Render. Vérifié de l'extérieur après le push : la nouvelle version a remplacé l'ancienne en ~2 min 15 (`/admin/stats` passé de 404 à 401, `/coaching/slots` 401, `/health` OK) — donc migrations appliquées, l'app ne démarrant qu'après `migrate deploy`.
+  - Catalogue : 6 formules ajoutées (voir décision "Catalogue" ci-dessus).
+    Schéma : `sessionCredits`, `activityCategory`, `validityDays` nullable,
+    `PlanType.SESSION_PACK`, `Subscription.sessionsRemaining`. **Correctif
+    lié** : la règle "pas de nouvelle demande tant qu'actif/en pause"
+    bloquait sur n'importe quel `ACTIVE` — or aucun cron n'expire les
+    abonnements côté `souplesse-api`, donc un abonnement expiré (ou une
+    Séance unique consommée) bloquait son titulaire pour toujours.
+    Désormais : bloquant = en vigueur (non expiré à date, ou en pause) et,
+    pour une formule à crédits, avec des séances restantes. L'activation
+    clôt les anciens `ACTIVE` périmés. Couple refusé sur une formule sans
+    prix couple.
+  - Coaching : modèles **`CoachingSlot` / `CoachingBooking`** (nouveaux,
+    distincts de `Session`/`Booking` du web — décision structurante à
+    valider). Endpoints `GET/POST /coaching/slots`, `GET
+    /coaching/slots/mine` (Coach), `POST /coaching/bookings`, `GET
+    /coaching/bookings/me`, `PATCH /coaching/bookings/:id/cancel`.
+    Décompte d'une séance par réservation (refus à 0), remboursement à
+    l'annulation avant le début ; formules durée : capacité seulement.
+    Verrou de ligne sur le créneau + décompte conditionnel, vérifiés par
+    tests de concurrence (avec mutation).
+  - Admin : `GET /admin/stats` (membres actifs/en pause, répartition des
+    formules, paiements en attente + délais de modération 30j, revenu du
+    mois en heure de Cotonou).
+  - Pause/reprise : la limite de 90 jours est désormais appliquée
+    (abonnement terminé passé `pausedUntil`, reprise refusée
+    `pause_expired`, statut affiché `EXPIRED` par `GET /subscriptions/me`) ;
+    pause refusée sur un abonnement déjà expiré (sinon pause + reprise le
+    ressuscitait).
+  - Catégories indépendantes (voir décisions) : blocage des demandes,
+    blocage croisé couple et clôture à l'activation par catégorie ;
+    `CoachingSlot.activityCategory` ; réservation refusée
+    `activity_not_covered` hors de la catégorie de l'abonnement.
+  - Tests : 126 unitaires + 24 d'intégration sur un vrai Postgres local
+    (`npm run test:int`, nouveau). Migrations générées et testées
+    uniquement sur un Postgres 17 embarqué local — jamais contre Neon ;
+    contrôle final : les 6 migrations reproduisent exactement le schéma.
+
+- **Vague 2 (mobile) — feu vert d'Ange le 2026-10-03, en cours.** Ordre
+  imposé : (1) écran de choix de formule, isolément et vérifié avant le
+  reste ; (2) dashboard Client multi-abonnements + solde de séances ;
+  (3) Coaching Client filtré par catégories actives ; (4) Coaching Coach ;
+  (5) écran Admin (`/admin/stats`). Tester chaque point avant le suivant.
+  - **Banc de test local (pas d'appareil disponible ici)** : `souplesse-api`
+    `faccc6a` (`dist/` du commit) lancé depuis le scratchpad de session sur
+    un Postgres 17 **jetable** (`127.0.0.1:55432`, binaires portables
+    `embedded-postgres`, cluster `initdb` dédié), migrations appliquées
+    depuis une **copie** du schéma — le `.env` de `souplesse-api` (qui
+    pointe vers Neon démo) n'est jamais chargé (« injected env (0) »,
+    Prisma confirme `127.0.0.1:55432`). Comptes de test créés directement
+    dans cette base (2 clients F/M, coach, admin, modérateur). Les règles
+    d'affichage sont extraites dans des modules purs (`src/lib/*.ts`, sans
+    import React Native) et exécutées sous Node sur les **vraies réponses**
+    de l'API ; les écrans eux-mêmes restent vérifiés par `tsc --noEmit` +
+    `expo export --platform android` — pas de rendu visuel possible ici.
+  - **[x] Point 1 — `ChooseFormulaScreen`** : formules regroupées en 3
+    sections (Abonnements / Séances & carnets / Autres activités, ordre de
+    l'API conservé dans chaque section) ; puce de catégorie sur chaque carte
+    (« Accès salle », « Box », « Fit Dance », « Taekwondo ») ; texte des
+    conditions sans valeur brute (« 1 séance · sans date limite », « 10
+    séances · à utiliser sous 30 jours », « Validité : 30 jours · séances
+    illimitées », reports) ; sélecteur Solo/Couple toujours visible à
+    l'arrivée mais **masqué dès qu'une formule sans tarif couple est
+    sélectionnée** (repasse alors en Solo, le champ partenaire disparaît),
+    puce « Solo uniquement » sur ces cartes ; préfixe serveur « Mobile — »
+    retiré à l'affichage (et du nom transmis au parcours paiement).
+    Nouveau module `src/lib/plans.ts` ; types `SubscriptionPlan` /
+    `Subscription` complétés (`sessionCredits`, `activityCategory`,
+    `validityDays` nullable, `sessionsRemaining`, `pausedUntil`,
+    `activationDate`). Vérifié : rendu texte des 11 formules réelles en Solo
+    et en Couple (aucun `null`/`undefined`/préfixe), sections 5/3/3,
+    sélecteur masqué exactement pour les 6 formules sans prix couple ; API :
+    couple sur Séance unique → 400 `couple_not_available` (ce que l'ancien
+    écran permettait), solo Séance unique → 201, couple 1 mois → 201 + 201
+    partenaire ; `tsc` + `expo export` verts.
 
 ## Questions en attente
+
+- **Séparer l'identifiant d'app des builds `development` (proposé
+  2026-10-03)** : pour éviter de reconfondre les deux APK, donner au profil
+  `development` un package distinct (ex. `com.sonron.mobile.dev`) et un nom
+  distinct (ex. « Souplesse (dev) ») via une config dynamique
+  (`app.config.js` + variable `APP_VARIANT` dans `eas.json`, méthode Expo
+  « app variants »). Permet d'avoir les deux installées côte à côte.
+  Changement structurel (`app.json` → `app.config.js`) — non fait sans
+  l'accord d'Ange.
 
 - **[Plus tard, non urgent] URL d'API par environnement (noté par Ange le
   2026-10-03)** : `EXPO_PUBLIC_API_URL` n'est définie que dans le profil
@@ -769,6 +906,27 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — Vague 2 mobile, point 1 :
+  `ChooseFormulaScreen` corrigé (sections, catégorie, séances/validité sans
+  « null », sélecteur couple masqué sur les formules solo). Banc de test
+  local monté (API `faccc6a` + Postgres jetable, jamais Neon). Vérifié sur
+  le vrai catalogue + `tsc` + `expo export`.
+
+- 2026-10-03 — Claude Code (VS Code) — Vague 1 `souplesse-api`, validée
+  puis complétée selon les décisions d'Ange (pause 90 jours appliquée,
+  catégories d'activité indépendantes) : formules à crédits et "Autres
+  activités", module Coaching (`CoachingSlot`/`CoachingBooking`),
+  `GET /admin/stats`. Fusionnée dans `main`, poussée, redéployée sur
+  Render. Vague 2 (mobile) en attente du feu vert.
+
+- 2026-10-03 — Claude Code (VS Code) — « Unable to load script » au
+  lancement : `eas.json` vérifié conforme (`developmentClient` seulement
+  dans `development`, rien dans `base`), non modifié. APK inspectés : le
+  preview `5d8e7cf9` embarque son bundle (release, non debuggable) ; le
+  development n'en a pas. Même package `com.sonron.mobile` → l'app ouverte
+  est très probablement le build development. Recommandé : désinstaller
+  puis installer le preview. Séparation du package dev proposée, en attente.
 
 - 2026-10-03 — Claude Code (VS Code) — `EXPO_PUBLIC_API_URL`
   (`https://souplesse-api.onrender.com`) ajoutée au profil `base` d'`eas.json`
