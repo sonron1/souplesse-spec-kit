@@ -5,20 +5,49 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as subscriptionsApi from '../api/subscriptions';
 import type { Subscription, SubscriptionPlan } from '../api/subscriptions';
 import { useAuth } from '../context/AuthContext';
+import { categoryLabel, planDisplayName } from '../lib/plans';
+import {
+  canSubscribeSomewhere,
+  creditsText,
+  groupSubscriptions,
+  validityText,
+  type SubscriptionEntry,
+  type SubscriptionState,
+} from '../lib/subscriptions';
 import { colors, radii, spacing } from '../theme/tokens';
 import type { ClientStackParamList } from '../navigation/RootNavigator';
 
 type ClientDashboardNavigationProp = NativeStackNavigationProp<ClientStackParamList, 'ClientDashboard'>;
 
-const STATUS_LABELS: Record<Subscription['status'], { label: string; color: string; bg: string }> = {
+const STATE_LABELS: Record<SubscriptionState, { label: string; color: string; bg: string }> = {
   ACTIVE: { label: 'Actif', color: colors.good, bg: colors.goodSoft },
+  PAUSED: { label: 'En pause', color: colors.brand, bg: colors.brandSoft },
+  NO_CREDITS: { label: 'Séances épuisées', color: colors.bad, bg: colors.badSoft },
   PENDING: { label: 'En attente de validation', color: colors.info, bg: colors.infoSoft },
   EXPIRED: { label: 'Expiré', color: colors.bad, bg: colors.badSoft },
   CANCELLED: { label: 'Annulé', color: colors.muted, bg: colors.surface2 },
 };
 
-function daysRemaining(expiresAt: string): number {
-  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86_400_000));
+function SubscriptionCard({ entry }: { entry: SubscriptionEntry }) {
+  const { subscription, plan, category, state } = entry;
+  const credits = creditsText(subscription, plan);
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTopRow}>
+        <Text style={styles.categoryChip}>{categoryLabel(category)}</Text>
+        <View style={[styles.badge, { backgroundColor: STATE_LABELS[state].bg }]}>
+          <Text style={[styles.badgeText, { color: STATE_LABELS[state].color }]}>{STATE_LABELS[state].label}</Text>
+        </View>
+      </View>
+      <Text style={styles.planName}>{plan ? planDisplayName(plan.name) : 'Formule'}</Text>
+
+      {credits ? <Text style={styles.credits}>{credits}</Text> : null}
+      {state === 'ACTIVE' || state === 'PAUSED' ? <Text style={styles.meta}>{validityText(subscription)}</Text> : null}
+      {state === 'PENDING' ? (
+        <Text style={styles.meta}>Votre demande est en attente de validation par un modérateur.</Text>
+      ) : null}
+    </View>
+  );
 }
 
 export default function ClientDashboardScreen() {
@@ -57,16 +86,11 @@ export default function ClientDashboardScreen() {
     }, []),
   );
 
-  const current = subscriptions[0] ?? null;
-  const currentPlanName = plans.find((p) => p.id === current?.subscriptionPlanId)?.name ?? 'Formule';
-  // souplesse-api's assertNotBlocked only rejects a new request while
-  // ACTIVE (pause never changes status away from ACTIVE) — it does allow a
-  // second PENDING request, since it has no notion of "already has one
-  // outstanding". The app deliberately hides "S'abonner" for PENDING too:
-  // there's no screen to resume a specific old request, so letting the user
-  // tap through again would just pile up duplicate PENDING rows in the
-  // moderator queue for the same person.
-  const canSubscribe = !subscriptions.some((s) => s.status === 'ACTIVE' || s.status === 'PENDING');
+  const { current, pending, lastEnded } = groupSubscriptions(subscriptions, plans);
+  // One subscription per category: "S'abonner" stays available while any
+  // category of the catalogue is free (see unavailableCategories —
+  // ChooseFormula greys out the taken ones).
+  const canSubscribe = canSubscribeSomewhere(subscriptions, plans);
 
   if (isLoading) {
     return (
@@ -82,36 +106,33 @@ export default function ClientDashboardScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {current ? (
-        <View style={styles.card}>
-          <View style={[styles.badge, { backgroundColor: STATUS_LABELS[current.status].bg }]}>
-            <Text style={[styles.badgeText, { color: STATUS_LABELS[current.status].color }]}>
-              {STATUS_LABELS[current.status].label}
-            </Text>
-          </View>
-          <Text style={styles.planName}>{currentPlanName}</Text>
+      {current.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>{current.length > 1 ? 'Mes abonnements' : 'Mon abonnement'}</Text>
+          {current.map((entry) => (
+            <SubscriptionCard key={entry.subscription.id} entry={entry} />
+          ))}
+        </>
+      ) : null}
 
-          {current.status === 'ACTIVE' && current.pausedAt ? (
-            <Text style={styles.meta}>Abonnement en pause.</Text>
-          ) : null}
-          {current.status === 'ACTIVE' && !current.pausedAt && current.expiresAt ? (
-            <Text style={styles.meta}>
-              {daysRemaining(current.expiresAt) === 0
-                ? 'Expire aujourd\'hui'
-                : `Expire dans ${daysRemaining(current.expiresAt)} jour(s)`}
-            </Text>
-          ) : null}
-          {current.status === 'PENDING' ? (
-            <Text style={styles.meta}>
-              Votre demande est en attente de validation par un modérateur.
-            </Text>
-          ) : null}
-        </View>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.meta}>Aucun abonnement en cours.</Text>
-        </View>
-      )}
+      {pending.length > 0 ? (
+        <>
+          <Text style={styles.sectionTitle}>Demandes en cours</Text>
+          {pending.map((entry) => (
+            <SubscriptionCard key={entry.subscription.id} entry={entry} />
+          ))}
+        </>
+      ) : null}
+
+      {current.length === 0 && pending.length === 0 ? (
+        lastEnded ? (
+          <SubscriptionCard entry={lastEnded} />
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.meta}>Aucun abonnement en cours.</Text>
+          </View>
+        )
+      ) : null}
 
       {canSubscribe ? (
         <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('ChooseFormula')}>
@@ -152,6 +173,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.xl,
   },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+  },
   card: {
     width: '100%',
     backgroundColor: colors.surface,
@@ -159,14 +186,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radii.lg,
     padding: spacing.lg,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  cardTopRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  categoryChip: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   badge: {
-    alignSelf: 'flex-start',
     borderRadius: radii.pill,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+  },
+  credits: {
+    color: colors.brand,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
   },
   badgeText: {
     fontSize: 12,

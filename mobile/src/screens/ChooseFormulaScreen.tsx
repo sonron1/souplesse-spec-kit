@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator,
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as subscriptionsApi from '../api/subscriptions';
-import type { SubscriptionPlan } from '../api/subscriptions';
+import type { Subscription, SubscriptionPlan } from '../api/subscriptions';
+import { UNAVAILABLE_LABELS, unavailableCategories } from '../lib/subscriptions';
 import {
   SECTION_TITLES,
   categoryKey,
@@ -23,6 +24,7 @@ export default function ChooseFormulaScreen() {
   const navigation = useNavigation<ChooseFormulaNavigationProp>();
 
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [mySubscriptions, setMySubscriptions] = useState<Subscription[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -34,13 +36,18 @@ export default function ChooseFormulaScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    subscriptionsApi
-      .getPlans()
-      .then(setPlans)
+    Promise.all([subscriptionsApi.getPlans(), subscriptionsApi.getMySubscriptions()])
+      .then(([plansList, subs]) => {
+        setPlans(plansList);
+        setMySubscriptions(subs);
+      })
       .catch((err) => setLoadError(err instanceof Error ? err.message : 'Impossible de charger les formules.'))
       .finally(() => setIsLoadingPlans(false));
   }, []);
 
+  // One subscription per category: formulas of a category already taken
+  // (in force, paused, or with a request awaiting moderation) can't be picked.
+  const unavailable = unavailableCategories(mySubscriptions, plans);
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
   // The Solo/Couple selector stays visible on arrival (prices of every card
   // follow it) and disappears once a solo-only formula is picked.
@@ -137,12 +144,13 @@ export default function ChooseFormulaScreen() {
             const isSelected = plan.id === selectedPlanId;
             const showCouplePrice = isCouple && hasCouplePrice(plan);
             const displayPrice = showCouplePrice ? plan.priceCouple! : plan.priceSingle;
+            const unavailableReason = unavailable.get(categoryKey(plan.activityCategory));
             return (
               <TouchableOpacity
                 key={plan.id}
-                style={[styles.card, isSelected && styles.cardSelected]}
+                style={[styles.card, isSelected && styles.cardSelected, unavailableReason ? styles.cardUnavailable : null]}
                 onPress={() => handleSelectPlan(plan)}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !!unavailableReason}
               >
                 <View style={styles.cardHeaderRow}>
                   <Text style={styles.cardName}>{planDisplayName(plan.name)}</Text>
@@ -154,6 +162,9 @@ export default function ChooseFormulaScreen() {
                 <View style={styles.chipRow}>
                   <Text style={styles.chip}>{categoryLabel(categoryKey(plan.activityCategory))}</Text>
                   {!hasCouplePrice(plan) ? <Text style={styles.chipMuted}>Solo uniquement</Text> : null}
+                  {unavailableReason ? (
+                    <Text style={styles.chipMuted}>{UNAVAILABLE_LABELS[unavailableReason]}</Text>
+                  ) : null}
                 </View>
                 <Text style={styles.cardMeta}>{planTermsText(plan)}</Text>
               </TouchableOpacity>
@@ -217,6 +228,9 @@ const styles = StyleSheet.create({
   cardSelected: {
     borderColor: colors.brand,
     backgroundColor: colors.brandSoft,
+  },
+  cardUnavailable: {
+    opacity: 0.45,
   },
   cardHeaderRow: {
     width: '100%',

@@ -631,6 +631,32 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
     couple sur Séance unique → 400 `couple_not_available` (ce que l'ancien
     écran permettait), solo Séance unique → 201, couple 1 mois → 201 + 201
     partenaire ; `tsc` + `expo export` verts.
+  - **[x] Point 2 — Dashboard Client multi-abonnements** : une carte par
+    abonnement en vigueur (un par catégorie au plus), triées Accès salle →
+    Fit Dance → Taekwondo → Box, avec puce de catégorie et état (Actif / En
+    pause / Séances épuisées) ; **solde de séances** pour les formules à
+    crédits (« 7 séances restantes sur 10 », « Aucune séance restante ») ;
+    validité (« Expire dans N jours », « Sans date limite », « En pause — à
+    reprendre avant le … » d'après `pausedUntil`) ; section « Demandes en
+    cours » pour les `PENDING` ; dernier abonnement terminé affiché seulement
+    s'il n'y a rien d'autre. **Règle « S'abonner » revue par catégorie** :
+    le bouton reste visible tant qu'une catégorie du catalogue est libre ;
+    `ChooseFormulaScreen` grise les formules des catégories prises, avec le
+    motif (« Abonnement en cours » / « Abonnement en pause » / « Demande en
+    attente »). Actif/en pause = miroir exact du 409 de l'API ; « demande en
+    attente » = règle côté app conservée (l'API accepte un second `PENDING`,
+    mais sans écran de reprise ça empilerait des doublons chez le
+    Modérateur) — même logique qu'avant, désormais par catégorie au lieu de
+    globale. Nouveau module `src/lib/subscriptions.ts`. Vérifié sur l'API
+    locale par un scénario réel (demande → upload de preuve → validation
+    Modérateur ; pause via l'API) sur 3 clients : 2 en cours + 1 demande
+    (Carnet 10 avec solde, Box, Taekwondo en attente), Suivi personnel en
+    pause, Séance unique épuisée + Box expiré (`EXPIRED` renvoyé par l'API,
+    non affiché en cours) ; puis **12 demandes croisées** (3 clients × 4
+    catégories) : l'écran prévoit exactement le 409 (`subscription_active` /
+    `subscription_paused`) ou le 201 de l'API. Épuisement de la Séance
+    unique simulé en base pour ce point (réel au point 3 via réservation).
+    `tsc` + `expo export` verts.
 
 ## Questions en attente
 
