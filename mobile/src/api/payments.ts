@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { apiFetch, extractErrorMessage } from './client';
 
 export type MobileOperator = 'MTN' | 'MOOV' | 'CELTIIS';
@@ -54,8 +55,6 @@ export interface SubmitProofInput {
   senderPhone: string;
   operator: MobileOperator;
   imageUri: string;
-  imageName: string;
-  imageMimeType: string;
 }
 
 export async function submitProof(input: SubmitProofInput): Promise<PaymentProof> {
@@ -64,9 +63,12 @@ export async function submitProof(input: SubmitProofInput): Promise<PaymentProof
   formData.append('amountDeclared', String(input.amountDeclared));
   formData.append('senderPhone', input.senderPhone);
   formData.append('operator', input.operator);
-  // React Native's FormData accepts a {uri, name, type} file descriptor at
-  // runtime — lib.dom.d.ts only types append() for string | Blob, hence the cast.
-  formData.append('screenshot', { uri: input.imageUri, name: input.imageName, type: input.imageMimeType } as unknown as Blob);
+  // Since SDK 57 the global fetch is expo/fetch, whose multipart encoder rejects
+  // React Native's legacy {uri, name, type} descriptor ("Unsupported FormDataPart
+  // implementation"). expo-file-system's File is the supported part: it exposes
+  // name (with extension) and type (MIME, checked server-side against
+  // JPEG/PNG/WebP), and its bytes are read only when the request is encoded.
+  formData.append('screenshot', new File(input.imageUri));
 
   const response = await apiFetch('/payments/proof', { method: 'POST', body: formData });
   if (!response.ok) throw new Error(await extractErrorMessage(response));

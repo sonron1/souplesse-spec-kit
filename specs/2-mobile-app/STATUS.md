@@ -374,6 +374,36 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
   vérification visuelle possible depuis cet outil — en attente du test
   complet d'Ange (inscription → paiement → upload → validation modérateur →
   dashboard Client à jour).
+- **Fait (2026-10-03, correctif bloc 5 — upload de preuve en échec)** : Ange
+  a remonté l'erreur `Unsupported FormDataPart implementation` à l'envoi de
+  la preuve. **Cause confirmée dans le source installé** : en SDK 57,
+  `expo/src/winter/runtime.native.ts` remplace le `fetch` global par
+  `expo/fetch`, dont l'encodeur multipart (`convertFormData.ts`) n'accepte
+  que `string`, `Blob` ou un objet exposant `bytes()` — le descripteur RN
+  historique `{ uri, name, type }` est explicitement refusé (leur propre test
+  `convertFormData-test.native.ts` le vérifie). Ce n'était donc pas un souci de
+  forme de l'objet : ce format n'est plus supporté du tout par le fetch par
+  défaut. **Correctif** (méthode documentée sur la doc v57 d'`expo-file-system`,
+  section "Uploading files using expo/fetch") : `formData.append('screenshot',
+  new File(imageUri))` avec le `File` d'`expo-file-system`, qui expose `name`
+  (avec extension) et `type` (MIME déduit de l'extension par `MimeTypeMap` sur
+  Android, vérifié dans le source Kotlin, donc `image/jpeg|png|webp`, conforme
+  au `fileFilter` de `souplesse-api`). Champs `imageName`/`imageMimeType`
+  retirés de `SubmitProofInput`/`UploadProofScreen` (devenus inutiles).
+  **Nouvelle dépendance signalée** : `expo-file-system ~57.0.7` ajoutée à
+  `mobile/package.json` via `npx expo install` — c'était déjà une dépendance
+  directe du paquet `expo` (déjà présente dans `node_modules` et déjà liée
+  nativement), simplement remontée au premier niveau pour pouvoir l'importer ;
+  aucun nouveau module natif. Alternative écartée : `EXPO_PUBLIC_USE_RN_FETCH=1`
+  (rétablit le fetch RN pour toute l'app — portée trop large pour un seul
+  écran). Vérifié : `tsc --noEmit` propre + `expo export --platform android`
+  OK (export vers un dossier temporaire hors dépôt), `git status` racine
+  propre. **À noter** : `mobile/package.json` contenait déjà avant cette
+  session des modifications non commitées qui ne viennent pas de moi
+  (`expo` `~57.0.9` → `^57.0.26`, `react-native` 0.86.2 → 0.86.3,
+  `expo-image-picker`/`expo-secure-store` en patch) — incluses dans le même
+  commit que ce correctif, à la demande explicite d'Ange (bump jugé cohérent
+  et légitime). En attente du retest d'Ange sur Samsung A56.
 
 ## Questions en attente
 
@@ -632,6 +662,17 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — Correctif bloc 5 : upload de preuve en
+  échec (`Unsupported FormDataPart implementation`). Cause : le `fetch` global
+  SDK 57 est `expo/fetch`, qui refuse le descripteur RN `{ uri, name, type }`.
+  Remplacé par `new File(uri)` d'`expo-file-system` (méthode documentée v57) ;
+  `expo-file-system ~57.0.7` ajoutée à `mobile/package.json` (déjà dépendance
+  du paquet `expo`, aucun nouveau module natif). Bump `expo` ^57.0.26 /
+  `react-native` 0.86.3 / patches déjà présent dans l'arbre de travail inclus
+  dans le même commit (demande d'Ange). `tsc --noEmit` + `expo export
+  --platform android` verts, `git status` racine propre. En attente du retest
+  sur Samsung A56.
 
 - 2026-09-20 — Claude Code (VS Code) — Blocs 5-7 réalisés d'affilée (upload
   preuve, dashboard Client réel, dashboard Modérateur réel) sans validation

@@ -14,12 +14,6 @@ type UploadProofRouteProp = RouteProp<ClientStackParamList, 'UploadProof'>;
 
 const OPERATORS: MobileOperator[] = ['MTN', 'MOOV', 'CELTIIS'];
 
-interface PickedImage {
-  uri: string;
-  name: string;
-  mimeType: string;
-}
-
 function formatFcfa(amount: number): string {
   return `${amount.toLocaleString('fr-FR')} FCFA`;
 }
@@ -32,7 +26,7 @@ export default function UploadProofScreen() {
   const [amountDeclared, setAmountDeclared] = useState(String(amount));
   const [senderPhone, setSenderPhone] = useState('');
   const [operator, setOperator] = useState<MobileOperator | null>(null);
-  const [image, setImage] = useState<PickedImage | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [isPicking, setIsPicking] = useState(false);
@@ -42,7 +36,7 @@ export default function UploadProofScreen() {
   const canSubmit =
     !!operator &&
     senderPhone.trim().length > 0 &&
-    !!image &&
+    !!imageUri &&
     Number.isInteger(parsedAmount) &&
     parsedAmount > 0;
 
@@ -62,12 +56,7 @@ export default function UploadProofScreen() {
       });
       if (result.canceled || result.assets.length === 0) return;
 
-      const asset = result.assets[0];
-      setImage({
-        uri: asset.uri,
-        name: asset.fileName ?? `capture-${Date.now()}.jpg`,
-        mimeType: asset.mimeType ?? 'image/jpeg',
-      });
+      setImageUri(result.assets[0].uri);
     } catch {
       setError("Impossible d'ouvrir la galerie photo.");
     } finally {
@@ -76,7 +65,7 @@ export default function UploadProofScreen() {
   }
 
   async function handleSubmit() {
-    if (!operator || !image) return;
+    if (!operator || !imageUri) return;
     setError(null);
     setIsSubmitting(true);
     try {
@@ -85,9 +74,7 @@ export default function UploadProofScreen() {
         amountDeclared: parsedAmount,
         senderPhone: senderPhone.trim(),
         operator,
-        imageUri: image.uri,
-        imageName: image.name,
-        imageMimeType: image.mimeType,
+        imageUri,
       });
       // Clears ChooseFormula/PaymentInstructions/UploadProof from history —
       // ClientDashboard stays underneath so the back gesture from
@@ -152,9 +139,9 @@ export default function UploadProofScreen() {
       </View>
 
       <Text style={styles.label}>Capture d'écran de confirmation</Text>
-      {image ? (
+      {imageUri ? (
         <TouchableOpacity onPress={handlePickImage} disabled={isSubmitting || isPicking}>
-          <Image source={{ uri: image.uri }} style={styles.preview} resizeMode="cover" />
+          <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="cover" />
           <Text style={styles.link}>Changer d'image</Text>
         </TouchableOpacity>
       ) : (
