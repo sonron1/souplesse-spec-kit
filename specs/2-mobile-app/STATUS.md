@@ -748,8 +748,69 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
     direction visuelle orange/marine évoquée avant la vague 2 n'a pas été
     appliquée (maquette absente du dépôt, et absente de la liste de la
     vague 2) — les écrans gardent les tokens validés (`#EAB308`, sombre).
+- **Diagnostic (2026-10-03, soir) — 500 au choix de formule sur l'APK
+  (base Neon de démo). Rien corrigé, à la demande d'Ange.** Logs Render
+  inaccessibles depuis cet outil (ni CLI, ni API). **Cause : la base Neon
+  de démo n'a pas reçu les 3 migrations de vague 1** — lecture seule
+  (`SELECT` uniquement, URL jamais affichée) sur `ep-lucky-waterfall…/
+  neondb` : `_prisma_migrations` = 3 migrations (20 sept.), aucune colonne
+  `sessionCredits`/`activityCategory`/`sessionsRemaining`, pas de tables
+  Coaching, pas d'enum `ActivityCategory`. **C'est bien la base de l'app en
+  ligne** : 2 comptes CLIENT y ont été modifiés à 15:50 UTC (connexion
+  depuis l'APK), après le déploiement de vague 1 (~14:15 UTC) ; formules
+  « Mobile » figées depuis 13:11 UTC. Le nouveau code lit donc des colonnes
+  absentes → Prisma P2022 → 500. **Reproduit à l'identique en local** (code
+  `faccc6a` sur une base n'ayant que les 3 premières migrations) :
+  `GET /subscriptions/plans`, `GET /subscriptions/me`, `POST
+  /subscriptions` → 500 avec `PrismaClientKnownRequestError P2022 — The
+  column 'sessionCredits' / 'Subscription.sessionsRemaining' does not exist`
+  (dans `SubscriptionsService.getPlans` / `getMine` / `createRequest`) ;
+  après application des 3 migrations sur cette copie → 200 / 200 / 201,
+  ancienne formule conservée. **Pas des données de test obsolètes** (4
+  comptes, 3 abonnements, 2 preuves, sans rapport) : les supprimer ne
+  corrigerait rien. **Point non élucidé** : pourquoi le `prisma migrate
+  deploy` lancé par Render au démarrage (`start:prod`) n'a pas migré cette
+  base, alors que le nouveau code tourne — soit la *Start Command* du
+  service Render ne correspond pas à `render.yaml`, soit
+  `DIRECT_DATABASE_URL` (utilisée par `migrate deploy`) pointe sur une autre
+  base que `DATABASE_URL` (utilisée par l'app). Seuls les réglages/logs
+  Render le diront (la ligne `Datasource "db" … at "<hôte>"` du log de
+  démarrage indique la base migrée). L'écran Coaching échouera aussi sur
+  Neon tant que la table `CoachingSlot` manque.
+- **Diagnostic (2026-10-03, soir) — « Réserver un créneau » : `fetch failed:
+  NativeRequest.start … cannot be cast … (received Integer) … doesn't contain
+  valid id`. Rien corrigé.** L'appel de l'écran (`apiFetch('/coaching/
+  slots')`, sans option) est **identique** à ceux qui marchent (`apiFetch
+  ('/subscriptions/plans')`, `('/subscriptions/me')`) : aucun timeout,
+  signal ni paramètre numérique n'est passé — hypothèse écartée. L'erreur
+  naît dans `expo-modules-core` 57.0.20 (dernière 57.x publiée) : l'objet
+  natif `NativeRequest` créé par `expo/fetch` n'est plus trouvé dans le
+  registre des objets partagés quand `start` est appelé
+  (`SharedObjectRegistry.toNativeObject` → `InvalidSharedObjectIdException`
+  ; lecture de la table sans verrou alors que les ajouts/suppressions sont
+  verrouillés). Bug de la couche native Expo, pas du code de l'app,
+  probablement intermittent (concurrence / ramasse-miettes — le CHANGELOG
+  57.0.20 corrige déjà un cas voisin, #50513) ; l'écran est celui qui lance
+  le plus de requêtes en parallèle (3). Point utile : la requête n'est
+  **jamais envoyée** (rejet avant OkHttp), donc la rejouer est sans risque,
+  même pour un POST. Aucun ticket Expo trouvé pour ce message exact.
 
 ## Questions en attente
+
+- **500 en ligne — à décider par Ange** : (1) vérifier sur Render la *Start
+  Command* (doit être `npm run start:prod`), que `DIRECT_DATABASE_URL`
+  vise le même endpoint/base que `DATABASE_URL` (même `ep-…`, `neondb`,
+  sans `-pooler`), et la ligne `Datasource` du log du déploiement de
+  ~16:15 ; (2) puis appliquer les 3 migrations (additives, validées sur
+  une copie locale) à la base de démo — par un redéploiement une fois la
+  config corrigée, ou par un `prisma migrate deploy` ponctuel — après
+  vérification du PITR Neon (garde-fou n° 2). Aucun nettoyage de comptes
+  nécessaire.
+- **Erreur native `NativeRequest.start` — correctif à choisir** : (a)
+  dans `apiFetch`, rejouer une fois une requête rejetée avec ce message
+  précis (jamais envoyée, donc sans risque) ; (b) en plus, charger les 3
+  données de l'écran Créneaux en séquence plutôt qu'en parallèle ; (c)
+  signaler le bug à Expo avec la trace.
 
 - **Séparer l'identifiant d'app des builds `development` (proposé
   2026-10-03)** : pour éviter de reconfondre les deux APK, donner au profil
@@ -1024,6 +1085,13 @@ pour la suite du travail mobile puisque les routes SMS ne seront plus créées
 dans ce backend.
 
 ## Historique (ajouter une entrée par session, la plus récente en haut)
+
+- 2026-10-03 — Claude Code (VS Code) — Diagnostics sans correction : 500
+  en ligne = migrations de vague 1 absentes de la base Neon de démo
+  (vérifié en lecture seule, reproduit en local avec trace P2022, correctif
+  validé sur une copie) — cause de la non-migration côté Render à vérifier
+  par Ange ; erreur `NativeRequest.start` = bug natif `expo-modules-core`
+  57.0.20, appel de l'app identique aux appels qui marchent.
 
 - 2026-10-03 — Claude Code (VS Code) — Vague 2 mobile terminée (points 1 à
   5, un commit par point) : choix de formule, dashboard Client
