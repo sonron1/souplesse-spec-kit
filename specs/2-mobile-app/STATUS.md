@@ -692,6 +692,30 @@ point ouvert mais n'est plus bloquante pour la suite du travail mobile.
     `no_sessions_left` (l'API vérifie le solde avant le doublon) — sans
     impact, l'écran n'offre pas de bouton sur un créneau réservé.
     `tsc` + `expo export` verts.
+  - **[x] Point 4 — Coaching Coach** : le rôle COACH a désormais sa propre
+    navigation (`CoachNavigator`, comme Client/Modérateur) au lieu d'un
+    écran placeholder vide (qui n'avait même pas de déconnexion).
+    `CoachDashboardScreen` : créneaux non terminés du coach
+    (`GET /coaching/slots/mine`) groupés par jour, puce « En cours » pour un
+    créneau commencé, remplissage (« 3/10 inscrits », « · complet ») et
+    **liste nominative des inscrits** (prénom + nom, sinon `name`), bouton
+    « Nouveau créneau », déconnexion. `CreateSlotScreen` : **aucune
+    dépendance ajoutée** (pas de sélecteur de date natif dans le projet) —
+    puces des 14 prochains jours (« Aujourd'hui », « Demain », « lun. 5
+    oct. »…), heure saisie librement (« 18:00 », « 18h », « 7h30 »), puces
+    de durée (30 min → 2 h), puces d'activité (Accès salle / Fit Dance /
+    Taekwondo / Box, avec rappel de qui pourra réserver), places, titre
+    facultatif ; validation alignée sur `CreateSlotDto` (durée 15–240,
+    places 1–50, titre ≤ 80, début dans le futur) avant envoi. Retour au
+    dashboard après création (rechargé au focus). Vérifié sur l'API locale :
+    5 saisies invalides refusées par l'écran **et** par l'API (400) ; 2
+    créations réelles via le formulaire (titre nettoyé, catégorie Box,
+    « 7h30 » + 1 h 30) ; dashboard : créneau commencé il y a 30 min « En
+    cours », créneau terminé et créneau d'un autre coach absents,
+    « Coaching individuel 1/1 inscrit · complet : Awa Cliente », ordre
+    chronologique ; créneau créé visible et réservable (1 séance) côté
+    cliente, puis visible « 1/10 inscrit : Awa Cliente » côté coach ; un
+    client ne peut pas créer de créneau (403). `tsc` + `expo export` verts.
 
 ## Questions en attente
 

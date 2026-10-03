@@ -16,6 +16,7 @@ import PaymentStatusScreen from '../screens/PaymentStatusScreen';
 import CoachingSlotsScreen from '../screens/CoachingSlotsScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
 import CoachDashboardScreen from '../screens/CoachDashboardScreen';
+import CreateSlotScreen from '../screens/CreateSlotScreen';
 import ModeratorDashboardScreen from '../screens/ModeratorDashboardScreen';
 import PaymentReviewScreen from '../screens/PaymentReviewScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
@@ -47,9 +48,15 @@ export type ModeratorStackParamList = {
   PaymentReview: { proof: PendingPaymentProof };
 };
 
+export type CoachStackParamList = {
+  CoachDashboard: undefined;
+  CreateSlot: undefined;
+};
+
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const ClientStack = createNativeStackNavigator<ClientStackParamList>();
 const ModeratorStack = createNativeStackNavigator<ModeratorStackParamList>();
+const CoachStack = createNativeStackNavigator<CoachStackParamList>();
 const AppStack = createNativeStackNavigator();
 
 const darkHeaderOptions = {
@@ -103,12 +110,19 @@ function ModeratorNavigator() {
   );
 }
 
-// COACH -> CoachDashboardScreen, ADMIN -> AdminDashboardScreen (see
-// STATUS.md "Décisions actées" — rôle renvoyé par /auth/login). CLIENT and
-// MODERATOR get their own multi-screen navigators instead of a single
-// dashboard screen.
+function CoachNavigator() {
+  return (
+    <CoachStack.Navigator screenOptions={darkHeaderOptions}>
+      <CoachStack.Screen name="CoachDashboard" component={CoachDashboardScreen} options={{ headerShown: false }} />
+      <CoachStack.Screen name="CreateSlot" component={CreateSlotScreen} options={{ title: 'Nouveau créneau' }} />
+    </CoachStack.Navigator>
+  );
+}
+
+// ADMIN -> AdminDashboardScreen (see STATUS.md "Décisions actées" — rôle
+// renvoyé par /auth/login). CLIENT, COACH and MODERATOR get their own
+// multi-screen navigators instead of a single dashboard screen.
 const DASHBOARD_BY_ROLE: Record<string, ComponentType> = {
-  COACH: CoachDashboardScreen,
   ADMIN: AdminDashboardScreen,
 };
 
@@ -119,7 +133,10 @@ function AppNavigator({ role }: { role: string }) {
   if (role === 'MODERATOR') {
     return <ModeratorNavigator />;
   }
-  const DashboardScreen = DASHBOARD_BY_ROLE[role] ?? CoachDashboardScreen;
+  const DashboardScreen = DASHBOARD_BY_ROLE[role];
+  if (!DashboardScreen) {
+    return <CoachNavigator />; // COACH (and, as before, any unmapped role)
+  }
   return (
     <AppStack.Navigator screenOptions={{ headerShown: false }}>
       <AppStack.Screen name="Dashboard" component={DashboardScreen} />

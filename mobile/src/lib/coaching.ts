@@ -1,5 +1,5 @@
-import type { AvailableSlot, CoachingSlot } from '../api/coaching';
-import type { Subscription, SubscriptionPlan } from '../api/subscriptions';
+import type { AvailableSlot, CoachSlot, CoachSlotBooking, CoachingSlot } from '../api/coaching';
+import type { ActivityCategory, Subscription, SubscriptionPlan } from '../api/subscriptions';
 import { categoryKey, categoryLabel, type CategoryKey } from './plans';
 import { toEntry } from './subscriptions';
 
@@ -118,4 +118,90 @@ export function slotTitle(slot: Pick<CoachingSlot, 'title' | 'activityCategory'>
 export function placesText(remaining: number): string {
   if (remaining <= 0) return 'Complet';
   return `${remaining} place${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''}`;
+}
+
+// ─── Coach side ────────────────────────────────────────────────────────────
+
+export function isInProgress(slot: Pick<CoachingSlot, 'startsAt' | 'durationMinutes'>, now = Date.now()): boolean {
+  const start = new Date(slot.startsAt).getTime();
+  return start <= now && now < start + slot.durationMinutes * 60_000;
+}
+
+export function fillText(slot: Pick<CoachSlot, 'bookings' | 'capacity'>): string {
+  const n = slot.bookings.length;
+  return `${n}/${slot.capacity} inscrit${n > 1 ? 's' : ''}${n >= slot.capacity ? ' · complet' : ''}`;
+}
+
+export function clientName(booking: CoachSlotBooking): string {
+  const full = [booking.user.firstName, booking.user.lastName].filter(Boolean).join(' ').trim();
+  return full || booking.user.name;
+}
+
+/** Day choices for a new slot: today and the next days, as local dates at midnight. */
+export function nextDays(count: number, now = new Date()): { date: Date; label: string }[] {
+  return Array.from({ length: count }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const label =
+      i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+    return { date, label };
+  });
+}
+
+/** "18:00", "18h00", "9:30" → minutes since midnight; null if not a valid time. */
+export function parseTime(text: string): number | null {
+  const m = text.trim().match(/^([01]?\d|2[0-3])\s*[:hH]\s*([0-5]\d)?$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2] ?? 0);
+}
+
+export const DURATION_CHOICES = [30, 45, 60, 90, 120];
+
+/** 45 → "45 min", 60 → "1 h", 90 → "1 h 30". */
+export function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const rest = minutes % 60;
+  return `${Math.floor(minutes / 60)} h${rest ? ` ${rest}` : ''}`;
+}
+
+export interface SlotForm {
+  day: Date;
+  time: string;
+  durationMinutes: number;
+  capacity: string;
+  title: string;
+  activityCategory: ActivityCategory | null;
+}
+
+/**
+ * Validates the coach's form with souplesse-api's CreateSlotDto bounds
+ * (duration 15–240 min, capacity 1–50, title ≤ 80) and its "must start in
+ * the future" rule. Returns the request body, or the message to show.
+ */
+export function buildSlotInput(
+  form: SlotForm,
+  now = Date.now(),
+): { ok: true; input: { startsAt: string; durationMinutes: number; capacity: number; title?: string; activityCategory?: ActivityCategory } } | { ok: false; error: string } {
+  const minutes = parseTime(form.time);
+  if (minutes === null) return { ok: false, error: 'Heure invalide (ex. 18:00).' };
+  const start = new Date(form.day.getFullYear(), form.day.getMonth(), form.day.getDate(), Math.floor(minutes / 60), minutes % 60);
+  if (start.getTime() <= now) return { ok: false, error: 'Le créneau doit commencer dans le futur.' };
+  if (!Number.isInteger(form.durationMinutes) || form.durationMinutes < 15 || form.durationMinutes > 240) {
+    return { ok: false, error: 'Durée invalide (15 à 240 minutes).' };
+  }
+  const capacity = Number(form.capacity);
+  if (!/^\d+$/.test(form.capacity.trim()) || capacity < 1 || capacity > 50) {
+    return { ok: false, error: 'Nombre de places invalide (1 à 50).' };
+  }
+  const title = form.title.trim();
+  if (title.length > 80) return { ok: false, error: 'Titre trop long (80 caractères maximum).' };
+  return {
+    ok: true,
+    input: {
+      startsAt: start.toISOString(),
+      durationMinutes: form.durationMinutes,
+      capacity,
+      ...(title ? { title } : {}),
+      ...(form.activityCategory ? { activityCategory: form.activityCategory } : {}),
+    },
+  };
 }
